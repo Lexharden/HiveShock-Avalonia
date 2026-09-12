@@ -1,0 +1,159 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+        x:Class="HiveShock.Avalonia.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="HiveShock"
+        Width="1180" Height="760"
+        MinWidth="880" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BgBrush}"
+        Icon="/Assets/app.ico"
+        Closing="Window_Closing">
+    <Grid RowDefinitions="56,*,Auto">
+        <Border Grid.Row="0"
+                Background="{DynamicResource CardBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <DockPanel Margin="18,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="34" Height="34" CornerRadius="8" ClipToBounds="True" Margin="0,0,10,0"
+                            Background="{DynamicResource CardAltBrush}"
+                            BorderBrush="{DynamicResource BrandGoldBrush}" BorderThickness="1">
+                        <Image Source="{DynamicResource BrandLogo}" Stretch="Uniform" />
+                    </Border>
+                    <TextBlock Text="HiveShock" FontSize="18" FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrandGoldBrush}"
+                               VerticalAlignment="Center" />
+                    <TextBlock Text="Los regalos del live llegan al juego"
+                               Foreground="{DynamicResource MutedBrush}" Margin="12,2,0,0"
+                               FontSize="12" VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                            HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="12">
+                    <ComboBox Width="150"
+                              ItemsSource="{Binding ThemeOptions}"
+                              SelectedItem="{Binding SelectedTheme}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ThemeOption">
+                                <TextBlock Text="{Binding Label}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Border CornerRadius="10" Padding="12,7" MinWidth="120"
+                            Background="{DynamicResource CardAltBrush}"
+                            Classes.connecting="{Binding IsToneConnecting}"
+                            Classes.ok="{Binding IsToneOk}"
+                            Classes.live="{Binding IsToneLive}">
+                        <Border.Styles>
+                            <Style Selector="Border.connecting">
+                                <Setter Property="Background" Value="{DynamicResource BrandGoldBrush}" />
+                            </Style>
+                            <Style Selector="Border.ok">
+                                <Setter Property="Background" Value="{DynamicResource StatusOkBrush}" />
+                            </Style>
+                            <Style Selector="Border.live">
+                                <Setter Property="Background" Value="{DynamicResource LiveBrush}" />
+                            </Style>
+                        </Border.Styles>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+                            <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                                     Fill="#1A1200"
+                                     IsVisible="{Binding StatusDotVisible}"
+                                     Classes.pulse="{Binding IsToneLive}">
+                                <Ellipse.Styles>
+                                    <Style Selector="Ellipse.pulse">
+                                        <Style.Animations>
+                                            <Animation Duration="0:0:1.4" IterationCount="Infinite"
+                                                       PlaybackDirection="Alternate">
+                                                <KeyFrame Cue="0%">
+                                                    <Setter Property="Opacity" Value="1" />
+                                                </KeyFrame>
+                                                <KeyFrame Cue="100%">
+                                                    <Setter Property="Opacity" Value="0.35" />
+                                                </KeyFrame>
+                                            </Animation>
+                                        </Style.Animations>
+                                    </Style>
+                                </Ellipse.Styles>
+                            </Ellipse>
+                            <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold" FontSize="12"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextBrush}"
+                                       Classes.on="{Binding StatusOn}">
+                                <TextBlock.Styles>
+                                    <Style Selector="TextBlock.on">
+                                        <Setter Property="Foreground" Value="{DynamicResource StatusOnForegroundBrush}" />
+                                    </Style>
+                                </TextBlock.Styles>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="1" ColumnDefinitions="188,*">
+            <Border Background="{DynamicResource CardBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="0,0,1,0">
+                <DockPanel Margin="0,10,0,10">
+                    <Border DockPanel.Dock="Top" Margin="16,4,16,14" Padding="10"
+                            Background="{DynamicResource CardAltBrush}" CornerRadius="10"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Border Width="40" Height="40" CornerRadius="8" ClipToBounds="True"
+                                    Background="{DynamicResource BgBrush}"
+                                    BorderBrush="{DynamicResource BrandGoldBrush}" BorderThickness="1">
+                                <Image Source="{DynamicResource BrandLogo}" Stretch="Uniform" />
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="HiveShock" FontWeight="SemiBold" FontSize="13"
+                                           Foreground="{DynamicResource BrandGoldBrush}" />
+                                <TextBlock Text="por Yafel" Foreground="{DynamicResource MutedBrush}" FontSize="11" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <StackPanel DockPanel.Dock="Bottom">
+                        <Button Content="Acerca de" Classes="nav" Classes.active="{Binding IsAboutNav}"
+                                Command="{Binding NavAboutCommand}" />
+                        <Button Content="Ayuda" Classes="nav" Classes.active="{Binding IsHelpNav}"
+                                Command="{Binding NavHelpCommand}" />
+                    </StackPanel>
+                    <StackPanel>
+                        <Button Content="Inicio" Classes="nav" Classes.active="{Binding IsStudioNav}"
+                                Command="{Binding NavStudioCommand}" />
+                        <Button Content="Regalos" Classes="nav" Classes.active="{Binding IsGiftsNav}"
+                                Command="{Binding NavGiftsCommand}" />
+                        <Button Content="Vistos" Classes="nav" Classes.active="{Binding IsCatalogNav}"
+                                Command="{Binding NavCatalogCommand}" />
+                        <Button Content="Likes y chat" Classes="nav" Classes.active="{Binding IsEventsNav}"
+                                Command="{Binding NavEventsCommand}" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" Margin="18" />
+        </Grid>
+
+        <Border Grid.Row="2" Background="{DynamicResource CardBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="14,10">
+            <Grid RowDefinitions="Auto,88,Auto">
+                <TextBlock Text="Qué está pasando" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,6" />
+                <TextBox Grid.Row="1" Text="{Binding ActivityText, Mode=OneWay}" IsReadOnly="True"
+                         TextWrapping="Wrap" AcceptsReturn="True"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         BorderThickness="0" Background="{DynamicResource BgBrush}" />
+                <Expander Grid.Row="2" Header="Más detalle" IsExpanded="{Binding DetailLogOpen}" Margin="0,8,0,0">
+                    <TextBox MinHeight="100" MaxHeight="180"
+                             Text="{Binding DetailLogText, Mode=OneWay}" IsReadOnly="True"
+                             FontFamily="Cascadia Mono, Consolas, monospace" FontSize="11"
+                             AcceptsReturn="True" TextWrapping="NoWrap"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             BorderThickness="0" Background="{DynamicResource BgBrush}" Margin="0,8,0,0" />
+                </Expander>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

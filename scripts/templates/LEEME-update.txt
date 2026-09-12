@@ -1,0 +1,14 @@
+HiveShock {VERSION} — actualización
+====================================
+
+Este zip solo contiene el ejecutable a reemplazar.
+NO incluye profiles, gift-catalog.json, gifts-images, .env
+ni otros datos tuyos.
+
+Cómo actualizar
+---------------
+1. Cierra HiveShock.
+2. Sustituye {REPLACE}
+   (y HiveShock.Cli si también viene en este zip).
+3. No toques profiles/, gift-catalog.json, gifts-images/ ni .env.
+4. Abre {LAUNCH}.

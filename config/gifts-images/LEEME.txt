@@ -1,0 +1,18 @@
+Imágenes de referencia de regalos TikTok
+=======================================
+
+Coloca aquí tus .webp, .png o .jpg junto al Bridge-z-mm.exe.
+
+Convención de nombres (automática, sin tocar gifts.json):
+
+  {id}.webp          → 5655.webp, 7934.webp
+  {nombre}.webp      → rose.webp, finger-heart.webp (minúsculas, guiones)
+
+También sirven: .png, .jpg, .jpeg
+
+Opcional en gifts.json (si el nombre no coincide):
+
+  "image": "5655.webp"
+  "image": "gifts-images/mi-regalo.webp"
+
+La app muestra la miniatura en Regalos y Catálogo.

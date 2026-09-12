@@ -1,0 +1,155 @@
+{
+  "_help": "Perfil Dusklight / Twilight Princess. Combos: minCount, each. overlay=true muestra chip OBS.",
+
+  "gifts": [
+    {
+      "gift": "Rose",
+      "also": ["Rosa"],
+      "id": "5655",
+      "effect": "heal",
+      "what": "1 diamante. Cura",
+      "overlay": true,
+      "overlayText": "Rosa"
+    },
+    {
+      "gift": "Heart Me",
+      "id": "7934",
+      "effect": "heal",
+      "what": "Cura corazones"
+    },
+    {
+      "gift": "TikTok",
+      "effect": "fill_oil",
+      "what": "Llena el farol"
+    },
+    {
+      "gift": "Finger Heart",
+      "id": "5827",
+      "effect": "cucco",
+      "what": "Un cucco"
+    },
+    {
+      "gift": "GG",
+      "effect": "random_enemy",
+      "what": "Enemigo aleatorio"
+    },
+    {
+      "gift": "Super Popular",
+      "id": "16690",
+      "effect": "rupees",
+      "what": "+20 rupias"
+    },
+    {
+      "gift": "Capybara",
+      "id": "14488",
+      "effect": "invert",
+      "what": "Controles invertidos 20 s"
+    },
+    {
+      "gift": "Doughnut",
+      "effect": "wolf_toggle",
+      "what": "Transformación lobo/humano"
+    },
+    {
+      "gift": "Popular Vote",
+      "id": "13651",
+      "effect": "knockback",
+      "what": "Empujón + daño"
+    },
+    {
+      "gift": "Guardian Wings",
+      "id": "15104",
+      "effect": "summon_epona",
+      "what": "Llama a Epona"
+    },
+    {
+      "gift": "Rosa para ti",
+      "effect": "bokoblin_army",
+      "what": "Manada de bokoblins"
+    },
+    {
+      "gift": "Money Gun",
+      "effect": "steal_rupees",
+      "what": "Roba todas las rupias"
+    },
+    {
+      "gift": "Hand Hearts",
+      "effect": "fill_rupees",
+      "what": "Llena el monedero"
+    },
+    {
+      "gift": "Ice Cream Cone",
+      "effect": "empty_oil",
+      "what": "Apaga / vacía el farol"
+    },
+    {
+      "gift": "Perfume",
+      "effect": "iron_boots_toggle",
+      "what": "Botas de hierro"
+    },
+    {
+      "gift": "Butterfly",
+      "effect": "bee_swarm",
+      "what": "Enjambre de abejas"
+    },
+    {
+      "gift": "Hat and Mustache",
+      "effect": "spawn_bomb",
+      "what": "Bomba a los pies"
+    },
+    {
+      "gift": "Cap",
+      "effect": "goat_army",
+      "what": "Rebaño de cabras"
+    },
+    {
+      "gift": "Galaxy",
+      "effect": "shadow_beast",
+      "what": "Bestia de las Sombras"
+    },
+    {
+      "gift": "Lion",
+      "effect": "cucco_army",
+      "what": "Ejército de cuccos"
+    }
+  ],
+
+  "likes": {
+    "every": 0,
+    "effect": "heal",
+    "what": "0 = apagado"
+  },
+  "follow": {
+    "effect": "heal",
+    "what": "Cura al seguir"
+  },
+  "share": {
+    "effect": "rupees",
+    "what": "Rupias al compartir"
+  },
+  "chat": {
+    "enabled": false,
+    "prefix": "!",
+    "commands": {
+      "cura": "heal",
+      "cucco": "cucco",
+      "enemigo": "random_enemy",
+      "invert": "invert",
+      "lobo": "wolf_toggle",
+      "epona": "summon_epona",
+      "bomba": "spawn_bomb",
+      "abejas": "bee_swarm",
+      "botas": "iron_boots_toggle"
+    }
+  },
+
+  "unmappedGifts": "ignore",
+  "giftsByDiamonds": [
+    { "min": 1, "max": 9, "effect": "heal" },
+    { "min": 10, "max": 49, "effect": "cucco" },
+    { "min": 50, "max": 99, "effect": "random_enemy" },
+    { "min": 100, "max": 199, "effect": "bokoblin_army" },
+    { "min": 200, "max": 499, "effect": "bee_swarm" },
+    { "min": 500, "effect": "shadow_beast" }
+  ]
+}

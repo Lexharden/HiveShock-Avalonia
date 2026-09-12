@@ -1,0 +1,19 @@
+HiveShock {VERSION} — instalación completa
+==========================================
+
+1. Descomprime esta carpeta donde quieras.
+2. Copia .env.example → .env (o configura el canal en la GUI).
+3. Abre {LAUNCH}
+
+NO uses este zip encima de una instalación existente si ya tienes
+perfiles o catálogo configurados: podrías sobrescribir tus mapeos.
+Para actualizar, usa el zip *-update.zip.
+
+Windows: abre HiveShock.exe.
+
+Linux: chmod +x HiveShock && ./HiveShock
+
+Mac: para pasarlo a otras personas usa el DMG (arrastrar HiveShock
+a Aplicaciones). La primera vez: clic derecho → Abrir.
+Si macOS Tahoe no ofrece Abrir: Ajustes del Sistema → Privacidad
+y seguridad → Abrir de todos modos. No hace falta Terminal.

@@ -1,0 +1,8 @@
+Logos de HiveShock (PNG, fondo transparente preferible):
+
+  logo-dark.png   → tema oscuro (UI)
+  logo-light.png  → tema claro (UI)
+  app.png         → fuente del icono
+  app.ico          → icono del HiveShock.exe (Explorador / barra de tareas)
+
+Si cambias app.png, regenera app.ico y vuelve a publicar.

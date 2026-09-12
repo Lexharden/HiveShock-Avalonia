@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="HiveShock.Avalonia/HiveShock.Avalonia.csproj" />
+  <Project Path="HiveShock.Core/HiveShock.Core.csproj" />
+  <Project Path="HiveShock.Cli/HiveShock.Cli.csproj" />
+  <Project Path="libs/TikTokLive/TikTokLive.csproj" />
+</Solution>

@@ -1,0 +1,11 @@
+<Project>
+  <!--
+    Versión única de HiveShock. TikTokLive (libs/) declara la suya en su csproj.
+    Bump: ./scripts/bump-version.sh patch | minor | major | 1.2.3
+          .\scripts\Bump-Version.ps1 patch
+  -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' != 'TikTokLive'">
+    <Version>1.0.0</Version>
+    <InformationalVersion>$(Version)</InformationalVersion>
+  </PropertyGroup>
+</Project>

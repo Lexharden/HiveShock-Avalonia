@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>TikTokLive</RootNamespace>
+    <AssemblyName>TikTokLive</AssemblyName>
+
+    <!-- NuGet package metadata -->
+    <PackageId>PirateTok.Live</PackageId>
+    <Version>0.1.6</Version>
+    <Authors>Zmole Cristian</Authors>
+    <Description>TikTok Live WebSocket connector — real-time chat, gifts, likes, and viewer events. No authentication required.</Description>
+    <PackageLicenseExpression>0BSD</PackageLicenseExpression>
+    <PackageProjectUrl>https://piratetok.boats</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/PirateTok/live-cs</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>tiktok;tiktok-live;live;stream;chat;gifts;websocket;protobuf;realtime;piratetok;events</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../README.md" Pack="true" PackagePath="/" Condition="Exists('../README.md')" />
+    <InternalsVisibleTo Include="ReplayTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="protobuf-net" Version="3.2.30" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+</Project>

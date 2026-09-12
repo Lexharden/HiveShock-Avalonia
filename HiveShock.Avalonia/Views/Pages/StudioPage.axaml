@@ -1,0 +1,334 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+             x:Class="HiveShock.Avalonia.Views.Pages.StudioPage"
+             x:DataType="vm:StudioViewModel">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel MaxWidth="760" HorizontalAlignment="Left">
+            <TextBlock Classes="pageTitle" Text="Inicio" />
+            <TextBlock Classes="pageLead"
+                       Text="Elige el juego, escribe tu usuario de TikTok y pulsa Conectar. Los regalos del live harán cosas en la partida." />
+
+            <TextBlock Classes="sectionTitle" Text="JUEGO" />
+            <ItemsControl ItemsSource="{Binding Profiles}" Margin="0,0,0,8">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ProfileCardViewModel">
+                        <Button Classes="gamecard" Classes.active="{Binding IsSelected}"
+                                IsEnabled="{Binding $parent[UserControl].((vm:StudioViewModel)DataContext).CanEditSetup}"
+                                Command="{Binding $parent[UserControl].((vm:StudioViewModel)DataContext).SelectProfileCommand}"
+                                CommandParameter="{Binding}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" />
+                                <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource MutedBrush}"
+                                           TextWrapping="Wrap" MaxWidth="260" Margin="0,6,0,0" FontSize="12" />
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="{Binding ProfileHint}" Foreground="{DynamicResource MutedBrush}"
+                       TextWrapping="Wrap" Margin="0,0,0,18" />
+
+            <TextBlock Classes="fieldLabel" Text="Tu usuario de TikTok (sin @)" />
+            <DockPanel Margin="0,0,0,16">
+                <Button DockPanel.Dock="Right" Classes="secondary" Content="Guardar"
+                        Command="{Binding SaveChannelCommand}" Margin="8,0,0,0" />
+                <TextBox Text="{Binding Channel}" />
+            </DockPanel>
+
+            <TextBlock Classes="fieldLabel" Text="Qué quieres hacer" />
+            <WrapPanel Margin="0,0,0,8">
+                <RadioButton Classes="chip" Content="En vivo" IsChecked="{Binding IsModeLive}" GroupName="Mode"
+                             IsEnabled="{Binding CanEditSetup}" />
+                <RadioButton Classes="chip" Content="Anotar regalos" IsChecked="{Binding IsModeCapture}" GroupName="Mode"
+                             IsEnabled="{Binding CanEditSetup}" />
+                <RadioButton Classes="chip" Content="Probar sin live" IsChecked="{Binding IsModeSdk}" GroupName="Mode"
+                             IsEnabled="{Binding CanEditSetup}" />
+            </WrapPanel>
+            <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"
+                       Text="En vivo: los regalos llegan al juego. Anotar regalos: solo guarda nombres, sin tocar la partida. Probar sin live: no usa TikTok; sirve para mandar efectos desde aquí." />
+
+            <CheckBox Content="Solo simular (el juego no cambia)"
+                      IsChecked="{Binding Simulate}" IsEnabled="{Binding CanEditSetup}" Margin="0,0,0,16" />
+
+            <Button Classes="connect"
+                    Classes.connecting="{Binding IsToneConnecting}"
+                    Classes.live="{Binding IsToneLive}"
+                    Classes.ok="{Binding IsToneOk}"
+                    Content="{Binding ConnectLabel}"
+                    Command="{Binding ConnectCommand}"
+                    IsEnabled="{Binding CanConnect}" />
+            <TextBlock Margin="0,0,0,6" FontSize="12" FontWeight="SemiBold" Text="{Binding SessionHint}"
+                       Foreground="{DynamicResource MutedBrush}"
+                       Classes.connecting="{Binding IsToneConnecting}"
+                       Classes.live="{Binding IsToneLive}"
+                       Classes.ok="{Binding IsToneOk}">
+                <TextBlock.Styles>
+                    <Style Selector="TextBlock.connecting">
+                        <Setter Property="Foreground" Value="{DynamicResource BrandGoldBrush}" />
+                    </Style>
+                    <Style Selector="TextBlock.live">
+                        <Setter Property="Foreground" Value="{DynamicResource BrandGoldBrush}" />
+                    </Style>
+                    <Style Selector="TextBlock.ok">
+                        <Setter Property="Foreground" Value="{DynamicResource StatusOkBrush}" />
+                    </Style>
+                </TextBlock.Styles>
+            </TextBlock>
+            <TextBlock Text="{Binding MappingSummary}" Foreground="{DynamicResource MutedBrush}"
+                       FontSize="12" Margin="0,0,0,22" />
+
+            <Border Classes="card" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="VENTANAS PARA OBS" />
+                    <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,0,0,8"
+                               TextWrapping="Wrap"
+                               Text="Se abren aparte para capturarlas en OBS. Arrástralas donde quieras. Abajo puedes cambiar textos, números y colores." />
+                    <CheckBox Content="Mostrar regalos en pantalla" IsChecked="{Binding ShowGiftsOnStream}" />
+                    <CheckBox Content="Mostrar contador en pantalla" IsChecked="{Binding ShowCounterOnStream}"
+                              IsVisible="{Binding SupportsDeath}" Margin="0,6,0,0" />
+                    <DockPanel Margin="0,12,0,0">
+                        <TextBlock Classes="fieldLabel" Text="Tamaño de la ventana" Width="150"
+                                   VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0" Width="40"
+                                   Text="{Binding OverlayScale, StringFormat={}{0:0.0}x}" />
+                        <Slider Minimum="1.0" Maximum="3.0" TickFrequency="0.1" IsSnapToTickEnabled="True"
+                                Value="{Binding OverlayScale}" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <StackPanel IsVisible="{Binding SupportsDeath}" Margin="0,14,0,0">
+                        <TextBlock Classes="sectionTitle" Text="CONTADOR" />
+                        <WrapPanel>
+                            <RadioButton Classes="chip" Content="Contar muertes" IsChecked="{Binding CountUpMode}"
+                                         GroupName="Death" />
+                            <RadioButton Classes="chip" Content="Contar vidas" IsChecked="{Binding LivesMode}"
+                                         GroupName="Death" />
+                        </WrapPanel>
+                        <DockPanel Margin="0,8,0,8">
+                            <TextBlock Classes="fieldLabel" Text="Empieza en" Width="100"
+                                       VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBox Text="{Binding DeathStartText, UpdateSourceTrigger=LostFocus}"
+                                     Width="100" HorizontalAlignment="Left" />
+                        </DockPanel>
+                        <TextBlock Text="{Binding CounterDisplay}" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,10" />
+                        <WrapPanel>
+                            <Button Classes="secondary" Content="Poner a cero"
+                                    Command="{Binding ResetCounterCommand}" />
+                            <Button Classes="secondary" Content="Rescatar a Link"
+                                    Command="{Binding RescueCommand}"
+                                    IsVisible="{Binding CanRescue}" />
+                            <Button Classes="danger" Content="Borrar partida"
+                                    Command="{Binding DeleteSaveCommand}"
+                                    IsVisible="{Binding CanDeleteSave}" />
+                        </WrapPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="CÓMO SE VE EN PANTALLA" />
+                    <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,0,0,12"
+                               TextWrapping="Wrap"
+                               Text="Esto es lo que ves en OBS. Cambia el texto, el tamaño y el color; la vista previa se actualiza al momento." />
+
+                    <Border Padding="18,14" CornerRadius="12" Margin="0,0,0,16"
+                            Background="{Binding PreviewCardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                            HorizontalAlignment="Stretch">
+                        <Viewbox MaxHeight="180" Stretch="Uniform" HorizontalAlignment="{Binding PreviewAlign}">
+                            <StackPanel HorizontalAlignment="{Binding PreviewAlign}">
+                                <TextBlock Text="{Binding CounterTitleText}"
+                                           FontSize="{Binding OverlayTitleSize}"
+                                           Foreground="{Binding PreviewTitleBrush}"
+                                           HorizontalAlignment="{Binding PreviewAlign}" />
+                                <TextBlock Text="{Binding PreviewCounterValue}"
+                                           FontSize="{Binding OverlayNumberSize}"
+                                           FontWeight="Bold"
+                                           Foreground="{Binding PreviewNumberBrush}"
+                                           HorizontalAlignment="{Binding PreviewAlign}" />
+                                <TextBlock Text="{Binding GiftsTitleText}" Margin="0,10,0,4"
+                                           FontSize="{Binding OverlayTitleSize}"
+                                           Foreground="{Binding PreviewTitleBrush}"
+                                           HorizontalAlignment="{Binding PreviewAlign}"
+                                           IsVisible="{Binding ShowGiftsTitle}" />
+                                <TextBlock Text="Rosa"
+                                           FontSize="{Binding OverlayGiftNameSize}"
+                                           FontWeight="SemiBold"
+                                           Foreground="{Binding PreviewGiftBrush}"
+                                           HorizontalAlignment="{Binding PreviewAlign}" />
+                            </StackPanel>
+                        </Viewbox>
+                    </Border>
+
+                    <TextBlock Classes="sectionTitle" Text="TEXTOS" />
+                    <TextBlock Classes="fieldLabel" Text="Título del contador" />
+                    <DockPanel Margin="0,0,0,8">
+                        <WrapPanel DockPanel.Dock="Right" Margin="8,0,0,0">
+                            <Button Classes="secondary" Content="Vidas" Command="{Binding UseTitleVidasCommand}" Margin="0,0,8,0" />
+                            <Button Classes="secondary" Content="Muertes" Command="{Binding UseTitleMuertesCommand}" Margin="0" />
+                        </WrapPanel>
+                        <TextBox Text="{Binding CounterTitleText}" PlaceholderText="Ejemplo: Muertes de Link" />
+                    </DockPanel>
+
+                    <TextBlock Classes="fieldLabel" Text="Título de regalos" />
+                    <TextBox Text="{Binding GiftsTitleText}" Margin="0,0,0,8" PlaceholderText="Regalos" />
+                    <CheckBox Content="Mostrar el título de regalos" IsChecked="{Binding ShowGiftsTitle}" Margin="0,0,0,14" />
+
+                    <TextBlock Classes="sectionTitle" Text="TAMAÑOS" />
+                    <TextBlock Classes="fieldLabel" Text="Número del contador" />
+                    <DockPanel Margin="0,0,0,10">
+                        <TextBlock DockPanel.Dock="Right" Width="40" VerticalAlignment="Center"
+                                   Text="{Binding OverlayNumberSize, StringFormat={}{0:0}}" />
+                        <Slider Minimum="28" Maximum="140" TickFrequency="2" IsSnapToTickEnabled="True"
+                                Value="{Binding OverlayNumberSize}" />
+                    </DockPanel>
+                    <TextBlock Classes="fieldLabel" Text="Títulos" />
+                    <DockPanel Margin="0,0,0,10">
+                        <TextBlock DockPanel.Dock="Right" Width="40" VerticalAlignment="Center"
+                                   Text="{Binding OverlayTitleSize, StringFormat={}{0:0}}" />
+                        <Slider Minimum="10" Maximum="36" TickFrequency="1" IsSnapToTickEnabled="True"
+                                Value="{Binding OverlayTitleSize}" />
+                    </DockPanel>
+                    <TextBlock Classes="fieldLabel" Text="Nombres de regalos" />
+                    <DockPanel Margin="0,0,0,14">
+                        <TextBlock DockPanel.Dock="Right" Width="40" VerticalAlignment="Center"
+                                   Text="{Binding OverlayGiftNameSize, StringFormat={}{0:0}}" />
+                        <Slider Minimum="10" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True"
+                                Value="{Binding OverlayGiftNameSize}" />
+                    </DockPanel>
+
+                    <TextBlock Classes="sectionTitle" Text="COLORES" />
+                    <TextBlock Classes="fieldLabel" Text="Número" />
+                    <WrapPanel Margin="0,0,0,10">
+                        <StackPanel Margin="0,0,12,8">
+                            <Button Classes="swatch" Classes.selected="{Binding IsNumberColorTheme}"
+                                    Background="{DynamicResource TextBrush}"
+                                    HorizontalAlignment="Center"
+                                    Command="{Binding SetNumberColorCommand}" CommandParameter="theme" />
+                            <TextBlock Text="Tema" FontSize="11" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,8">
+                            <Button Classes="swatch" Classes.selected="{Binding IsNumberColorGold}"
+                                    Background="#EBA00A" HorizontalAlignment="Center"
+                                    Command="{Binding SetNumberColorCommand}" CommandParameter="#EBA00A" />
+                            <TextBlock Text="Oro" FontSize="11" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,8">
+                            <Button Classes="swatch" Classes.selected="{Binding IsNumberColorBlue}"
+                                    Background="#075BAA" HorizontalAlignment="Center"
+                                    Command="{Binding SetNumberColorCommand}" CommandParameter="#075BAA" />
+                            <TextBlock Text="Azul" FontSize="11" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,8">
+                            <Button Classes="swatch" Classes.selected="{Binding IsNumberColorWhite}"
+                                    Background="#F7F7F7" HorizontalAlignment="Center"
+                                    Command="{Binding SetNumberColorCommand}" CommandParameter="#F7F7F7" />
+                            <TextBlock Text="Blanco" FontSize="11" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,8">
+                            <Button Classes="swatch" Classes.selected="{Binding IsNumberColorBlack}"
+                                    Background="#0E1520" HorizontalAlignment="Center"
+                                    Command="{Binding SetNumberColorCommand}" CommandParameter="#0E1520" />
+                            <TextBlock Text="Negro" FontSize="11" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </WrapPanel>
+                    <TextBlock Classes="fieldLabel" Text="Títulos" />
+                    <WrapPanel Margin="0,0,0,10">
+                        <StackPanel Margin="0,0,12,8">
+                            <Button Classes="swatch" Classes.selected="{Binding IsTitleColorTheme}"
+                                    Background="{DynamicResource MutedBrush}"
+                                    HorizontalAlignment="Center"
+                                    Command="{Binding SetTitleColorCommand}" CommandParameter="theme" />
+                            <TextBlock Text="Tema" FontSize="11" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,8">
+                            <Button Classes="swatch" Classes.selected="{Binding IsTitleColorGold}"
+                                    Background="#EBA00A" HorizontalAlignment="Center"
+                                    Command="{Binding SetTitleColorCommand}" CommandParameter="#EBA00A" />
+                            <TextBlock Text="Oro" FontSize="11" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,8">
+                            <Button Classes="swatch" Classes.selected="{Binding IsTitleColorWhite}"
+                                    Background="#F7F7F7" HorizontalAlignment="Center"
+                                    Command="{Binding SetTitleColorCommand}" CommandParameter="#F7F7F7" />
+                            <TextBlock Text="Blanco" FontSize="11" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,8">
+                            <Button Classes="swatch" Classes.selected="{Binding IsTitleColorBlack}"
+                                    Background="#0E1520" HorizontalAlignment="Center"
+                                    Command="{Binding SetTitleColorCommand}" CommandParameter="#0E1520" />
+                            <TextBlock Text="Negro" FontSize="11" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </WrapPanel>
+                    <TextBlock Classes="fieldLabel" Text="Regalos" />
+                    <WrapPanel Margin="0,0,0,14">
+                        <StackPanel Margin="0,0,12,8">
+                            <Button Classes="swatch" Classes.selected="{Binding IsGiftColorTheme}"
+                                    Background="{DynamicResource TextBrush}"
+                                    HorizontalAlignment="Center"
+                                    Command="{Binding SetGiftColorCommand}" CommandParameter="theme" />
+                            <TextBlock Text="Tema" FontSize="11" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,8">
+                            <Button Classes="swatch" Classes.selected="{Binding IsGiftColorGold}"
+                                    Background="#EBA00A" HorizontalAlignment="Center"
+                                    Command="{Binding SetGiftColorCommand}" CommandParameter="#EBA00A" />
+                            <TextBlock Text="Oro" FontSize="11" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,8">
+                            <Button Classes="swatch" Classes.selected="{Binding IsGiftColorWhite}"
+                                    Background="#F7F7F7" HorizontalAlignment="Center"
+                                    Command="{Binding SetGiftColorCommand}" CommandParameter="#F7F7F7" />
+                            <TextBlock Text="Blanco" FontSize="11" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,8">
+                            <Button Classes="swatch" Classes.selected="{Binding IsGiftColorBlack}"
+                                    Background="#0E1520" HorizontalAlignment="Center"
+                                    Command="{Binding SetGiftColorCommand}" CommandParameter="#0E1520" />
+                            <TextBlock Text="Negro" FontSize="11" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </WrapPanel>
+
+                    <TextBlock Classes="sectionTitle" Text="POSICIÓN Y FONDO" />
+                    <TextBlock Classes="fieldLabel" Text="Alineación del texto" />
+                    <WrapPanel Margin="0,0,0,12">
+                        <RadioButton Classes="chip" Content="Al centro" IsChecked="{Binding OverlayAlignCenter}"
+                                     GroupName="OvAlign" />
+                        <RadioButton Classes="chip" Content="A la izquierda" IsChecked="{Binding OverlayAlignLeft}"
+                                     GroupName="OvAlign" />
+                    </WrapPanel>
+                    <CheckBox Content="Mostrar fondo (apágalo si usas chroma key en OBS)"
+                              IsChecked="{Binding OverlayShowBackground}" Margin="0,0,0,8" />
+                    <DockPanel IsVisible="{Binding OverlayShowBackground}" Margin="0,0,0,12">
+                        <TextBlock Classes="fieldLabel" Text="Opacidad del fondo" Width="150"
+                                   VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBlock DockPanel.Dock="Right" Width="48" VerticalAlignment="Center"
+                                   Text="{Binding OverlayBackgroundOpacity, StringFormat={}{0:P0}}" />
+                        <Slider Minimum="0.2" Maximum="1.0" TickFrequency="0.05" IsSnapToTickEnabled="True"
+                                Value="{Binding OverlayBackgroundOpacity}" />
+                    </DockPanel>
+                    <Button Classes="secondary" Content="Restablecer aspecto"
+                            Command="{Binding ResetOverlayLookCommand}" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

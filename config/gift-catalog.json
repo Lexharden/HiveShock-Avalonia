@@ -1,0 +1,560 @@
+{
+  "_help": "Catálogo de regalos capturados del live (id + nombres EN/ES). Se actualiza solo.",
+  "gifts": [
+    {
+      "id": "59881",
+      "nameEn": "A Shard of Hope",
+      "also": [],
+      "diamonds": 1,
+      "seen": 2,
+      "lastSeenUtc": "2026-09-09T10:46:15.5673334Z",
+      "displayName": "A Shard of Hope",
+      "primaryName": "A Shard of Hope"
+    },
+    {
+      "id": "6784",
+      "nameEn": "Cake Slice",
+      "also": [],
+      "diamonds": 1,
+      "seen": 2,
+      "lastSeenUtc": "2026-09-09T10:46:16.4205268Z",
+      "displayName": "Cake Slice",
+      "primaryName": "Cake Slice"
+    },
+    {
+      "id": "231956",
+      "nameEn": "Clap Clap",
+      "also": [],
+      "diamonds": 1,
+      "seen": 33,
+      "lastSeenUtc": "2026-09-10T08:08:00.4438350Z",
+      "displayName": "Clap Clap",
+      "primaryName": "Clap Clap"
+    },
+    {
+      "id": "6064",
+      "nameEn": "GG",
+      "also": [],
+      "diamonds": 1,
+      "seen": 7,
+      "lastSeenUtc": "2026-09-10T08:07:25.5677512Z",
+      "displayName": "GG",
+      "primaryName": "GG",
+      "imagePath": "gifts-images\\6064.webp"
+    },
+    {
+      "id": "6788",
+      "nameEn": "Glow Stick",
+      "also": [],
+      "diamonds": 1,
+      "seen": 8,
+      "lastSeenUtc": "2026-09-09T10:45:16.6624727Z",
+      "displayName": "Glow Stick",
+      "primaryName": "Glow Stick"
+    },
+    {
+      "id": "231955",
+      "nameEn": "Good Job",
+      "also": [],
+      "diamonds": 1,
+      "seen": 3,
+      "lastSeenUtc": "2026-09-09T10:45:16.6624377Z",
+      "displayName": "Good Job",
+      "primaryName": "Good Job"
+    },
+    {
+      "id": "15104",
+      "nameEn": "Guardian Wings",
+      "also": [],
+      "diamonds": 1,
+      "seen": 833,
+      "lastSeenUtc": "2026-09-10T08:18:14.3765349Z",
+      "displayName": "Guardian Wings",
+      "primaryName": "Guardian Wings",
+      "imagePath": "gifts-images\\15104.webp"
+    },
+    {
+      "id": "7934",
+      "nameEn": "Heart Me",
+      "also": [],
+      "diamonds": 1,
+      "seen": 50,
+      "lastSeenUtc": "2026-09-10T08:42:34.4280001Z",
+      "displayName": "Heart Me",
+      "primaryName": "Heart Me",
+      "imagePath": "gifts-images\\7934.webp"
+    },
+    {
+      "id": "5827",
+      "nameEn": "Finger Heart",
+      "nameEs": "Ice Cream Cone",
+      "also": [],
+      "diamonds": 0,
+      "seen": 1,
+      "lastSeenUtc": "2026-09-09T10:51:12.4100185Z",
+      "displayName": "Ice Cream Cone / Finger Heart",
+      "primaryName": "Ice Cream Cone",
+      "imagePath": "gifts-images\\5827.webp"
+    },
+    {
+      "id": "7096",
+      "nameEn": "It's corn",
+      "also": [],
+      "diamonds": 1,
+      "seen": 17,
+      "lastSeenUtc": "2026-09-10T06:23:15.3953440Z",
+      "displayName": "It's corn",
+      "primaryName": "It's corn"
+    },
+    {
+      "id": "15231",
+      "nameEn": "Love you so much",
+      "also": [],
+      "diamonds": 1,
+      "seen": 11,
+      "lastSeenUtc": "2026-09-09T10:45:13.2998387Z",
+      "displayName": "Love you so much",
+      "primaryName": "Love you so much"
+    },
+    {
+      "id": "7032",
+      "nameEn": "Maracas",
+      "also": [],
+      "diamonds": 1,
+      "seen": 2,
+      "lastSeenUtc": "2026-09-10T08:30:52.8440545Z",
+      "displayName": "Maracas",
+      "primaryName": "Maracas",
+      "imagePath": "gifts-images\\7032.png"
+    },
+    {
+      "id": "17085",
+      "nameEn": "Music Album",
+      "also": [],
+      "diamonds": 1,
+      "seen": 2,
+      "lastSeenUtc": "2026-09-09T10:46:13.0667245Z",
+      "displayName": "Music Album",
+      "primaryName": "Music Album"
+    },
+    {
+      "id": "133119",
+      "nameEn": "Music On Stage",
+      "also": [],
+      "diamonds": 1,
+      "seen": 2,
+      "lastSeenUtc": "2026-09-09T10:46:12.2166381Z",
+      "displayName": "Music On Stage",
+      "primaryName": "Music On Stage"
+    },
+    {
+      "id": "19439",
+      "nameEn": "Oldies",
+      "also": [],
+      "diamonds": 1,
+      "seen": 2,
+      "lastSeenUtc": "2026-09-09T10:46:15.5577234Z",
+      "displayName": "Oldies",
+      "primaryName": "Oldies"
+    },
+    {
+      "id": "19438",
+      "nameEn": "Pop",
+      "also": [],
+      "diamonds": 1,
+      "seen": 5,
+      "lastSeenUtc": "2026-09-09T10:45:14.9493456Z",
+      "displayName": "Pop",
+      "primaryName": "Pop"
+    },
+    {
+      "id": "13651",
+      "nameEn": "Popular Vote",
+      "also": [],
+      "diamonds": 1,
+      "seen": 13,
+      "lastSeenUtc": "2026-09-10T08:40:01.8474307Z",
+      "displayName": "Popular Vote",
+      "primaryName": "Popular Vote"
+    },
+    {
+      "id": "423360",
+      "nameEn": "RalBatin",
+      "also": [],
+      "diamonds": 1,
+      "seen": 212,
+      "lastSeenUtc": "2026-09-10T08:39:58.6394784Z",
+      "displayName": "RalBatin",
+      "primaryName": "RalBatin",
+      "imagePath": "gifts-images\\423360.webp"
+    },
+    {
+      "id": "5655",
+      "nameEn": "Rose",
+      "nameEs": "Rosa",
+      "also": [],
+      "diamonds": 1,
+      "seen": 918,
+      "lastSeenUtc": "2026-09-10T08:41:56.9393535Z",
+      "displayName": "Rosa / Rose",
+      "primaryName": "Rosa",
+      "imagePath": "gifts-images\\5655.webp"
+    },
+    {
+      "id": "5269",
+      "nameEn": "TikTok",
+      "also": [],
+      "diamonds": 1,
+      "seen": 36,
+      "lastSeenUtc": "2026-09-10T08:13:51.9908934Z",
+      "displayName": "TikTok",
+      "primaryName": "TikTok",
+      "imagePath": "gifts-images\\tiktok.webp"
+    },
+    {
+      "id": "919346",
+      "nameEn": "Welcome Dallah",
+      "also": [],
+      "diamonds": 1,
+      "seen": 2,
+      "lastSeenUtc": "2026-09-09T10:46:13.9190957Z",
+      "displayName": "Welcome Dallah",
+      "primaryName": "Welcome Dallah"
+    },
+    {
+      "id": "19446",
+      "nameEn": "Wink wink",
+      "also": [],
+      "diamonds": 1,
+      "seen": 2,
+      "lastSeenUtc": "2026-09-09T10:46:17.2224926Z",
+      "displayName": "Wink wink",
+      "primaryName": "Wink wink"
+    },
+    {
+      "id": "15232",
+      "nameEn": "You're awesome",
+      "also": [],
+      "diamonds": 1,
+      "seen": 5,
+      "lastSeenUtc": "2026-09-09T10:45:12.4612444Z",
+      "displayName": "You're awesome",
+      "primaryName": "You're awesome",
+      "imagePath": "gifts-images\\15232.png"
+    },
+    {
+      "id": "5487",
+      "nameEn": "Finger Heart",
+      "also": [],
+      "diamonds": 5,
+      "seen": 29,
+      "lastSeenUtc": "2026-09-09T10:44:37.8636459Z",
+      "displayName": "Finger Heart",
+      "primaryName": "Finger Heart",
+      "imagePath": "gifts-images\\5487.webp"
+    },
+    {
+      "id": "15100",
+      "nameEn": "Wave Firework",
+      "nameEs": "Fuegos Artificiales",
+      "also": [],
+      "diamonds": 5,
+      "seen": 70,
+      "lastSeenUtc": "2026-09-10T08:02:52.4120184Z",
+      "displayName": "Fuegos Artificiales / Wave Firework",
+      "primaryName": "Fuegos Artificiales",
+      "imagePath": "gifts-images\\15100.webp"
+    },
+    {
+      "id": "105781",
+      "nameEn": "Spinning Soccer",
+      "also": [],
+      "diamonds": 5,
+      "seen": 4,
+      "lastSeenUtc": "2026-09-09T10:45:09.1427721Z",
+      "displayName": "Spinning Soccer",
+      "primaryName": "Spinning Soccer"
+    },
+    {
+      "id": "118812",
+      "nameEn": "Divine Fingers",
+      "also": [],
+      "diamonds": 6,
+      "seen": 1,
+      "lastSeenUtc": "2026-09-09T10:43:02.1863144Z",
+      "displayName": "Divine Fingers",
+      "primaryName": "Divine Fingers"
+    },
+    {
+      "id": "16690",
+      "nameEn": "Super Popular",
+      "also": [],
+      "diamonds": 9,
+      "seen": 4,
+      "lastSeenUtc": "2026-09-10T08:04:37.5032010Z",
+      "displayName": "Super Popular",
+      "primaryName": "Super Popular"
+    },
+    {
+      "id": "15099",
+      "nameEn": "Balloons",
+      "also": [],
+      "diamonds": 10,
+      "seen": 20,
+      "lastSeenUtc": "2026-09-09T09:26:53.2259696Z",
+      "displayName": "Balloons",
+      "primaryName": "Balloons",
+      "imagePath": "gifts-images\\15099.png"
+    },
+    {
+      "id": "5576",
+      "nameEn": "Heart",
+      "also": [],
+      "diamonds": 10,
+      "seen": 3,
+      "lastSeenUtc": "2026-09-09T08:21:08.5830343Z",
+      "displayName": "Heart",
+      "primaryName": "Heart",
+      "imagePath": "gifts-images\\5576.webp"
+    },
+    {
+      "id": "8913",
+      "nameEn": "Roson",
+      "nameEs": "Rosa",
+      "also": [],
+      "diamonds": 10,
+      "seen": 8,
+      "lastSeenUtc": "2026-09-09T08:22:18.1736263Z",
+      "displayName": "Rosa / Roson",
+      "primaryName": "Rosa",
+      "imagePath": "gifts-images\\8913.webp"
+    },
+    {
+      "id": "1188303",
+      "nameEn": "SIMI KISS",
+      "also": [],
+      "diamonds": 15,
+      "seen": 2,
+      "lastSeenUtc": "2026-09-10T08:23:10.4997036Z",
+      "displayName": "SIMI KISS",
+      "primaryName": "SIMI KISS"
+    },
+    {
+      "id": "14488",
+      "nameEn": "Capybara",
+      "also": [],
+      "diamonds": 30,
+      "seen": 23,
+      "lastSeenUtc": "2026-09-10T08:42:23.6125264Z",
+      "displayName": "Capybara",
+      "primaryName": "Capybara",
+      "imagePath": "gifts-images\\14488.webp"
+    },
+    {
+      "id": "5879",
+      "nameEn": "Doughnut",
+      "nameEs": "Dona",
+      "also": [],
+      "diamonds": 30,
+      "seen": 24,
+      "lastSeenUtc": "2026-09-10T08:39:27.3661435Z",
+      "displayName": "Dona / Doughnut",
+      "primaryName": "Dona",
+      "imagePath": "gifts-images\\5879.webp"
+    },
+    {
+      "id": "11046",
+      "nameEn": "Galaxy",
+      "also": [],
+      "diamonds": 1000,
+      "seen": 4,
+      "lastSeenUtc": "2026-09-10T08:40:37.3758163Z",
+      "displayName": "Galaxy",
+      "primaryName": "Galaxy",
+      "imagePath": "gifts-images\\11046.webp"
+    },
+    {
+      "id": "6820",
+      "nameEn": "Whale diving",
+      "nameEs": "Ballena",
+      "also": [],
+      "diamonds": 2150,
+      "seen": 1,
+      "lastSeenUtc": "2026-09-10T08:42:59.9011522Z",
+      "displayName": "Ballena / Whale diving",
+      "primaryName": "Ballena",
+      "imagePath": "gifts-images\\6820.webp"
+    },
+
+    {
+      "id": "5333",
+      "nameEn": "Coffee",
+      "also": [],
+      "diamonds": 1,
+      "seen": 1,
+      "lastSeenUtc": "2026-08-28T06:56:27.1670453Z",
+      "displayName": "Coffee",
+      "primaryName": "Coffee"
+    },
+    {
+      "id": "471887",
+      "nameEn": "DanyRS",
+      "also": [],
+      "diamonds": 1,
+      "seen": 2,
+      "lastSeenUtc": "2026-08-28T05:57:20.8083163Z",
+      "displayName": "DanyRS",
+      "primaryName": "DanyRS"
+    },
+    {
+      "id": "1218238",
+      "nameEn": "Laughing Taco",
+      "also": [],
+      "diamonds": 1,
+      "seen": 1,
+      "lastSeenUtc": "2026-08-28T05:58:51.2173731Z",
+      "displayName": "Laughing Taco",
+      "primaryName": "Laughing Taco"
+    },
+    {
+      "id": "59696",
+      "nameEn": "Micky Wolf",
+      "also": [],
+      "diamonds": 1,
+      "seen": 1,
+      "lastSeenUtc": "2026-08-28T14:14:42.9849053Z",
+      "displayName": "Micky Wolf",
+      "primaryName": "Micky Wolf"
+    },
+    {
+      "id": "12355",
+      "nameEn": "Team Cheers",
+      "also": [],
+      "diamonds": 1,
+      "seen": 1,
+      "lastSeenUtc": "2026-08-30T20:48:55.0046310Z",
+      "displayName": "Team Cheers",
+      "primaryName": "Team Cheers"
+    },
+    {
+      "id": "6592",
+      "nameEn": "TGIF",
+      "also": [],
+      "diamonds": 1,
+      "seen": 1,
+      "lastSeenUtc": "2026-08-28T15:38:25.5464749Z",
+      "displayName": "TGIF",
+      "primaryName": "TGIF"
+    },
+    {
+      "id": "8239",
+      "nameEn": "White Rose",
+      "also": [],
+      "diamonds": 1,
+      "seen": 18,
+      "lastSeenUtc": "2026-08-28T05:14:01.7446304Z",
+      "displayName": "White Rose",
+      "primaryName": "White Rose"
+    },
+    {
+      "id": "9947",
+      "nameEn": "BFF Necklace",
+      "also": [],
+      "diamonds": 10,
+      "seen": 1,
+      "lastSeenUtc": "2026-08-28T05:52:44.3799353Z",
+      "displayName": "BFF Necklace",
+      "primaryName": "BFF Necklace"
+    },
+    {
+      "id": "15063",
+      "nameEn": "Journey Pass",
+      "also": [],
+      "diamonds": 10,
+      "seen": 4,
+      "lastSeenUtc": "2026-08-28T05:38:55.7591099Z",
+      "displayName": "Journey Pass",
+      "primaryName": "Journey Pass"
+    },
+    {
+      "id": "19448",
+      "nameEn": "Slow motion",
+      "also": [],
+      "diamonds": 10,
+      "seen": 6,
+      "lastSeenUtc": "2026-08-28T05:57:50.8017209Z",
+      "displayName": "Slow motion",
+      "primaryName": "Slow motion"
+    },
+    {
+      "id": "19443",
+      "nameEn": "Bravo!",
+      "also": [],
+      "diamonds": 15,
+      "seen": 2,
+      "lastSeenUtc": "2026-08-28T05:27:54.1587567Z",
+      "displayName": "Bravo!",
+      "primaryName": "Bravo!"
+    },
+    {
+      "id": "5658",
+      "nameEn": "Perfume",
+      "also": [],
+      "diamonds": 20,
+      "seen": 46,
+      "lastSeenUtc": "2026-08-30T20:38:38.9260725Z",
+      "displayName": "Perfume",
+      "primaryName": "Perfume"
+    },
+    {
+      "id": "7569",
+      "nameEn": "Game Controller",
+      "also": [],
+      "diamonds": 100,
+      "seen": 1,
+      "lastSeenUtc": "2026-08-27T07:24:55.7270920Z",
+      "displayName": "Game Controller",
+      "primaryName": "Game Controller"
+    },
+    {
+      "id": "5660",
+      "nameEn": "Hand Heart",
+      "also": [],
+      "diamonds": 100,
+      "seen": 3,
+      "lastSeenUtc": "2026-08-30T20:03:24.3779435Z",
+      "displayName": "Hand Heart",
+      "primaryName": "Hand Heart"
+    },
+    {
+      "id": "19168",
+      "nameEn": "Love Glasses",
+      "also": [],
+      "diamonds": 149,
+      "seen": 1,
+      "lastSeenUtc": "2026-08-28T05:45:40.2944621Z",
+      "displayName": "Love Glasses",
+      "primaryName": "Love Glasses"
+    },
+    {
+      "id": "5509",
+      "nameEn": "Sunglasses",
+      "also": [],
+      "diamonds": 199,
+      "seen": 1,
+      "lastSeenUtc": "2026-08-30T20:08:39.3156507Z",
+      "displayName": "Sunglasses",
+      "primaryName": "Sunglasses"
+    },
+    {
+      "id": "7168",
+      "nameEn": "Money Gun",
+      "also": [],
+      "diamonds": 500,
+      "seen": 1,
+      "lastSeenUtc": "2026-08-30T20:09:29.0448033Z",
+      "displayName": "Money Gun",
+      "primaryName": "Money Gun"
+    }
+  ]
+}

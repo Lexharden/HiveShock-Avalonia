@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+             x:Class="HiveShock.Avalonia.Views.Pages.AboutPage"
+             x:DataType="vm:AboutViewModel">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+            <TextBlock Classes="pageTitle" Text="Acerca de" />
+            <TextBlock Classes="pageLead"
+                       Text="Quién hace HiveShock, qué versión tienes y cómo apoyar el proyecto." />
+
+            <Border Classes="card" Margin="0,0,0,14">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14" Spacing="16">
+                        <Border Width="88" Height="88" CornerRadius="16" ClipToBounds="True"
+                                Background="{DynamicResource CardAltBrush}"
+                                BorderBrush="{DynamicResource BrandGoldBrush}" BorderThickness="2">
+                            <Image Source="{DynamicResource BrandLogo}" Stretch="Uniform" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock FontSize="26" FontWeight="SemiBold" Text="{Binding AppName}" />
+                            <TextBlock Margin="0,4,0,0" FontSize="14" Foreground="{DynamicResource MutedBrush}"
+                                       Text="{Binding VersionLabel}" />
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock Classes="helpBody"
+                               Text="HiveShock conecta tu live de TikTok con el juego: los regalos, likes y el chat se convierten en efectos dentro de la partida." />
+                    <TextBlock Classes="helpBody"
+                               Text="Incluye Majora’s Mask y Twilight Princess. Cada juego tiene su propia lista de regalos." />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="QUIÉN LO HACE" />
+                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding Developer}" />
+                    <TextBlock Margin="0,6,0,12" Classes="helpBody"
+                               Text="Hola, soy Yafel. Diseño y programo HiveShock. Si quieres novedades o más proyectos, pásate por la web." />
+                    <WrapPanel>
+                        <Button Classes="secondary" Content="Abrir la web"
+                                Command="{Binding OpenWebsiteCommand}" />
+                    </WrapPanel>
+                    <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}"
+                               Text="{Binding WebsiteUrl}" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="APOYAR EL PROYECTO" />
+                    <TextBlock Classes="helpBody"
+                               Text="Si HiveShock te sirve en el stream, un café en Ko-fi ayuda a seguir mejorándolo. No es obligatorio: el programa se usa igual." />
+                    <Button Classes="kofi" Content="Invitar un café"
+                            Command="{Binding OpenKofiCommand}" HorizontalAlignment="Left" />
+                    <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}"
+                               Text="{Binding KoFiUrl}" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"
+                       Text="Windows y macOS · TikTok Live · efectos en el juego." />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
