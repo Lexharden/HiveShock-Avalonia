@@ -667,7 +667,8 @@ public static class EnvFileWriter
         var example = AppPaths.Find(".env.example");
         if (example != null)
         {
-            File.Copy(example, path);
+            // File.Copy usa ioctl FICLONE; Android lo deniega en app data (avc 0x9409).
+            File.WriteAllBytes(path, File.ReadAllBytes(example));
         }
         else
         {
