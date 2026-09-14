@@ -40,17 +40,30 @@ if (-not (Test-Path (Join-Path $Root "HiveShock.Avalonia.slnx"))) {
 Set-Location $Root
 
 function Get-HostRuntime {
-    $osx = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::OSX)
-    $linux = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Linux)
-    $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()
-    if ($osx) {
-        if ($arch -eq "arm64") { return "osx-arm64" }
-        return "osx-x64"
+    $isOsx = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+        [System.Runtime.InteropServices.OSPlatform]::OSX
+    )
+
+    $isLinux = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+        [System.Runtime.InteropServices.OSPlatform]::Linux
+    )
+
+    $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+
+    if ($isOsx) {
+        switch ($arch) {
+            "Arm64" { return "osx-arm64" }
+            default { return "osx-x64" }
+        }
     }
-    if ($linux) {
-        if ($arch -eq "arm64") { return "linux-arm64" }
-        return "linux-x64"
+
+    if ($isLinux) {
+        switch ($arch) {
+            "Arm64" { return "linux-arm64" }
+            default { return "linux-x64" }
+        }
     }
+
     return "win-x64"
 }
 
@@ -62,34 +75,73 @@ function Write-Leeme {
         [string]$Launch,
         [string]$Replace
     )
+
+    if (-not (Test-Path -LiteralPath $TemplatePath)) {
+        throw "No se encontró la plantilla LEEME: $TemplatePath"
+    }
+
     $bytes = [System.IO.File]::ReadAllBytes($TemplatePath)
     $text = [System.Text.Encoding]::UTF8.GetString($bytes)
+
     if ($text.Length -gt 0 -and [int][char]$text[0] -eq 0xFEFF) {
         $text = $text.Substring(1)
     }
-    $text = $text.Replace("{VERSION}", $AppVersion).Replace("{LAUNCH}", $Launch).Replace("{REPLACE}", $Replace).TrimEnd() + "`r`n"
+
+    $text = $text.Replace("{VERSION}", $AppVersion)
+    $text = $text.Replace("{LAUNCH}", $Launch)
+    $text = $text.Replace("{REPLACE}", $Replace)
+    $text = $text.TrimEnd() + "`r`n"
+
     $enc = New-Object System.Text.UTF8Encoding $true
     [System.IO.File]::WriteAllText($OutPath, $text, $enc)
 }
 
 function Get-AppVersion {
     param([string]$RootDir)
-    foreach ($rel in @("Directory.Build.props", "HiveShock.Avalonia\HiveShock.Avalonia.csproj")) {
+
+    foreach ($rel in @(
+        "Directory.Build.props",
+        "HiveShock.Avalonia\HiveShock.Avalonia.csproj"
+    )) {
         $path = Join-Path $RootDir $rel
-        if (-not (Test-Path $path)) { continue }
+
+        if (-not (Test-Path -LiteralPath $path)) {
+            continue
+        }
+
         [xml]$xml = Get-Content -Raw $path
-        $node = $xml.Project.PropertyGroup | ForEach-Object { $_.Version } | Where-Object { $_ } | Select-Object -First 1
-        if (-not [string]::IsNullOrWhiteSpace($node)) { return $node.Trim() }
+
+        $node = $xml.Project.PropertyGroup |
+            ForEach-Object { $_.Version } |
+            Where-Object { $null -ne $_ -and -not [string]::IsNullOrWhiteSpace($_.ToString()) } |
+            Select-Object -First 1
+
+        if ($null -ne $node) {
+            $value = $node.ToString().Trim()
+
+            if (-not [string]::IsNullOrWhiteSpace($value)) {
+                return $value
+            }
+        }
     }
+
     return "0.0.0"
 }
 
 function Get-PublishedGuiName {
     param([string]$Dir)
+
     $exe = Join-Path $Dir "HiveShock.exe"
     $unix = Join-Path $Dir "HiveShock"
-    if (Test-Path $exe) { return "HiveShock.exe" }
-    if (Test-Path $unix) { return "HiveShock" }
+
+    if (Test-Path -LiteralPath $exe) {
+        return "HiveShock.exe"
+    }
+
+    if (Test-Path -LiteralPath $unix) {
+        return "HiveShock"
+    }
+
     return $null
 }
 
@@ -100,29 +152,68 @@ function New-MacAppBundle {
         [string]$AppVersion,
         [string]$PlistTemplate
     )
-    if (Test-Path $AppPath) { Remove-Item $AppPath -Recurse -Force }
+
+    if (-not (Test-Path -LiteralPath $PlistTemplate)) {
+        throw "No se encontró Info.plist: $PlistTemplate"
+    }
+
+    if (Test-Path -LiteralPath $AppPath) {
+        Remove-Item -LiteralPath $AppPath -Recurse -Force
+    }
+
     $macos = Join-Path $AppPath "Contents\MacOS"
     $resources = Join-Path $AppPath "Contents\Resources"
+
     New-Item -ItemType Directory -Force -Path $macos | Out-Null
     New-Item -ItemType Directory -Force -Path $resources | Out-Null
+
     Copy-Item (Join-Path $PublishDir "*") $macos -Recurse -Force
-    $plist = [System.IO.File]::ReadAllText($PlistTemplate).Replace("{VERSION}", $AppVersion)
-    [System.IO.File]::WriteAllText((Join-Path $AppPath "Contents\Info.plist"), $plist)
-    [System.IO.File]::WriteAllText((Join-Path $AppPath "Contents\PkgInfo"), "APPL????")
+
+    $plist = [System.IO.File]::ReadAllText($PlistTemplate)
+    $plist = $plist.Replace("{VERSION}", $AppVersion)
+
+    [System.IO.File]::WriteAllText(
+        (Join-Path $AppPath "Contents\Info.plist"),
+        $plist
+    )
+
+    [System.IO.File]::WriteAllText(
+        (Join-Path $AppPath "Contents\PkgInfo"),
+        "APPL????"
+    )
 }
+
+# ============================================================
+# Resolver Runtime y Version de forma segura
+# ============================================================
 
 if ([string]::IsNullOrWhiteSpace($Runtime)) {
     $Runtime = Get-HostRuntime
 }
+
+if ([string]::IsNullOrWhiteSpace($Runtime)) {
+    throw "No fue posible determinar el Runtime automáticamente."
+}
+
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = Get-AppVersion $Root
 }
 
-$isOsx = $Runtime.StartsWith("osx")
-$hostIsOsx = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::OSX)
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    $Version = "0.0.0"
+}
+
+# Evitamos .StartsWith() sobre un posible $null
+$isOsx = $Runtime -like "osx-*"
+
+$hostIsOsx = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+    [System.Runtime.InteropServices.OSPlatform]::OSX
+)
+
 if ($isOsx -and -not $hostIsOsx) {
     throw "El pack de macOS (firma ad hoc + DMG) hay que hacerlo en un Mac con scripts/pack-release.sh."
 }
+
 $PublishGui = Join-Path $Root "publish-gui"
 $PublishCli = Join-Path $Root "publish-cli"
 $Dist = Join-Path $Root "dist"
