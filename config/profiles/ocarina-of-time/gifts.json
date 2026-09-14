@@ -1,5 +1,5 @@
 {
-  "_help": "gift=nombre, id=recomendado, effect=efecto. Combos: minCount=mínimo xN (default 1), each=true → un efecto por unidad (x10→10). diamonds=solo referencia. image=opcional en gifts-images/.",
+  "_help": "Perfil Ocarina of Time / Ship of Harkinian. Combos: minCount, each. overlay=true muestra chip OBS.",
 
   "gifts": [
     {
@@ -33,8 +33,8 @@
     },
     {
       "gift": "Doughnut",
-      "effect": "time_up",
-      "what": "Fin del mundo: luna → reset ciclo → vendedor"
+      "effect": "dark_link",
+      "what": "Dark Link"
     },
     {
       "gift": "Rosa para ti",

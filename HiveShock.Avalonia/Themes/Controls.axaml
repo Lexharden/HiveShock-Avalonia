@@ -219,5 +219,17 @@
         <Setter Property="Background" Value="{DynamicResource InputBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="MaxDropDownHeight" Value="260" />
+    </Style>
+    <Style Selector="GridSplitter">
+        <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="MinWidth" Value="6" />
+        <Setter Property="MinHeight" Value="6" />
+    </Style>
+    <Style Selector="GridSplitter:pointerover">
+        <Setter Property="Background" Value="{DynamicResource BrandGoldBrush}" />
+    </Style>
+    <Style Selector="GridSplitter:pressed">
+        <Setter Property="Background" Value="{DynamicResource BrandGoldBrush}" />
     </Style>
 </Styles>

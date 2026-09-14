@@ -37,14 +37,11 @@
             </Border>
         </Expander>
 
-        <Grid Grid.Row="2" RowDefinitions="Auto,*,Auto" Margin="0,4,0,0">
+        <Grid Grid.Row="2" RowDefinitions="Auto,*,Auto,*" Margin="0,4,0,0">
             <StackPanel>
                 <TextBlock Classes="sectionTitle" Text="PALABRAS DEL CHAT" />
                 <CheckBox Content="Activar" IsChecked="{Binding Events.TwitchChatEnabled}" />
-                <TextBlock FontSize="12" Margin="0,6,0,8" Foreground="{DynamicResource MutedBrush}"
-                           TextWrapping="Wrap"
-                           Text="Gratis en el chat. Sin espera, un viewer llena la cola del juego." />
-                <WrapPanel>
+                <WrapPanel Margin="0,8,0,0">
                     <DockPanel Margin="0,0,16,8" Width="280">
                         <TextBlock Classes="fieldLabel" Text="Prefijo" Width="90" VerticalAlignment="Center" Margin="0" />
                         <TextBox Text="{Binding Events.TwitchChatPrefix}" Width="64" HorizontalAlignment="Left" />
@@ -68,11 +65,13 @@
 
             <ListBox Grid.Row="1" ItemsSource="{Binding Events.TwitchChatCommands}"
                      SelectedItem="{Binding Events.SelectedTwitchCommand}"
-                     Margin="0,8,0,8">
+                     MinHeight="96" Margin="0,8,0,0"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto">
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:ChatCommandRowViewModel">
                         <DockPanel>
-                            <ComboBox DockPanel.Dock="Right" Width="220" Margin="8,0,0,0"
+                            <ComboBox DockPanel.Dock="Right" MinWidth="240" MaxWidth="420" Margin="8,0,0,0"
+                                      HorizontalAlignment="Right"
                                       ItemsSource="{Binding $parent[UserControl].((vm:TwitchViewModel)DataContext).Events.EffectsWithNone}"
                                       SelectedValue="{Binding Effect}"
                                       SelectedValueBinding="{Binding Id}"
@@ -83,50 +82,53 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
-            <StackPanel Grid.Row="2">
-                <Grid ColumnDefinitions="*,*" Margin="0,0,0,12">
-                    <Border Classes="card" Margin="0,0,8,0">
-                        <StackPanel>
-                            <TextBlock Classes="sectionTitle" Text="NUEVOS SEGUIDORES" />
-                            <ComboBox ItemsSource="{Binding Events.EffectsWithNone}"
-                                      SelectedValue="{Binding Events.TwitchFollowEffect}"
-                                      SelectedValueBinding="{Binding Id}"
-                                      DisplayMemberBinding="{Binding Display}" />
-                        </StackPanel>
-                    </Border>
-                    <Border Classes="card" Grid.Column="1" Margin="8,0,0,0">
-                        <StackPanel>
-                            <TextBlock Classes="sectionTitle" Text="BITS" />
-                            <TextBlock FontSize="12" Margin="0,0,0,8" Foreground="{DynamicResource MutedBrush}"
-                                       TextWrapping="Wrap"
-                                       Text="Desde X bits se usa el umbral más alto que cumpla. Lista vacía = se ignoran." />
-                            <WrapPanel>
-                                <Button Classes="secondary" Content="Añadir" Command="{Binding Events.AddBitsRuleCommand}" />
-                                <Button Classes="secondary" Content="Quitar" Command="{Binding Events.RemoveBitsRuleCommand}" />
-                            </WrapPanel>
-                            <ListBox ItemsSource="{Binding Events.TwitchBits}"
-                                     SelectedItem="{Binding Events.SelectedBitsRule}"
-                                     MinHeight="120" MaxHeight="220" Margin="0,8,0,0">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:BitsRowViewModel">
-                                        <DockPanel>
-                                            <ComboBox DockPanel.Dock="Right" Width="200" Margin="8,0,0,0"
-                                                      ItemsSource="{Binding $parent[UserControl].((vm:TwitchViewModel)DataContext).Events.EffectsWithNone}"
-                                                      SelectedValue="{Binding Effect}"
-                                                      SelectedValueBinding="{Binding Id}"
-                                                      DisplayMemberBinding="{Binding Display}" />
-                                            <TextBox Text="{Binding MinText}" PlaceholderText="mín. bits" Width="88"
-                                                     HorizontalAlignment="Left" />
-                                        </DockPanel>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </StackPanel>
-                    </Border>
-                </Grid>
-                <Button Classes="primary" Content="Guardar" Command="{Binding Events.SaveCommand}"
-                        HorizontalAlignment="Left" MinWidth="140" />
-            </StackPanel>
+            <GridSplitter Grid.Row="2" Height="8" HorizontalAlignment="Stretch"
+                          ResizeDirection="Rows" />
+
+            <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" MinHeight="120">
+                <StackPanel>
+                    <Grid ColumnDefinitions="*,*" Margin="0,8,0,12">
+                        <Border Classes="card" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Classes="sectionTitle" Text="NUEVOS SEGUIDORES" />
+                                <ComboBox ItemsSource="{Binding Events.EffectsWithNone}"
+                                          SelectedValue="{Binding Events.TwitchFollowEffect}"
+                                          SelectedValueBinding="{Binding Id}"
+                                          DisplayMemberBinding="{Binding Display}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="card" Grid.Column="1" Margin="8,0,0,0">
+                            <StackPanel>
+                                <TextBlock Classes="sectionTitle" Text="BITS" />
+                                <WrapPanel>
+                                    <Button Classes="secondary" Content="Añadir" Command="{Binding Events.AddBitsRuleCommand}" />
+                                    <Button Classes="secondary" Content="Quitar" Command="{Binding Events.RemoveBitsRuleCommand}" />
+                                </WrapPanel>
+                                <ListBox ItemsSource="{Binding Events.TwitchBits}"
+                                         SelectedItem="{Binding Events.SelectedBitsRule}"
+                                         MinHeight="96" MaxHeight="280" Margin="0,8,0,0"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:BitsRowViewModel">
+                                            <DockPanel>
+                                                <ComboBox DockPanel.Dock="Right" MinWidth="200" MaxWidth="360" Margin="8,0,0,0"
+                                                          ItemsSource="{Binding $parent[UserControl].((vm:TwitchViewModel)DataContext).Events.EffectsWithNone}"
+                                                          SelectedValue="{Binding Effect}"
+                                                          SelectedValueBinding="{Binding Id}"
+                                                          DisplayMemberBinding="{Binding Display}" />
+                                                <TextBox Text="{Binding MinText}" PlaceholderText="mín. bits" Width="88"
+                                                         HorizontalAlignment="Left" />
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                    <Button Classes="primary" Content="Guardar" Command="{Binding Events.SaveCommand}"
+                            HorizontalAlignment="Left" MinWidth="140" />
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
     </Grid>
 </UserControl>

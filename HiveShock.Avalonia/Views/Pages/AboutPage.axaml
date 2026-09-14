@@ -26,7 +26,7 @@
                     <TextBlock Classes="helpBody"
                                Text="HiveShock conecta tu live con el juego: chat, regalos y el resto de eventos se convierten en efectos dentro de la partida." />
                     <TextBlock Classes="helpBody"
-                               Text="Cada juego es un perfil con sus propios efectos. Los que vienen ahora son ejemplos; puedes añadir más." />
+                               Text="Cada juego es un perfil con sus propios efectos." />
                 </StackPanel>
             </Border>
 

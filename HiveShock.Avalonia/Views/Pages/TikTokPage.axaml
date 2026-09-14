@@ -58,9 +58,6 @@
                 <Grid RowDefinitions="Auto,*,Auto" Margin="0,8,0,0">
                     <StackPanel>
                         <TextBlock Classes="sectionTitle" Text="ENTRE TODOS" />
-                        <TextBlock FontSize="12" Margin="0,0,0,8" Foreground="{DynamicResource MutedBrush}"
-                                   TextWrapping="Wrap"
-                                   Text="Varios viewers suman el mismo regalo. No es un combo de uno. Ejemplo: 2 Galaxy = reinicio." />
                         <WrapPanel>
                             <Button Classes="secondary" Content="Añadir" Command="{Binding Goals.AddCommand}" />
                             <Button Classes="secondary" Content="Quitar" Command="{Binding Goals.RemoveCommand}" />
@@ -70,7 +67,8 @@
                     </StackPanel>
                     <ListBox Grid.Row="1" ItemsSource="{Binding Goals.Rows}"
                              SelectedItem="{Binding Goals.Selected}"
-                             Margin="0,8,0,8">
+                             MinHeight="96" Margin="0,8,0,0"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:GoalRowViewModel">
                                 <StackPanel Margin="0,4">
@@ -88,7 +86,7 @@
                                     </DockPanel>
                                     <TextBlock Classes="fieldLabel" Text="Regalos que cuentan (nombres o IDs, coma)"
                                                Margin="0,8,0,4" />
-                                    <TextBox Text="{Binding GiftsText}" PlaceholderText="Galaxy" />
+                                    <TextBox Text="{Binding GiftsText}" />
                                     <ComboBox Margin="0,8,0,0"
                                               ItemsSource="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).Goals.EffectsWithNone}"
                                               SelectedValue="{Binding Effect}"
@@ -103,18 +101,15 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                     <Button Grid.Row="2" Classes="primary" Content="Guardar" Command="{Binding Goals.SaveCommand}"
-                            HorizontalAlignment="Left" MinWidth="140" />
+                            HorizontalAlignment="Left" MinWidth="140" Margin="0,8,0,0" />
                 </Grid>
             </TabItem>
             <TabItem Header="Chat">
-                <Grid RowDefinitions="Auto,*,Auto" Margin="0,8,0,0">
+                <Grid RowDefinitions="Auto,*,Auto,*" Margin="0,8,0,0">
                     <StackPanel>
                         <TextBlock Classes="sectionTitle" Text="PALABRAS DEL CHAT" />
                         <CheckBox Content="Activar" IsChecked="{Binding Events.ChatEnabled}" />
-                        <TextBlock FontSize="12" Margin="0,6,0,8" Foreground="{DynamicResource MutedBrush}"
-                                   TextWrapping="Wrap"
-                                   Text="Gratis en el chat. Sin espera, un viewer llena la cola del juego." />
-                        <WrapPanel>
+                        <WrapPanel Margin="0,8,0,0">
                             <DockPanel Margin="0,0,16,8" Width="280">
                                 <TextBlock Classes="fieldLabel" Text="Prefijo" Width="90" VerticalAlignment="Center" Margin="0" />
                                 <TextBox Text="{Binding Events.ChatPrefix}" Width="64" HorizontalAlignment="Left" />
@@ -137,11 +132,13 @@
                     </StackPanel>
                     <ListBox Grid.Row="1" ItemsSource="{Binding Events.ChatCommands}"
                              SelectedItem="{Binding Events.SelectedCommand}"
-                             Margin="0,8,0,8">
+                             MinHeight="96" Margin="0,8,0,0"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:ChatCommandRowViewModel">
                                 <DockPanel>
-                                    <ComboBox DockPanel.Dock="Right" Width="220" Margin="8,0,0,0"
+                                    <ComboBox DockPanel.Dock="Right" MinWidth="240" MaxWidth="420" Margin="8,0,0,0"
+                                              HorizontalAlignment="Right"
                                               ItemsSource="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).Events.EffectsWithNone}"
                                               SelectedValue="{Binding Effect}"
                                               SelectedValueBinding="{Binding Id}"
@@ -151,44 +148,48 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-                    <StackPanel Grid.Row="2">
-                        <Grid ColumnDefinitions="*,*" Margin="0,0,0,12">
-                            <Border Classes="card" Margin="0,0,8,0">
+                    <GridSplitter Grid.Row="2" Height="8" HorizontalAlignment="Stretch"
+                                  ResizeDirection="Rows" />
+                    <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" MinHeight="120">
+                        <StackPanel>
+                            <Grid ColumnDefinitions="*,*" Margin="0,8,0,12">
+                                <Border Classes="card" Margin="0,0,8,0">
+                                    <StackPanel>
+                                        <TextBlock Classes="sectionTitle" Text="NUEVOS SEGUIDORES" />
+                                        <ComboBox ItemsSource="{Binding Events.EffectsWithNone}"
+                                                  SelectedValue="{Binding Events.FollowEffect}"
+                                                  SelectedValueBinding="{Binding Id}"
+                                                  DisplayMemberBinding="{Binding Display}" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Classes="card" Grid.Column="1" Margin="8,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Classes="sectionTitle" Text="LIKES" />
+                                        <DockPanel Margin="0,0,0,8">
+                                            <TextBlock Classes="fieldLabel" Text="Cada" Width="48" VerticalAlignment="Center" Margin="0" />
+                                            <TextBox Text="{Binding Events.LikesEveryText}" Width="80" HorizontalAlignment="Left" />
+                                        </DockPanel>
+                                        <ComboBox ItemsSource="{Binding Events.EffectsWithNone}"
+                                                  SelectedValue="{Binding Events.LikesEffect}"
+                                                  SelectedValueBinding="{Binding Id}"
+                                                  DisplayMemberBinding="{Binding Display}" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <Border Classes="card" Margin="0,0,0,12">
                                 <StackPanel>
-                                    <TextBlock Classes="sectionTitle" Text="NUEVOS SEGUIDORES" />
+                                    <TextBlock Classes="sectionTitle" Text="COMPARTIR" />
                                     <ComboBox ItemsSource="{Binding Events.EffectsWithNone}"
-                                              SelectedValue="{Binding Events.FollowEffect}"
+                                              SelectedValue="{Binding Events.ShareEffect}"
                                               SelectedValueBinding="{Binding Id}"
-                                              DisplayMemberBinding="{Binding Display}" />
+                                              DisplayMemberBinding="{Binding Display}"
+                                              HorizontalAlignment="Left" MinWidth="280" />
                                 </StackPanel>
                             </Border>
-                            <Border Classes="card" Grid.Column="1" Margin="8,0,0,0">
-                                <StackPanel>
-                                    <TextBlock Classes="sectionTitle" Text="LIKES" />
-                                    <DockPanel Margin="0,0,0,8">
-                                        <TextBlock Classes="fieldLabel" Text="Cada" Width="48" VerticalAlignment="Center" Margin="0" />
-                                        <TextBox Text="{Binding Events.LikesEveryText}" Width="80" HorizontalAlignment="Left" />
-                                    </DockPanel>
-                                    <ComboBox ItemsSource="{Binding Events.EffectsWithNone}"
-                                              SelectedValue="{Binding Events.LikesEffect}"
-                                              SelectedValueBinding="{Binding Id}"
-                                              DisplayMemberBinding="{Binding Display}" />
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-                        <Border Classes="card" Margin="0,0,0,12">
-                            <StackPanel>
-                                <TextBlock Classes="sectionTitle" Text="COMPARTIR" />
-                                <ComboBox ItemsSource="{Binding Events.EffectsWithNone}"
-                                          SelectedValue="{Binding Events.ShareEffect}"
-                                          SelectedValueBinding="{Binding Id}"
-                                          DisplayMemberBinding="{Binding Display}"
-                                          HorizontalAlignment="Left" MinWidth="280" />
-                            </StackPanel>
-                        </Border>
-                        <Button Classes="primary" Content="Guardar" Command="{Binding Events.SaveCommand}"
-                                HorizontalAlignment="Left" MinWidth="140" />
-                    </StackPanel>
+                            <Button Classes="primary" Content="Guardar" Command="{Binding Events.SaveCommand}"
+                                    HorizontalAlignment="Left" MinWidth="140" />
+                        </StackPanel>
+                    </ScrollViewer>
                 </Grid>
             </TabItem>
         </TabControl>

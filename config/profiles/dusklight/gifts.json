@@ -117,32 +117,22 @@
   "likes": {
     "every": 0,
     "effect": "heal",
-    "what": "0 = apagado"
+    "what": ""
   },
   "follow": {
     "effect": "heal",
-    "what": "Cura al seguir"
+    "what": ""
   },
   "share": {
     "effect": "rupees",
-    "what": "Rupias al compartir"
+    "what": ""
   },
   "chat": {
     "enabled": false,
     "prefix": "!",
     "cooldownSec": 30,
     "globalGapSec": 2,
-    "commands": {
-      "cura": "heal",
-      "cucco": "cucco",
-      "enemigo": "random_enemy",
-      "invert": "invert",
-      "lobo": "wolf_toggle",
-      "epona": "summon_epona",
-      "bomba": "spawn_bomb",
-      "abejas": "bee_swarm",
-      "botas": "iron_boots_toggle"
-    }
+    "commands": {}
   },
 
   "unmappedGifts": "ignore",

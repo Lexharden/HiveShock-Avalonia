@@ -15,8 +15,9 @@
             </WrapPanel>
         </StackPanel>
 
-        <Grid Grid.Row="1" ColumnDefinitions="340,12,*">
-            <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}">
+        <Grid Grid.Row="1" ColumnDefinitions="280,8,*">
+            <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto">
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:GiftRowViewModel">
                         <DockPanel>
@@ -34,6 +35,8 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
+
+            <GridSplitter Grid.Column="1" Width="8" ResizeDirection="Columns" />
 
             <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto"
                           IsVisible="{Binding HasSelection}">

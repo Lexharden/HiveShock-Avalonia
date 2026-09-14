@@ -7,14 +7,11 @@
         <StackPanel MaxWidth="640" HorizontalAlignment="Left">
             <TextBlock Classes="pageTitle" Text="Eventos" />
             <TextBlock Classes="pageLead"
-                       Text="Efectos que no son un regalo. El chat vale en todos los canales; lo demás está en la sección de cada uno." />
+                       Text="Efectos que no son un regalo." />
 
             <Border Classes="card" Margin="0,0,0,12">
                 <StackPanel>
                     <TextBlock Classes="sectionTitle" Text="TODOS LOS CANALES — CHAT" />
-                    <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,0,0,8"
-                               TextWrapping="Wrap"
-                               Text="Si alguien escribe !salto en TikTok o en Twitch, el juego hace lo mismo." />
                     <CheckBox Content="Permitir palabras en el chat" IsChecked="{Binding ChatEnabled}" />
                     <DockPanel Margin="0,10,0,12">
                         <TextBlock Classes="fieldLabel" Text="Empieza por" Width="90" VerticalAlignment="Center" />
@@ -45,9 +42,6 @@
             <Border Classes="card" Margin="0,0,0,12">
                 <StackPanel>
                     <TextBlock Classes="sectionTitle" Text="TODOS LOS CANALES — NUEVOS SEGUIDORES" />
-                    <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,0,0,8"
-                               TextWrapping="Wrap"
-                               Text="TikTok y Twitch usan el mismo efecto." />
                     <TextBlock Classes="fieldLabel" Text="Qué hace" />
                     <ComboBox ItemsSource="{Binding EffectsWithNone}"
                               SelectedValue="{Binding FollowEffect}"
@@ -59,9 +53,6 @@
             <Border Classes="card" Margin="0,0,0,12">
                 <StackPanel>
                     <TextBlock Classes="sectionTitle" Text="TIKTOK — LIKES" />
-                    <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,0,0,8"
-                               TextWrapping="Wrap"
-                               Text="Solo TikTok. 0 = apagado. Ejemplo: 50 hace el efecto cada 50 likes." />
                     <DockPanel Margin="0,0,0,10">
                         <TextBlock Classes="fieldLabel" Text="Cada cuántos likes" Width="140"
                                    VerticalAlignment="Center" />
@@ -78,22 +69,11 @@
             <Border Classes="card" Margin="0,0,0,12">
                 <StackPanel>
                     <TextBlock Classes="sectionTitle" Text="TIKTOK — CUANDO COMPARTEN EL LIVE" />
-                    <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,0,0,8"
-                               TextWrapping="Wrap"
-                               Text="Solo TikTok. En Twitch no hay equivalente." />
                     <TextBlock Classes="fieldLabel" Text="Qué hace" />
                     <ComboBox ItemsSource="{Binding EffectsWithNone}"
                               SelectedValue="{Binding ShareEffect}"
                               SelectedValueBinding="{Binding Id}"
                               DisplayMemberBinding="{Binding Display}" />
-                </StackPanel>
-            </Border>
-
-            <Border Classes="card" Margin="0,0,0,16">
-                <StackPanel>
-                    <TextBlock Classes="sectionTitle" Text="TWITCH — BITS Y PUNTOS" />
-                    <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" TextWrapping="Wrap"
-                               Text="Aún no. Aquí irán bits y recompensas del canal, separados de los regalos de TikTok. El chat de Twitch ya usa la lista de arriba." />
                 </StackPanel>
             </Border>
 

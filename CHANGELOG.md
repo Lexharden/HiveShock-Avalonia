@@ -4,6 +4,11 @@ Cambios relevantes de HiveShock. El versionado está en `Directory.Build.props`.
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-09-14
+
+- Perfil Ocarina of Time (Ship of Harkinian): efectos propios de SoH (Dark Link, Arwing, canciones de warp), no el catálogo de 2s2h.
+- Chat: lista de palabras vacía de fábrica. Los desplegables de efectos tienen scroll; las listas se pueden redimensionar.
+
 ## [1.1.1] - 2026-09-14
 
 - Tema “Igual que el sistema” sigue al claro/oscuro de Windows.
