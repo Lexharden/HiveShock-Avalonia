@@ -42,14 +42,14 @@ Abre Inicio, elige el juego y conecta. Las cuentas se enlazan en **TikTok** y **
 
 ## Android (compañero)
 
-El juego sigue en el **PC**. El teléfono habla por la red (`GAME_HOST` = IP del ordenador, puerto 43000). Overlays OBS no van en el móvil. Al **Conectar** queda una notificación fija («HiveShock conectado»): el live sigue si cambias de app o apagas la pantalla. **Detener** quita la notificación. Algunos fabricantes (batería agresiva) pueden cortar igual; en esos casos deja HiveShock sin optimizar batería.
+El live corre en el **teléfono**. El juego es el APK en el mismo aparato (`GAME_HOST=127.0.0.1`, puerto 43000) o el del **PC** en la misma Wi‑Fi (IP LAN). Overlays OBS no van en el móvil. Al **Conectar** queda una notificación fija («HiveShock conectado»): puedes pasar al port y el live sigue. **Detener** quita la notificación. Algunos fabricantes (batería agresiva) pueden cortar igual; en esos casos deja HiveShock sin optimizar batería.
 
 ```powershell
 dotnet workload install android
 dotnet run --project HiveShock.Android/HiveShock.Android.csproj
 ```
 
-En el **emulador** la IP del PC es `10.0.2.2`. En un móvil real, la IP LAN del PC (firewall al puerto 43000).
+En el **emulador**, si el juego está en el PC usa `10.0.2.2`. En un móvil, `127.0.0.1` para el APK local o la IP LAN del PC (firewall al puerto 43000).
 
 Pack (APK/AAB, firma opcional con `ANDROID_SIGNING_*`):
 

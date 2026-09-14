@@ -14,7 +14,7 @@
         <ScrollViewer>
             <StackPanel Margin="16">
                 <TextBlock Classes="hint"
-                           Text="El juego corre en el PC. Aquí pones la IP de ese equipo y conectas el live. Overlays OBS siguen en el escritorio. Al conectar queda una notificación fija para no cortar TikTok/Twitch al cambiar de app." />
+                           Text="Conecta el live aquí. El juego puede ser el APK en este teléfono (127.0.0.1) o el del PC en la misma Wi‑Fi. Overlays OBS siguen en el escritorio. Al conectar queda una notificación fija para no cortar TikTok/Twitch al cambiar de app." />
 
                 <TextBlock Classes="fieldLabel" Text="Juego" />
                 <ItemsControl ItemsSource="{Binding Profiles}" Margin="0,0,0,12">
@@ -40,11 +40,11 @@
 
                 <Border Classes="card">
                     <StackPanel>
-                        <TextBlock Classes="fieldLabel" Text="IP del PC" />
-                        <TextBox Text="{Binding GameHost}" PlaceholderText="10.0.2.2 en emulador" />
+                        <TextBlock Classes="fieldLabel" Text="Host del juego" />
+                        <TextBox Text="{Binding GameHost}" PlaceholderText="127.0.0.1 este teléfono" />
                         <TextBlock Classes="hint" Margin="0,8,0,0"
-                                   Text="Misma Wi‑Fi. En el emulador usa 10.0.2.2. Abre el puerto 43000 en el PC." />
-                        <Button Classes="secondary" Content="Guardar IP"
+                                   Text="Este teléfono: 127.0.0.1 (el APK del port tiene que escuchar 43000). PC en Wi‑Fi: su IP. Emulador hacia el PC: 10.0.2.2." />
+                        <Button Classes="secondary" Content="Guardar host"
                                 Command="{Binding SaveHostCommand}" HorizontalAlignment="Left" />
                     </StackPanel>
                 </Border>

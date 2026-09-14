@@ -300,18 +300,17 @@ public sealed class BridgeRuntime : IAsyncDisposable
     public void SaveGameHost(string host)
     {
         var value = host.Trim();
+        if (string.IsNullOrEmpty(value))
+        {
+            value = "127.0.0.1";
+        }
+
         Options.GameHost = value;
         EnvFileWriter.Upsert(EnvFileWriter.EnsureEnvPath(), "GAME_HOST", value);
     }
 
     public Task SendEffectAsync(string effectId, string testerName = "Test", CancellationToken ct = default)
     {
-        if (OperatingSystem.IsAndroid() && Options.GameHostLooksLocal)
-        {
-            throw new InvalidOperationException(
-                "Pon la IP del PC (en el emulador: 10.0.2.2). 127.0.0.1 es el teléfono, no el juego.");
-        }
-
         var cmd = _effects.Resolve(effectId, testerName)
                   ?? throw new InvalidOperationException($"Efecto desconocido: {effectId}");
         return _gameClient.SendAsync(cmd, ct);
@@ -394,12 +393,6 @@ public sealed class BridgeRuntime : IAsyncDisposable
         }
 
         ApplyMode(mode);
-
-        if (OperatingSystem.IsAndroid() && Options.GameHostLooksLocal)
-        {
-            throw new InvalidOperationException(
-                "Pon la IP del PC (en el emulador: 10.0.2.2). 127.0.0.1 es el teléfono, no el juego.");
-        }
 
         if (mode is BridgeRunMode.Capture && !Options.TikTokReady)
         {

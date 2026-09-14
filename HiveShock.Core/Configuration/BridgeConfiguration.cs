@@ -62,7 +62,7 @@ public sealed class BridgeOptions
             TwitchRefreshToken = Env("TWITCH_REFRESH_TOKEN"),
             TwitchUserLogin = Env("TWITCH_USER_LOGIN") ?? "",
             TwitchUserId = Env("TWITCH_USER_ID") ?? "",
-            GameHost = Env("GAME_HOST") ?? (OperatingSystem.IsAndroid() ? "" : "127.0.0.1"),
+            GameHost = Env("GAME_HOST") ?? "127.0.0.1",
             GamePort = EnvInt("GAME_PORT", 43000),
             CrowdControlPort = EnvInt("CC_PORT", 43001),
             EventPort = EnvInt("EVENT_PORT", 43002),
@@ -84,7 +84,7 @@ public sealed class BridgeOptions
     /// <summary>Aplica host/puertos del perfil (sin pisar overrides explícitos de .env si ya diferían del default del perfil anterior).</summary>
     public void ApplyProfileEndpoints(GameProfileInfo profile, bool force = true)
     {
-        // En Android el host es la IP del PC, no la del perfil (127.0.0.1).
+        // En Android no pises un host que el usuario ya puso (este teléfono o IP del PC).
         if (!OperatingSystem.IsAndroid() && (force || string.IsNullOrWhiteSpace(GameHost)))
         {
             GameHost = string.IsNullOrWhiteSpace(profile.GameHost) ? "127.0.0.1" : profile.GameHost;

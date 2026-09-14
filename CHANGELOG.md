@@ -4,7 +4,7 @@ Cambios relevantes de HiveShock. El versionado está en `Directory.Build.props`.
 
 ## [Unreleased]
 
-- Cabeza Android (Avalonia): compañero en el teléfono, misma lógica hacia el PC por LAN. Sin overlays OBS.
+- Cabeza Android (Avalonia): live en el teléfono hacia el APK local (`127.0.0.1:43000`) o el PC en LAN. Sin overlays OBS.
 - Android: servicio en primer plano al conectar (notificación «HiveShock conectado») para no cortar TikTok/Twitch al cambiar de app.
 
 ## [1.1.2] - 2026-09-14

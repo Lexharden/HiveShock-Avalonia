@@ -129,7 +129,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         try
         {
             Runtime.SaveGameHost(GameHost);
-            AppendActivity($"PC {Runtime.Options.GameHost}:{Runtime.Options.GamePort}");
+            AppendActivity($"Juego {Runtime.Options.GameHost}:{Runtime.Options.GamePort}");
         }
         catch (Exception ex)
         {
