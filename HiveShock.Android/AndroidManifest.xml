@@ -12,6 +12,7 @@
       android:name="dev.yafel.hiveshock.AndroidApp"
       android:allowBackup="true"
       android:icon="@drawable/icon"
+      android:roundIcon="@drawable/icon"
       android:label="HiveShock"
       android:theme="@style/MyTheme.NoActionBar">
     <service

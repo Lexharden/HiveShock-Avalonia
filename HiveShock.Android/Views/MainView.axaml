@@ -5,16 +5,27 @@
              x:DataType="vm:MainViewModel">
     <DockPanel>
         <Border DockPanel.Dock="Top" Padding="16,12" Background="#075BAA">
-            <StackPanel>
-                <TextBlock Text="HiveShock" FontSize="20" FontWeight="SemiBold" Foreground="#EBA00A" />
-                <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="White" Margin="0,4,0,0" />
-            </StackPanel>
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="HiveShock" FontSize="20" FontWeight="SemiBold" Foreground="#EBA00A" />
+                    <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="White" Margin="0,4,0,0" />
+                </StackPanel>
+                <Border Grid.Column="1" Background="#1F8A4C" CornerRadius="12" Padding="10,6"
+                        VerticalAlignment="Center" IsVisible="{Binding IsRunning}">
+                    <TextBlock Text="● EN VIVO" FontSize="12" FontWeight="SemiBold" Foreground="White" />
+                </Border>
+            </Grid>
         </Border>
 
         <ScrollViewer>
             <StackPanel Margin="16">
                 <TextBlock Classes="hint"
-                           Text="Conecta el live aquí. El juego puede ser el APK en este teléfono (127.0.0.1) o el del PC en la misma Wi‑Fi. Overlays OBS siguen en el escritorio. Al conectar queda una notificación fija para no cortar TikTok/Twitch al cambiar de app." />
+                           Text="Conecta el live aquí. El juego puede ser el APK en este teléfono (127.0.0.1) o el del PC en la misma Wi‑Fi. Overlays OBS siguen en el escritorio. Al conectar verás un icono en la barra de notificaciones mientras el live sigue en segundo plano." />
+
+                <Border Classes="card" IsVisible="{Binding IsRunning}" Background="#1F8A4C">
+                    <TextBlock Text="En segundo plano: icono en la barra de notificaciones. Puedes abrir el juego; HiveShock sigue conectado."
+                               TextWrapping="Wrap" Foreground="White" FontSize="13" />
+                </Border>
 
                 <TextBlock Classes="fieldLabel" Text="Juego" />
                 <ItemsControl ItemsSource="{Binding Profiles}" Margin="0,0,0,12">

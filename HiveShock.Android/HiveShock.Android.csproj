@@ -31,6 +31,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AndroidResource Include="..\HiveShock.Avalonia\Assets\app.png">
+      <Link>Resources\drawable\icon.png</Link>
+    </AndroidResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <AndroidAsset Include="..\config\profiles\**\*">
       <Link>profiles\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </AndroidAsset>

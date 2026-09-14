@@ -60,6 +60,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string _statusText = "Listo";
     [ObservableProperty] private string _connectLabel = "Conectar";
     [ObservableProperty] private bool _isLive;
+    [ObservableProperty] private bool _isRunning;
     [ObservableProperty] private bool _canEdit = true;
     [ObservableProperty] private bool _canConnect = true;
     [ObservableProperty] private string _activityText = "";
@@ -347,6 +348,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void RefreshStatus()
     {
         var running = Runtime.IsRunning;
+        IsRunning = running;
         CanEdit = !running;
         CanConnect = true;
         IsLive = Runtime.Ports.AnyLive();

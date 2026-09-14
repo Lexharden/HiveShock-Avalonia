@@ -15,7 +15,7 @@ namespace HiveShock.Android;
     ForegroundServiceType = ForegroundService.TypeDataSync)]
 public sealed class BridgeKeepAliveService : Service
 {
-    public const string ChannelId = "hiveshock.bridge";
+    public const string ChannelId = "hiveshock.live.v2";
     public const int NotificationId = 43000;
 
     private PowerManager.WakeLock? _wakeLock;
@@ -118,11 +118,14 @@ public sealed class BridgeKeepAliveService : Service
             return;
         }
 
-        var channel = new NotificationChannel(ChannelId, "HiveShock conectado", NotificationImportance.Low)
+        var channel = new NotificationChannel(ChannelId, "HiveShock en segundo plano", NotificationImportance.Default)
         {
-            Description = "Se queda visible mientras el teléfono está unido al live.",
+            Description = "Icono fijo en la barra mientras el live está conectado.",
+            LockscreenVisibility = NotificationVisibility.Public,
         };
-        channel.SetShowBadge(false);
+        channel.SetShowBadge(true);
+        channel.EnableVibration(false);
+        channel.SetSound(null, null);
         manager.CreateNotificationChannel(channel);
     }
 
@@ -142,14 +145,25 @@ public sealed class BridgeKeepAliveService : Service
             ? new Notification.Builder(this, ChannelId)
             : new Notification.Builder(this);
 
-        return builder
-            .SetContentTitle("HiveShock conectado")
-            .SetContentText("El live sigue en segundo plano. Toca para volver.")
-            .SetSmallIcon(Resource.Drawable.ic_stat_hiveshock)
+        builder
+            .SetContentTitle("HiveShock en segundo plano")
+            .SetContentText("Live activo. Toca para volver.")
+            .SetSmallIcon(Resource.Drawable.icon)
+            .SetLargeIcon(global::Android.Graphics.BitmapFactory.DecodeResource(Resources, Resource.Drawable.icon))
+            .SetColor(unchecked((int)0xFFEBA00A))
             .SetOngoing(true)
             .SetOnlyAlertOnce(true)
+            .SetShowWhen(true)
+            .SetUsesChronometer(true)
             .SetContentIntent(pending)
             .SetCategory(Notification.CategoryService)
-            .Build();
+            .SetVisibility(NotificationVisibility.Public);
+
+        if (OperatingSystem.IsAndroidVersionAtLeast(31))
+        {
+            builder.SetForegroundServiceBehavior((int)NotificationForegroundService.Immediate);
+        }
+
+        return builder.Build();
     }
 }
