@@ -2,9 +2,7 @@ using Android;
 using Android.App;
 using Android.Content.PM;
 using Android.OS;
-using Avalonia;
 using Avalonia.Android;
-using Avalonia.Fonts.Inter;
 
 namespace HiveShock.Android;
 
@@ -15,15 +13,9 @@ namespace HiveShock.Android;
     MainLauncher = true,
     LaunchMode = LaunchMode.SingleTop,
     ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode)]
-public class MainActivity : AvaloniaMainActivity<App>
+public class MainActivity : AvaloniaMainActivity
 {
     private const int NotifyPermissionRequest = 1001;
-
-    protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
-    {
-        return base.CustomizeAppBuilder(builder)
-            .WithInterFont();
-    }
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
