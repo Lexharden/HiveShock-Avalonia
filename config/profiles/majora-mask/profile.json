@@ -1,7 +1,7 @@
 {
   "id": "majora-mask",
   "displayName": "Majora's Mask (2 Ship 2 Harkinian)",
-  "description": "Abre 2 Ship 2 Harkinian, entra en una partida y activa el puente TikTok.",
+  "description": "2 Ship 2 Harkinian: entra en una partida y activa el puente.",
   "gameHost": "127.0.0.1",
   "gamePort": 43000,
   "crowdControlPort": 43001,
@@ -89,5 +89,5 @@
     "nuke_save": "Borrar partida (no se puede deshacer)",
     "new_run": "Borrar partida (no se puede deshacer)"
   },
-  "helpNotes": "Abre el juego, entra en una partida y activa el puente TikTok."
+  "helpNotes": "Entra en una partida y activa el puente."
 }

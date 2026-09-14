@@ -7,9 +7,6 @@
              x:DataType="vm:CatalogViewModel">
     <DockPanel>
         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
-            <TextBlock Classes="pageTitle" Text="Vistos" />
-            <TextBlock Classes="pageLead"
-                       Text="Regalos que ya salieron en tus lives. Sirve para todos los juegos. Elige uno y pulsa Usar en este juego para ponerle un efecto." />
             <WrapPanel>
                 <Button Classes="secondary" Content="Nuevo" Command="{Binding NewItemCommand}" />
                 <Button Classes="secondary" Content="Editar" Command="{Binding EditCommand}" />

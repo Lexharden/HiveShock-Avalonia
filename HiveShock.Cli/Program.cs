@@ -22,7 +22,7 @@ if (options.ListEffectsOnly)
 if (!options.SkipMenu)
 {
     var menu = new ConsoleMenu(
-        options,
+        runtime,
         runtime.Effects,
         runtime.Gifts,
         runtime.Catalog,
@@ -42,7 +42,7 @@ var mode = options.DevMode
 
 Console.WriteLine("=================================================");
 Console.WriteLine("  HiveShock");
-Console.WriteLine("  TikTok Live → efectos en el juego");
+Console.WriteLine("  Lo que pasa en tu live llega al juego");
 Console.WriteLine("  Dev Yafel GH");
 Console.WriteLine("=================================================");
 Console.WriteLine($"Perfil {runtime.Profile.DisplayName} ({runtime.Profile.Id})");
@@ -54,13 +54,14 @@ if (mode == BridgeRunMode.Sdk)
 else if (mode == BridgeRunMode.Capture)
 {
     Console.WriteLine("Modo   Captura");
-    Console.WriteLine($"Canal  @{options.TikTokUniqueId}");
+    Console.WriteLine($"TikTok  @{options.TikTokUniqueId}");
     Console.WriteLine($"Catálogo  {runtime.Catalog.Count}");
 }
 else
 {
     Console.WriteLine("Modo   En vivo");
-    Console.WriteLine($"Canal  @{options.TikTokUniqueId}");
+    Console.WriteLine($"TikTok  @{options.TikTokUniqueId} ({(options.TikTokEnabled ? "on" : "off")})");
+    Console.WriteLine($"Twitch  @{options.TwitchUserLogin} ({(options.TwitchEnabled ? "on" : "off")})");
 }
 
 if (mode != BridgeRunMode.Capture)

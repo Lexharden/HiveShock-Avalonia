@@ -14,11 +14,14 @@ public sealed class UiPreferences
     public int? DeathCounterValue { get; set; }
     public bool DeathOverlayEnabled { get; set; }
     public bool GiftOverlayEnabled { get; set; }
+    public bool GoalOverlayEnabled { get; set; }
     public string OverlayTitle { get; set; } = "";
     public double OverlayLeft { get; set; } = double.NaN;
     public double OverlayTop { get; set; } = double.NaN;
     public double GiftOverlayLeft { get; set; } = double.NaN;
     public double GiftOverlayTop { get; set; } = double.NaN;
+    public double GoalOverlayLeft { get; set; } = double.NaN;
+    public double GoalOverlayTop { get; set; } = double.NaN;
     public double OverlayScale { get; set; } = 1.5;
     public bool DetailLogOpen { get; set; }
 

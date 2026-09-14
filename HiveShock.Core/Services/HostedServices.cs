@@ -1,11 +1,10 @@
-using System.Collections.Concurrent;
 using HiveShock.Configuration;
 using HiveShock.Hosting;
+using HiveShock.Live;
 using HiveShock.Logging;
 using HiveShock.Networking;
 using Microsoft.Extensions.Hosting;
 using TikTokLive;
-using TikTokLive.Helpers;
 using TikTokLive.Proto;
 
 namespace HiveShock.Services;
@@ -13,11 +12,13 @@ namespace HiveShock.Services;
 public sealed class ConfigWatchService : BackgroundService
 {
     private readonly GiftConfigStore _gifts;
+    private readonly GiftGoalBank _goals;
     private readonly string _giftsPath;
 
-    public ConfigWatchService(GiftConfigStore gifts, LoadedGameProfile profile)
+    public ConfigWatchService(GiftConfigStore gifts, GiftGoalBank goals, LoadedGameProfile profile)
     {
         _gifts = gifts;
+        _goals = goals;
         _giftsPath = profile.GiftsPath;
     }
 
@@ -49,6 +50,7 @@ public sealed class ConfigWatchService : BackgroundService
                 {
                     await Task.Delay(200, stoppingToken).ConfigureAwait(false);
                     _gifts.Reload(_giftsPath);
+                    _goals.ApplyDefinitions(_gifts.Snapshot.Goals);
                     BridgeLog.Info($"gifts.json recargado ({_gifts.Snapshot.Groups.Count} regalos)");
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -133,48 +135,49 @@ public sealed class CrowdControlHostedService : BackgroundService
     }
 }
 
-public sealed class TikTokLiveHostedService : BackgroundService
+public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
 {
     private readonly BridgeOptions _options;
-    private readonly EffectCatalog _effects;
-    private readonly GiftConfigStore _gifts;
     private readonly GiftCatalogStore _catalog;
-    private readonly EffectDispatcher _dispatcher;
-    private readonly OverlayNotifier _overlay;
-    private readonly GiftStreakTracker _streaks = new();
-    private readonly ConcurrentDictionary<string, byte> _seenUnmapped = new();
-    private long _likeBucket;
+    private readonly LiveEffectRouter _router;
+    private readonly LivePortHub _hub;
 
     public TikTokLiveHostedService(
         BridgeOptions options,
-        EffectCatalog effects,
-        GiftConfigStore gifts,
         GiftCatalogStore catalog,
-        EffectDispatcher dispatcher,
-        OverlayNotifier overlay)
+        LiveEffectRouter router,
+        LivePortHub hub)
     {
         _options = options;
-        _effects = effects;
-        _gifts = gifts;
         _catalog = catalog;
-        _dispatcher = dispatcher;
-        _overlay = overlay;
+        _router = router;
+        _hub = hub;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public string Id => LivePortIds.TikTok;
+    public string DisplayName => "TikTok";
+    public bool IsEnabled => _options.TikTokEnabled;
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(_options.TikTokUniqueId);
+    public LivePortCapability Capabilities =>
+        LivePortCapability.Chat | LivePortCapability.Follow | LivePortCapability.Share |
+        LivePortCapability.Likes | LivePortCapability.Gifts | LivePortCapability.Catalog;
+
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) => RunAsync(stoppingToken);
+
+    public async Task RunAsync(CancellationToken stoppingToken)
     {
         if (_options.DevMode)
         {
-            BridgeLog.Info("Modo pruebas: TikTok desactivado (solo puerto local → juego)");
+            BridgeLog.Info("Modo pruebas: canales desactivados (solo puerto local → juego)");
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(_options.TikTokUniqueId))
+        if (!_options.TikTokReady)
         {
-            BridgeLog.Error("Sin canal TikTok (TIKTOK_UNIQUE_ID).");
             return;
         }
 
+        _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Connecting, "");
         if (_options.CaptureOnly)
         {
             BridgeLog.Info($"Captura de regalos @{_options.TikTokUniqueId} → {_catalog.Path}");
@@ -190,6 +193,7 @@ public sealed class TikTokLiveHostedService : BackgroundService
             {
                 await ConnectOnceAsync(stoppingToken).ConfigureAwait(false);
                 BridgeLog.Warn("TikTok desconectado. Reintento en 8s");
+                _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Connecting, "Reintentando…");
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -209,6 +213,8 @@ public sealed class TikTokLiveHostedService : BackgroundService
                 {
                     BridgeLog.Warn($"TikTok: {ex.Message}");
                 }
+
+                _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Error, ex.Message);
             }
 
             try
@@ -220,6 +226,8 @@ public sealed class TikTokLiveHostedService : BackgroundService
                 break;
             }
         }
+
+        _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Off, "");
     }
 
     private async Task ConnectOnceAsync(CancellationToken ct)
@@ -241,7 +249,10 @@ public sealed class TikTokLiveHostedService : BackgroundService
         }
 
         client.OnConnected += roomId =>
+        {
+            _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Live, "");
             BridgeLog.Info($"TikTok conectado room={roomId}");
+        };
 
         client.OnDisconnected += () =>
             BridgeLog.Warn("TikTok desconectado");
@@ -250,210 +261,19 @@ public sealed class TikTokLiveHostedService : BackgroundService
             BridgeLog.Warn($"TikTok reconectando {info.Attempt}/{info.MaxRetries}");
 
         client.OnLiveEnded += _ =>
+        {
+            _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Ended, "Live cerrado");
             BridgeLog.Info("TikTok live terminado");
+        };
 
-        client.OnGift += gift => OnGift(gift, ct);
-        client.OnLike += like => OnLike(like, ct);
-        client.OnFollow += social => OnFollow(social, ct);
-        client.OnShare += social => OnShare(social, ct);
-        client.OnChat += chat => OnChat(chat, ct);
+        client.OnGift += gift => _router.HandleTikTokGift(gift, ct);
+        client.OnLike += like =>
+            _router.HandleLike(ViewerName(like.User), like.LikeCount > 0 ? like.LikeCount : 1, ct);
+        client.OnFollow += social => _router.HandleFollow(ViewerName(social.User), ct, LivePortIds.TikTok);
+        client.OnShare += social => _router.HandleShare(ViewerName(social.User), ct);
+        client.OnChat += chat => _router.HandleChat(ViewerName(chat.User), chat.Comment ?? "", ct, LivePortIds.TikTok);
 
         await client.RunAsync(ct).ConfigureAwait(false);
-    }
-
-    private void OnGift(WebcastGiftMessage gift, CancellationToken ct)
-    {
-        var name = gift.GiftDetails?.GiftName ?? "";
-        var id = gift.GiftId != 0
-            ? gift.GiftId.ToString()
-            : gift.GiftDetails?.Id is > 0 ? gift.GiftDetails.Id.ToString() : "";
-        var diamondsPer = gift.GiftDetails?.DiamondCount is > 0
-            ? gift.GiftDetails.DiamondCount
-            : (int?)null;
-
-        if (_catalog.Observe(id, name, diamondsPer))
-        {
-            BridgeLog.Info($"Catálogo + {(!string.IsNullOrWhiteSpace(name) ? name : id)} id={id} ({diamondsPer ?? 0}d) total={_catalog.Count}");
-        }
-
-        var streak = _streaks.Process(gift);
-        if (!streak.IsFinal)
-        {
-            return;
-        }
-
-        if (_options.CaptureOnly)
-        {
-            var label = !string.IsNullOrWhiteSpace(name) ? name : id;
-            BridgeLog.Info($"Capturado {ViewerName(gift.User)} {label} x{Math.Max(1, streak.TotalGiftCount)}");
-            return;
-        }
-
-        var repeat = Math.Max(1, streak.TotalGiftCount);
-        var diamonds = streak.TotalDiamondCount;
-        var user = ViewerName(gift.User);
-        var match = _gifts.ResolveGift(name, id, diamonds);
-        var giftLabel = !string.IsNullOrWhiteSpace(name) ? name : id;
-
-        if (match == null || string.IsNullOrWhiteSpace(match.EffectId))
-        {
-            LogUnmapped(name, id, diamonds, repeat);
-            return;
-        }
-
-        if (repeat < match.MinCount)
-        {
-            BridgeLog.Info(
-                $"Regalo {user} {giftLabel} x{repeat} ({diamonds}d) — hace falta x{match.MinCount}+ (omitido)");
-            return;
-        }
-
-        // each=true → un efecto por unidad del combo (x10 → 10). Tope de seguridad.
-        // Singleton effects (delete_save, etc.) nunca se repiten por combo.
-        const int maxRepeats = 100;
-        var isSingleton = _effects.IsSingletonEffect(match.EffectId);
-        var times = isSingleton ? 1 : (match.Each ? Math.Min(repeat, maxRepeats) : 1);
-        var modeLabel = isSingleton
-            ? "1 vez (singleton)"
-            : match.Each ? $"x{times} cada uno" : "1 vez";
-        BridgeLog.Info($"Regalo {user} {giftLabel} x{repeat} ({diamonds}d) -> {match.EffectId} ({modeLabel})");
-
-        _overlay.Notify(giftLabel, id);
-
-        for (var i = 0; i < times; i++)
-        {
-            var reason = times > 1
-                ? $"Regalo {giftLabel} x{repeat} ({i + 1}/{times})"
-                : $"Regalo {giftLabel} x{repeat}";
-            _ = _dispatcher.EnqueueAsync(match.EffectId, user, reason, ct);
-        }
-    }
-
-    private void OnLike(WebcastLikeMessage like, CancellationToken ct)
-    {
-        if (_options.CaptureOnly)
-        {
-            return;
-        }
-
-        var cfg = _gifts.Snapshot.Likes;
-        if (cfg.Every <= 0 || string.IsNullOrWhiteSpace(cfg.Effect))
-        {
-            return;
-        }
-
-        var added = like.LikeCount > 0 ? like.LikeCount : 1;
-        Interlocked.Add(ref _likeBucket, added);
-        while (true)
-        {
-            var current = Interlocked.Read(ref _likeBucket);
-            if (current < cfg.Every)
-            {
-                break;
-            }
-
-            if (Interlocked.CompareExchange(ref _likeBucket, current - cfg.Every, current) == current)
-            {
-                BridgeLog.Info($"Likes {ViewerName(like.User)} x{cfg.Every} -> {cfg.Effect}");
-                _ = _dispatcher.EnqueueAsync(cfg.Effect, ViewerName(like.User), $"{cfg.Every} likes", ct);
-            }
-        }
-    }
-
-    private void OnFollow(WebcastSocialMessage social, CancellationToken ct)
-    {
-        if (_options.CaptureOnly)
-        {
-            return;
-        }
-
-        var effect = _gifts.Snapshot.Follow.Effect;
-        if (!string.IsNullOrWhiteSpace(effect))
-        {
-            BridgeLog.Info($"Follow {ViewerName(social.User)} -> {effect}");
-            _ = _dispatcher.EnqueueAsync(effect, ViewerName(social.User), "Follow", ct);
-        }
-    }
-
-    private void OnShare(WebcastSocialMessage social, CancellationToken ct)
-    {
-        if (_options.CaptureOnly)
-        {
-            return;
-        }
-
-        var effect = _gifts.Snapshot.Share.Effect;
-        if (!string.IsNullOrWhiteSpace(effect))
-        {
-            BridgeLog.Info($"Share {ViewerName(social.User)} -> {effect}");
-            _ = _dispatcher.EnqueueAsync(effect, ViewerName(social.User), "Share", ct);
-        }
-    }
-
-    private void OnChat(WebcastChatMessage chat, CancellationToken ct)
-    {
-        if (_options.CaptureOnly)
-        {
-            return;
-        }
-
-        var cfg = _gifts.Snapshot.Chat;
-        if (!cfg.Enabled)
-        {
-            return;
-        }
-
-        var prefix = cfg.Prefix ?? "!";
-        var text = (chat.Comment ?? "").Trim();
-        if (text.Length == 0)
-        {
-            return;
-        }
-
-        if (!string.IsNullOrEmpty(prefix) && !text.StartsWith(prefix, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        if (!string.IsNullOrEmpty(prefix))
-        {
-            text = text[prefix.Length..];
-        }
-
-        var command = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .FirstOrDefault()
-            ?.ToLowerInvariant();
-
-        if (string.IsNullOrWhiteSpace(command) || !cfg.Commands.TryGetValue(command, out var effectId))
-        {
-            return;
-        }
-
-        BridgeLog.Info($"Chat {ViewerName(chat.User)} {prefix}{command} -> {effectId}");
-        _ = _dispatcher.EnqueueAsync(effectId, ViewerName(chat.User), $"Chat {prefix}{command}", ct);
-    }
-
-    private void LogUnmapped(string name, string id, long diamonds, int repeat)
-    {
-        var label = string.IsNullOrWhiteSpace(name) ? $"id {id}" : name;
-        BridgeLog.Warn($"Sin mapeo: {label} id={(string.IsNullOrWhiteSpace(id) ? "?" : id)} {diamonds}d x{repeat}");
-
-        var hintKey = $"{id}|{GiftKeyNormalizer.Normalize(name)}";
-        if (!_seenUnmapped.TryAdd(hintKey, 0))
-        {
-            return;
-        }
-
-        // Solo la primera vez: pista corta en consola (no al archivo de nuevo)
-        if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(id))
-        {
-            Console.WriteLine($"  -> {{ \"gift\": \"{name}\", \"id\": \"{id}\", \"effect\": \"impulse\" }}");
-        }
-        else
-        {
-            var key = string.IsNullOrWhiteSpace(name) ? id : name;
-            Console.WriteLine($"  -> {{ \"gift\": \"{key}\", \"effect\": \"impulse\" }}");
-        }
     }
 
     private static string ViewerName(UserIdentity? user) =>

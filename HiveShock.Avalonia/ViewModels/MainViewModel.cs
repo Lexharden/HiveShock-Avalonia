@@ -38,9 +38,13 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Gifts = new GiftsViewModel(this);
         Events = new EventsViewModel(this);
         Catalog = new CatalogViewModel(this);
+        Goals = new GoalsViewModel(this);
+        TikTok = new TikTokViewModel(this);
+        Twitch = new TwitchViewModel(this);
         Help = new HelpViewModel();
         About = new AboutViewModel();
         Events.LoadFromEditor(Gifts.Editor);
+        Goals.LoadFromEditor(Gifts.Editor);
 
         CurrentPage = Studio;
         CurrentPageKey = "studio";
@@ -55,13 +59,22 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         {
             Studio.ShowGiftsOnStream = false;
         };
+        Overlays.GoalsClosedByUser += () =>
+        {
+            Studio.ShowGoalsOnStream = false;
+        };
 
         Runtime.DeathsChanged += (_, _) => Dispatch(() =>
         {
             Studio.PersistDeath();
             Studio.RefreshCounter();
         });
+        Runtime.Goals.Changed += (_, _) => Dispatch(() =>
+        {
+            Overlays.RefreshGoals(Runtime.Goals.Snapshots(), Prefs);
+        });
         Runtime.Overlay.GiftReceived += OnOverlayGift;
+        Runtime.Ports.Changed += OnPortsChanged;
         BridgeLog.Logged += OnLogged;
         BridgeLog.Init();
         BridgeLog.Info($"UI lista · perfil {Runtime.Profile.DisplayName}");
@@ -77,6 +90,9 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public GiftsViewModel Gifts { get; }
     public CatalogViewModel Catalog { get; }
     public EventsViewModel Events { get; }
+    public GoalsViewModel Goals { get; }
+    public TikTokViewModel TikTok { get; }
+    public TwitchViewModel Twitch { get; }
     public HelpViewModel Help { get; }
     public AboutViewModel About { get; }
 
@@ -113,9 +129,8 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private string _selectedThemeId = "system";
 
     public bool IsStudioNav => CurrentPageKey == "studio";
-    public bool IsGiftsNav => CurrentPageKey == "gifts";
-    public bool IsCatalogNav => CurrentPageKey == "catalog";
-    public bool IsEventsNav => CurrentPageKey == "events";
+    public bool IsTikTokNav => CurrentPageKey is "tiktok" or "gifts" or "catalog";
+    public bool IsTwitchNav => CurrentPageKey == "twitch";
     public bool IsHelpNav => CurrentPageKey == "help";
     public bool IsAboutNav => CurrentPageKey == "about";
     public bool CanInteract => !IsBusy;
@@ -137,6 +152,11 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         {
             Overlays.ShowGifts(Gifts.Models, Prefs);
         }
+
+        if (Prefs.GoalOverlayEnabled)
+        {
+            Overlays.ShowGoals(Runtime.Goals.Snapshots(), Prefs);
+        }
     }
 
     public void ReloadEffectChoices()
@@ -155,8 +175,10 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Gifts.Load();
         Catalog.Load();
         Events.NotifyEffects();
+        Goals.NotifyEffects();
         Studio.RefreshStats();
         Overlays.RefreshGifts(Gifts.Models);
+        Overlays.RefreshGoals(Runtime.Goals.Snapshots(), Prefs);
     }
 
     public void RefreshStatus()
@@ -180,7 +202,9 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
             {
                 BridgeRunMode.Capture => ("Anotando", "ok"),
                 BridgeRunMode.Sdk => ("En pruebas", "ok"),
-                _ => ("En vivo", "live"),
+                _ => (string.IsNullOrWhiteSpace(Runtime.Ports.StatusSummary())
+                    ? "En vivo"
+                    : Runtime.Ports.StatusSummary(), "live"),
             };
         }
 
@@ -208,9 +232,8 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     partial void OnCurrentPageKeyChanged(string value)
     {
         OnPropertyChanged(nameof(IsStudioNav));
-        OnPropertyChanged(nameof(IsGiftsNav));
-        OnPropertyChanged(nameof(IsCatalogNav));
-        OnPropertyChanged(nameof(IsEventsNav));
+        OnPropertyChanged(nameof(IsTikTokNav));
+        OnPropertyChanged(nameof(IsTwitchNav));
         OnPropertyChanged(nameof(IsHelpNav));
         OnPropertyChanged(nameof(IsAboutNav));
     }
@@ -278,9 +301,11 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     private static string FriendlyStartError(string message)
     {
         if (message.Contains("canal", StringComparison.OrdinalIgnoreCase) ||
-            message.Contains("TikTok", StringComparison.OrdinalIgnoreCase))
+            message.Contains("TikTok", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("Twitch", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("Activa al menos", StringComparison.OrdinalIgnoreCase))
         {
-            return "Escribe tu usuario de TikTok (sin @) para conectar.";
+            return message;
         }
 
         return message;
@@ -315,29 +340,36 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         CurrentPageKey = "studio";
     }
 
+    public void GoTikTok()
+    {
+        Gifts.Load();
+        Catalog.Load();
+        Events.LoadFromEditor(Gifts.Editor);
+        Goals.LoadFromEditor(Gifts.Editor);
+        CurrentPage = TikTok;
+        CurrentPageKey = "tiktok";
+    }
+
+    public void GoTwitch()
+    {
+        Events.LoadFromEditor(Gifts.Editor);
+        CurrentPage = Twitch;
+        CurrentPageKey = "twitch";
+    }
+
     public void GoGifts(bool reload = true)
     {
-        if (reload)
-        {
-            Gifts.Load();
-        }
-
-        CurrentPage = Gifts;
-        CurrentPageKey = "gifts";
+        GoTikTok();
     }
 
     public void GoCatalog()
     {
-        Catalog.Load();
-        CurrentPage = Catalog;
-        CurrentPageKey = "catalog";
+        GoTikTok();
     }
 
     public void GoEvents()
     {
-        Events.LoadFromEditor(Gifts.Editor);
-        CurrentPage = Events;
-        CurrentPageKey = "events";
+        GoTikTok();
     }
 
     public void GoHelp()
@@ -356,13 +388,10 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     private void NavStudio() => GoStudio();
 
     [RelayCommand]
-    private void NavGifts() => GoGifts();
+    private void NavTikTok() => GoTikTok();
 
     [RelayCommand]
-    private void NavCatalog() => GoCatalog();
-
-    [RelayCommand]
-    private void NavEvents() => GoEvents();
+    private void NavTwitch() => GoTwitch();
 
     [RelayCommand]
     private void NavHelp() => GoHelp();
@@ -386,6 +415,20 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
             ThemeManager.Apply(Application.Current, Prefs.ResolveTheme());
         }
     }
+
+    private void OnPortsChanged() => Dispatch(() =>
+    {
+        Studio.RefreshPortCards();
+        if (Runtime.IsRunning)
+        {
+            if (Runtime.Ports.AnyLive())
+            {
+                _sessionReady = true;
+            }
+
+            RefreshStatus();
+        }
+    });
 
     private void OnOverlayGift(object? sender, OverlayGiftHitEventArgs e) =>
         Dispatch(() => Overlays.HighlightGift(e.GiftName, e.GiftId));
@@ -429,6 +472,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     private static bool MarksSessionReady(string message) =>
         message.StartsWith("TikTok conectado", StringComparison.Ordinal) ||
+        message.StartsWith("Twitch conectado", StringComparison.Ordinal) ||
         message.StartsWith("Pruebas escuchando", StringComparison.Ordinal) ||
         message.StartsWith("Captura de regalos", StringComparison.Ordinal) ||
         message.StartsWith("Modo pruebas:", StringComparison.Ordinal);
@@ -456,6 +500,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Studio.PersistDeath();
         Overlays.CloseAll(Prefs);
         Runtime.Overlay.GiftReceived -= OnOverlayGift;
+        Runtime.Ports.Changed -= OnPortsChanged;
         BridgeLog.Logged -= OnLogged;
 
         try

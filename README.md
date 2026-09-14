@@ -1,13 +1,15 @@
 # HiveShock (Avalonia)
 
-Puente entre **TikTok Live** y el juego: regalos, likes, follows, shares y comandos de chat se convierten en efectos dentro de la partida. GUI en Avalonia 12 + Fluent, con marca Yafel (`#075BAA` / `#EBA00A`).
+Puente entre **tu live** y el juego: TikTok y Twitch pueden escuchar a la vez. Regalos, chat y el resto de eventos se convierten en efectos dentro de la partida. GUI en Avalonia 12 + Fluent, marca Yafel (`#075BAA` / `#EBA00A`).
+
+Cada **canal** (TikTok, Twitch) tiene su propia ficha en Inicio. El programa no asume una sola plataforma.
 
 La app WPF original sigue en el repo CrowdBridge (solo Windows) hasta confirmar paridad.
 
 ## Solución
 
 - `HiveShock.Avalonia` — GUI (`HiveShock` / `HiveShock.exe`)
-- `HiveShock.Core` — runtime, perfiles, TikTok, TCP al juego
+- `HiveShock.Core` — runtime, perfiles, canales (TikTok/Twitch), TCP al juego
 - `HiveShock.Cli` — misma lógica en consola
 - `libs/TikTokLive` — cliente TikTok Live
 - `config/` — perfiles, catálogo, imágenes, `.env.example`
@@ -35,7 +37,13 @@ dotnet run --project HiveShock.Avalonia/HiveShock.Avalonia.csproj
 
 No hay RID fijo en el `.csproj`: `dotnet run` usa el sistema donde compilas.
 
-Abre Inicio, elige el juego (Majora’s Mask o Twilight Princess Dusklight), guarda tu usuario de TikTok y conecta.
+Abre Inicio, elige el juego y conecta. Las cuentas se enlazan en **TikTok** y **Twitch**.
+
+## Twitch (empaquetado)
+
+El Client ID de la app HiveShock vive en `TWITCH_CLIENT_ID` o en `TwitchApp.ClientId`. El streamer solo pulsa **Entrar con Twitch**. Device Code + EventSub WebSocket en el PC.
+
+TikTok y Twitch guardan chat y follows por separado en `gifts.json` (`chat` vs `twitch`). Los bits van en `twitch.bits`.
 
 ## Versionado
 
@@ -107,7 +115,7 @@ Opcional: `-IncludeCli` / `--cli` añade la consola.
 
 ## Checklist de paridad (vs WPF)
 
-- [ ] Inicio: perfiles, canal TikTok, modos En vivo / Anotar / Probar, simular
+- [ ] Inicio: perfiles, canales TikTok/Twitch, modos En vivo / Anotar / Probar, simular
 - [ ] Conectar: Listo → Conectando → En vivo / Anotando / En pruebas
 - [ ] Contador de muertes/vidas, rescue y borrar partida (si el perfil lo permite)
 - [ ] Overlays OBS on/off + aspecto (contador y regalos), capturables

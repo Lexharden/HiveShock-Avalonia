@@ -58,6 +58,23 @@ public sealed class EditableChatCommand
     public string Effect { get; set; } = "";
 }
 
+public sealed class EditableBitsRule
+{
+    public int Min { get; set; } = 1;
+    public string Effect { get; set; } = "";
+}
+
+public sealed class EditableGiftGoal
+{
+    public string Id { get; set; } = "";
+    public string Label { get; set; } = "";
+    public int Need { get; set; } = 2;
+    public string Effect { get; set; } = "";
+    public string GiftsText { get; set; } = "";
+    public bool AlsoInstant { get; set; } = true;
+    public bool Repeat { get; set; } = true;
+}
+
 public sealed class GiftFileEditor
 {
     private readonly string _path;
@@ -75,6 +92,12 @@ public sealed class GiftFileEditor
     public bool ChatEnabled { get; set; }
     public string ChatPrefix { get; set; } = "!";
     public List<EditableChatCommand> ChatCommands { get; } = [];
+    public bool TwitchChatEnabled { get; set; }
+    public string TwitchChatPrefix { get; set; } = "!";
+    public List<EditableChatCommand> TwitchChatCommands { get; } = [];
+    public string TwitchFollowEffect { get; set; } = "";
+    public List<EditableBitsRule> TwitchBits { get; } = [];
+    public List<EditableGiftGoal> Goals { get; } = [];
 
     public void Load()
     {
@@ -124,6 +147,12 @@ public sealed class GiftFileEditor
         ChatEnabled = false;
         ChatPrefix = "!";
         ChatCommands.Clear();
+        TwitchChatEnabled = false;
+        TwitchChatPrefix = "!";
+        TwitchChatCommands.Clear();
+        TwitchFollowEffect = "";
+        TwitchBits.Clear();
+        Goals.Clear();
 
         if (_root["likes"] is JsonObject likes)
         {
@@ -152,6 +181,83 @@ public sealed class GiftFileEditor
                     var effect = kv.Value?.GetValue<string>() ?? "";
                     ChatCommands.Add(new EditableChatCommand { Word = kv.Key, Effect = effect });
                 }
+            }
+        }
+
+        if (_root["twitch"] is JsonObject twitch)
+        {
+            if (twitch["follow"] is JsonObject twFollow)
+            {
+                TwitchFollowEffect = twFollow["effect"]?.GetValue<string>() ?? "";
+            }
+
+            if (twitch["chat"] is JsonObject twChat)
+            {
+                TwitchChatEnabled = ReadBool(twChat, "enabled");
+                TwitchChatPrefix = twChat["prefix"]?.GetValue<string>() ?? "!";
+                if (twChat["commands"] is JsonObject twCmds)
+                {
+                    foreach (var kv in twCmds)
+                    {
+                        TwitchChatCommands.Add(new EditableChatCommand
+                        {
+                            Word = kv.Key,
+                            Effect = kv.Value?.GetValue<string>() ?? "",
+                        });
+                    }
+                }
+            }
+
+            if (twitch["bits"] is JsonArray twBits)
+            {
+                foreach (var node in twBits)
+                {
+                    if (node is not JsonObject bit)
+                    {
+                        continue;
+                    }
+
+                    TwitchBits.Add(new EditableBitsRule
+                    {
+                        Min = Math.Max(1, ReadInt(bit, "min") ?? 1),
+                        Effect = bit["effect"]?.GetValue<string>() ?? "",
+                    });
+                }
+            }
+        }
+        else
+        {
+            TwitchFollowEffect = FollowEffect;
+            TwitchChatEnabled = ChatEnabled;
+            TwitchChatPrefix = ChatPrefix;
+            foreach (var cmd in ChatCommands)
+            {
+                TwitchChatCommands.Add(new EditableChatCommand { Word = cmd.Word, Effect = cmd.Effect });
+            }
+        }
+
+        if (_root["goals"] is JsonArray goals)
+        {
+            foreach (var node in goals)
+            {
+                if (node is not JsonObject g)
+                {
+                    continue;
+                }
+
+                var keys = new List<string>();
+                PushStrings(keys, g, "gifts");
+                PushStrings(keys, g, "ids");
+                Goals.Add(new EditableGiftGoal
+                {
+                    Id = g["id"]?.GetValue<string>() ?? "",
+                    Label = g["label"]?.GetValue<string>() ?? g["name"]?.GetValue<string>() ?? "",
+                    Need = Math.Max(1, ReadInt(g, "need") ?? 2),
+                    Effect = g["effect"]?.GetValue<string>() ?? "",
+                    GiftsText = string.Join(", ", keys),
+                    AlsoInstant = ReadBoolOr(g, "alsoInstant", true),
+                    Repeat = ReadBoolOr(g, "repeat", true),
+                });
             }
         }
     }
@@ -187,7 +293,140 @@ public sealed class GiftFileEditor
 
         chat["commands"] = cmds;
         _root["chat"] = chat;
+
+        var twitch = _root["twitch"] as JsonObject ?? new JsonObject();
+        var twFollow = twitch["follow"] as JsonObject ?? new JsonObject();
+        twFollow["effect"] = TwitchFollowEffect ?? "";
+        twitch["follow"] = twFollow;
+        var twChat = twitch["chat"] as JsonObject ?? new JsonObject();
+        twChat["enabled"] = TwitchChatEnabled;
+        twChat["prefix"] = string.IsNullOrWhiteSpace(TwitchChatPrefix) ? "!" : TwitchChatPrefix.Trim();
+        var twCmds = new JsonObject();
+        foreach (var cmd in TwitchChatCommands)
+        {
+            if (string.IsNullOrWhiteSpace(cmd.Word) || string.IsNullOrWhiteSpace(cmd.Effect))
+            {
+                continue;
+            }
+
+            twCmds[cmd.Word.Trim()] = cmd.Effect.Trim();
+        }
+
+        twChat["commands"] = twCmds;
+        twitch["chat"] = twChat;
+        var bitsArr = new JsonArray();
+        foreach (var bit in TwitchBits.OrderBy(b => b.Min))
+        {
+            if (string.IsNullOrWhiteSpace(bit.Effect) || bit.Min < 1)
+            {
+                continue;
+            }
+
+            bitsArr.Add(new JsonObject
+            {
+                ["min"] = bit.Min,
+                ["effect"] = bit.Effect.Trim(),
+            });
+        }
+
+        twitch["bits"] = bitsArr;
+        _root["twitch"] = twitch;
+
+        var goalsArr = new JsonArray();
+        var usedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var index = 0;
+        foreach (var goal in Goals)
+        {
+            index++;
+            if (string.IsNullOrWhiteSpace(goal.Effect) || goal.Need < 1)
+            {
+                continue;
+            }
+
+            var keys = SplitKeys(goal.GiftsText);
+            if (keys.Count == 0)
+            {
+                continue;
+            }
+
+            var label = string.IsNullOrWhiteSpace(goal.Label) ? keys[0] : goal.Label.Trim();
+            var id = GiftKeyNormalizer.Normalize(goal.Id);
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                id = GiftKeyNormalizer.Normalize(label);
+            }
+
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                id = $"meta-{index}";
+            }
+
+            var baseId = id;
+            var n = 2;
+            while (!usedIds.Add(id))
+            {
+                id = $"{baseId}-{n}";
+                n++;
+            }
+
+            goalsArr.Add(new JsonObject
+            {
+                ["id"] = id,
+                ["label"] = label,
+                ["need"] = goal.Need,
+                ["effect"] = goal.Effect.Trim(),
+                ["gifts"] = ToJsonArray(keys),
+                ["alsoInstant"] = goal.AlsoInstant,
+                ["repeat"] = goal.Repeat,
+            });
+        }
+
+        _root["goals"] = goalsArr;
     }
+
+    private static List<string> SplitKeys(string? text) =>
+        (text ?? "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Where(s => s.Length > 0)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    private static JsonArray ToJsonArray(IEnumerable<string> keys)
+    {
+        var arr = new JsonArray();
+        foreach (var key in keys)
+        {
+            arr.Add(key);
+        }
+
+        return arr;
+    }
+
+    private static void PushStrings(List<string> target, JsonObject obj, string key)
+    {
+        if (obj[key] is JsonValue scalar && scalar.TryGetValue<string>(out var one) &&
+            !string.IsNullOrWhiteSpace(one))
+        {
+            target.Add(one.Trim());
+            return;
+        }
+
+        if (obj[key] is not JsonArray arr)
+        {
+            return;
+        }
+
+        foreach (var node in arr)
+        {
+            if (node is JsonValue v && v.TryGetValue<string>(out var s) && !string.IsNullOrWhiteSpace(s))
+            {
+                target.Add(s.Trim());
+            }
+        }
+    }
+
+    private static bool ReadBoolOr(JsonObject obj, string key, bool fallback) =>
+        obj[key] is null ? fallback : ReadBool(obj, key);
 
     private static int? ReadInt(JsonObject obj, string key)
     {

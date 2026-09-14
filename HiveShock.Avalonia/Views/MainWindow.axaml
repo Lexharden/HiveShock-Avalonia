@@ -25,7 +25,7 @@
                     <TextBlock Text="HiveShock" FontSize="18" FontWeight="SemiBold"
                                Foreground="{DynamicResource BrandGoldBrush}"
                                VerticalAlignment="Center" />
-                    <TextBlock Text="Los regalos del live llegan al juego"
+                    <TextBlock Text="Lo que pasa en tu live llega al juego"
                                Foreground="{DynamicResource MutedBrush}" Margin="12,2,0,0"
                                FontSize="12" VerticalAlignment="Center" />
                 </StackPanel>
@@ -115,20 +115,19 @@
                         </StackPanel>
                     </Border>
                     <StackPanel DockPanel.Dock="Bottom">
-                        <Button Content="Acerca de" Classes="nav" Classes.active="{Binding IsAboutNav}"
-                                Command="{Binding NavAboutCommand}" />
+                        <TextBlock Classes="navGroup" Text="INFO" />
                         <Button Content="Ayuda" Classes="nav" Classes.active="{Binding IsHelpNav}"
                                 Command="{Binding NavHelpCommand}" />
+                        <Button Content="Acerca de" Classes="nav" Classes.active="{Binding IsAboutNav}"
+                                Command="{Binding NavAboutCommand}" />
                     </StackPanel>
                     <StackPanel>
                         <Button Content="Inicio" Classes="nav" Classes.active="{Binding IsStudioNav}"
                                 Command="{Binding NavStudioCommand}" />
-                        <Button Content="Regalos" Classes="nav" Classes.active="{Binding IsGiftsNav}"
-                                Command="{Binding NavGiftsCommand}" />
-                        <Button Content="Vistos" Classes="nav" Classes.active="{Binding IsCatalogNav}"
-                                Command="{Binding NavCatalogCommand}" />
-                        <Button Content="Likes y chat" Classes="nav" Classes.active="{Binding IsEventsNav}"
-                                Command="{Binding NavEventsCommand}" />
+                        <Button Content="TikTok" Classes="nav" Classes.active="{Binding IsTikTokNav}"
+                                Command="{Binding NavTikTokCommand}" />
+                        <Button Content="Twitch" Classes="nav" Classes.active="{Binding IsTwitchNav}"
+                                Command="{Binding NavTwitchCommand}" />
                     </StackPanel>
                 </DockPanel>
             </Border>

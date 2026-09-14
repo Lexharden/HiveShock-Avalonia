@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using HiveShock.Avalonia.Views.Overlays;
 using HiveShock.Configuration;
 using HiveShock.Hosting;
+using HiveShock.Live;
 
 namespace HiveShock.Avalonia.Services;
 
@@ -10,12 +11,14 @@ public sealed class OverlayService
 {
     private CounterOverlayWindow? _counter;
     private GiftAlertOverlayWindow? _gifts;
+    private GoalOverlayWindow? _goals;
     private bool _suppressClose;
 
     public Window? Owner { get; set; }
 
     public event Action? CounterClosedByUser;
     public event Action? GiftsClosedByUser;
+    public event Action? GoalsClosedByUser;
 
     public void ShowCounter(DeathCounter counter, string title, UiPreferences prefs)
     {
@@ -146,6 +149,7 @@ public sealed class OverlayService
     {
         RefreshCounterScale(prefs);
         RefreshGiftsScale(prefs);
+        RefreshGoalsScale(prefs);
     }
 
     public void RefreshLook(UiPreferences prefs, DeathCounter counter, IEnumerable<EditableGift> gifts)
@@ -153,7 +157,70 @@ public sealed class OverlayService
         _counter?.ApplyLook(prefs, prefs.ResolveOverlayScale());
         _counter?.Apply(counter, prefs.ResolveOverlayTitle());
         _gifts?.ApplyLook(prefs, prefs.ResolveOverlayScale(), gifts);
+        _goals?.ApplyLook(prefs, prefs.ResolveOverlayScale());
     }
+
+    public void ShowGoals(IEnumerable<GoalSnapshot> goals, UiPreferences prefs)
+    {
+        if (_goals == null)
+        {
+            _goals = new GoalOverlayWindow();
+            _goals.Closed += (_, _) =>
+            {
+                if (_goals != null)
+                {
+                    prefs.GoalOverlayLeft = _goals.Position.X;
+                    prefs.GoalOverlayTop = _goals.Position.Y;
+                    prefs.Save();
+                }
+
+                _goals = null;
+                if (!_suppressClose)
+                {
+                    GoalsClosedByUser?.Invoke();
+                }
+            };
+        }
+
+        Place(_goals, prefs.GoalOverlayLeft, prefs.GoalOverlayTop);
+        _goals.ApplyLook(prefs, prefs.ResolveOverlayScale());
+        _goals.Apply(goals);
+        _goals.Show();
+    }
+
+    public void HideGoals(UiPreferences prefs)
+    {
+        if (_goals == null)
+        {
+            return;
+        }
+
+        prefs.GoalOverlayLeft = _goals.Position.X;
+        prefs.GoalOverlayTop = _goals.Position.Y;
+        prefs.Save();
+        _suppressClose = true;
+        _goals.Close();
+        _suppressClose = false;
+        _goals = null;
+    }
+
+    public void RefreshGoals(IEnumerable<GoalSnapshot> goals, UiPreferences? prefs = null)
+    {
+        if (_goals == null)
+        {
+            return;
+        }
+
+        if (prefs != null)
+        {
+            _goals.ApplyLook(prefs, prefs.ResolveOverlayScale());
+        }
+
+        _goals.Apply(goals);
+    }
+
+    public void RefreshGoalsScale(UiPreferences prefs) =>
+        _goals?.ApplyLook(prefs, prefs.ResolveOverlayScale());
 
     public void HighlightGift(string name, string? id) => _gifts?.Highlight(name, id);
 
@@ -162,6 +229,7 @@ public sealed class OverlayService
         _suppressClose = true;
         HideCounter(prefs);
         HideGifts(prefs);
+        HideGoals(prefs);
         _suppressClose = false;
     }
 

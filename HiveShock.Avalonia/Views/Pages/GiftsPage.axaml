@@ -5,9 +5,6 @@
              x:DataType="vm:GiftsViewModel">
     <Grid RowDefinitions="Auto,*">
         <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Classes="pageTitle" Text="Regalos" />
-            <TextBlock Classes="pageLead"
-                       Text="Aquí dices qué hace cada regalo en este juego. Cada juego tiene su propia lista." />
             <WrapPanel>
                 <Button Classes="secondary" Content="Nuevo" Command="{Binding NewGiftCommand}" />
                 <Button Classes="secondary" Content="Elegir de los vistos" Command="{Binding FromCatalogCommand}" />

@@ -1,7 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HiveShock.Avalonia.Services;
+using HiveShock.Avalonia.Views.Dialogs;
 using HiveShock.Hosting;
+using HiveShock.Live;
 using HiveShock.Logging;
 
 namespace HiveShock.Avalonia.ViewModels;
@@ -15,12 +17,19 @@ public sealed partial class StudioViewModel : ViewModelBase
     {
         _shell = shell;
         _channel = shell.Runtime.Options.TikTokUniqueId;
+        _tikTokEnabled = shell.Runtime.Options.TikTokEnabled;
+        _twitchEnabled = shell.Runtime.Options.TwitchEnabled;
+        _twitchLogin = shell.Runtime.Options.TwitchUserLogin;
+        _twitchClientId = shell.Runtime.Options.TwitchClientId;
         _simulate = shell.Runtime.Options.DryRun;
         _selectedMode = BridgeRunMode.Live;
         RefreshProfiles();
         RefreshCapabilities();
         LoadDeathPrefs();
         RefreshStats();
+        RefreshPortCards();
+        shell.Runtime.Ports.Changed += () =>
+            global::Avalonia.Threading.Dispatcher.UIThread.Post(RefreshPortCards);
     }
 
     public IReadOnlyList<ProfileCardViewModel> Profiles { get; private set; } = [];
@@ -34,11 +43,15 @@ public sealed partial class StudioViewModel : ViewModelBase
     [ObservableProperty] private bool _supportsDeath;
     [ObservableProperty] private bool _canRescue;
     [ObservableProperty] private bool _canDeleteSave;
+    [ObservableProperty] private bool _hasGameTools;
+    [ObservableProperty] private string _rescueLabel = "Rescatar";
+    [ObservableProperty] private string _deleteSaveLabel = "Borrar partida";
     [ObservableProperty] private bool _livesMode;
     [ObservableProperty] private string _deathStartText = "0";
     [ObservableProperty] private string _counterDisplay = "";
     [ObservableProperty] private bool _showCounterOnStream;
     [ObservableProperty] private bool _showGiftsOnStream;
+    [ObservableProperty] private bool _showGoalsOnStream;
     [ObservableProperty] private double _overlayScale = 1.5;
     [ObservableProperty] private string _counterTitleText = "";
     [ObservableProperty] private string _giftsTitleText = "Regalos";
@@ -53,6 +66,13 @@ public sealed partial class StudioViewModel : ViewModelBase
     [ObservableProperty] private string _overlayGiftColor = "";
     [ObservableProperty] private bool _overlayAlignCenter = true;
     [ObservableProperty] private string _connectLabel = "Conectar";
+    [ObservableProperty] private bool _tikTokEnabled = true;
+    [ObservableProperty] private bool _twitchEnabled = true;
+    [ObservableProperty] private string _twitchLogin = "";
+    [ObservableProperty] private string _twitchClientId = "";
+    [ObservableProperty] private string _tikTokPortStatus = "Apagado";
+    [ObservableProperty] private string _twitchPortStatus = "Apagado";
+    [ObservableProperty] private bool _twitchBusy;
 
     public bool CanEditSetup => !_shell.IsRunning;
     public bool CanConnect => !_shell.IsBusy;
@@ -143,10 +163,52 @@ public sealed partial class StudioViewModel : ViewModelBase
         }
         : global::Avalonia.Media.Brushes.Transparent;
 
+    public bool TwitchHasAccount => !string.IsNullOrWhiteSpace(TwitchLogin);
+    public bool CanTwitchConnect => CanEditSetup && !TwitchBusy;
+    public bool CaptureNeedsTikTok => SelectedMode == BridgeRunMode.Capture;
+
+    public string ModeHint => SelectedMode switch
+    {
+        BridgeRunMode.Capture => "Anota regalos de TikTok. No toca la partida.",
+        BridgeRunMode.Sdk => "Sin canales. Efectos desde HiveShock.",
+        _ => "Los canales activos mandan efectos al juego.",
+    };
+
+    public string ChannelSummary
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (TikTokEnabled && !string.IsNullOrWhiteSpace(Channel))
+            {
+                parts.Add($"TikTok @{Channel.Trim().TrimStart('@')}");
+            }
+            else if (TikTokEnabled)
+            {
+                parts.Add("TikTok sin usuario");
+            }
+
+            if (TwitchHasAccount)
+            {
+                parts.Add($"Twitch @{TwitchLogin}");
+            }
+            else if (TwitchEnabled)
+            {
+                parts.Add("Twitch sin cuenta");
+            }
+
+            return parts.Count == 0
+                ? "Ningún canal listo. Entra en TikTok o Twitch."
+                : string.Join(" · ", parts);
+        }
+    }
+
     public string SessionHint => _shell.StatusTone switch
     {
         "connecting" => "Conectando… un momento.",
-        "live" => "En vivo: los regalos llegan al juego.",
+        "live" => string.IsNullOrWhiteSpace(_shell.Runtime.Ports.StatusSummary())
+            ? "En vivo: lo que pasa en el chat llega al juego."
+            : _shell.Runtime.Ports.StatusSummary() + ".",
         "ok" => $"{_shell.StatusText}.",
         _ => GameStatus,
     };
@@ -159,7 +221,7 @@ public sealed partial class StudioViewModel : ViewModelBase
         OnPropertyChanged(nameof(Profiles));
         var info = _shell.Runtime.Profile.Info;
         ProfileHint = string.IsNullOrWhiteSpace(info.Description) ? info.HelpNotes : info.Description;
-        GameStatus = $"Listo para { _shell.Runtime.Profile.DisplayName }.";
+        GameStatus = $"Listo: {_shell.Runtime.Profile.ShortDisplayName}.";
         RefreshCapabilities();
     }
 
@@ -169,12 +231,17 @@ public sealed partial class StudioViewModel : ViewModelBase
         SupportsDeath = info.SupportsDeathEvents;
         CanRescue = info.SupportsRescue;
         CanDeleteSave = info.SupportsDeleteSave;
+        HasGameTools = SupportsDeath || CanRescue || CanDeleteSave;
+        RescueLabel = info.Label("rescue", "Rescatar");
+        var delete = info.Label("delete_save", "Borrar partida");
+        var cut = delete.IndexOf('(');
+        DeleteSaveLabel = cut > 0 ? delete[..cut].Trim() : delete;
     }
 
     public void RefreshStats()
     {
         MappingSummary =
-            $"{_shell.Runtime.Gifts.Snapshot.Groups.Count} regalos listos · {_shell.Runtime.Catalog.Count} vistos en el live";
+            $"{_shell.Runtime.Gifts.Snapshot.Groups.Count} regalos TikTok";
     }
 
     public void RefreshCounter()
@@ -336,6 +403,61 @@ public sealed partial class StudioViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanEditSetup));
         OnPropertyChanged(nameof(CanConnect));
         RefreshConnectLabel();
+        RefreshPortCards();
+    }
+
+    public void RefreshPortCards()
+    {
+        var tiktok = _shell.Runtime.Ports.Get(LivePortIds.TikTok);
+        var twitch = _shell.Runtime.Ports.Get(LivePortIds.Twitch);
+        TikTokPortStatus = PortStatusLabel(tiktok.Status, tiktok.Message, TikTokEnabled);
+        TwitchPortStatus = PortStatusLabel(twitch.Status, twitch.Message, TwitchEnabled);
+        TwitchLogin = _shell.Runtime.Options.TwitchUserLogin;
+        TwitchClientId = _shell.Runtime.Options.TwitchClientId;
+        OnPropertyChanged(nameof(TwitchHasAccount));
+        OnPropertyChanged(nameof(CanTwitchConnect));
+        OnPropertyChanged(nameof(SessionHint));
+        OnPropertyChanged(nameof(ChannelSummary));
+    }
+
+    private static string PortStatusLabel(LivePortStatus status, string message, bool enabled)
+    {
+        if (!enabled)
+        {
+            return "No se usa en este directo";
+        }
+
+        return status switch
+        {
+            LivePortStatus.Connecting => string.IsNullOrWhiteSpace(message) ? "Conectando…" : message,
+            LivePortStatus.Live => "En vivo",
+            LivePortStatus.Error => string.IsNullOrWhiteSpace(message) ? "Error" : message,
+            LivePortStatus.Ended => "Live cerrado",
+            _ => "Listo",
+        };
+    }
+
+    partial void OnChannelChanged(string value) => OnPropertyChanged(nameof(ChannelSummary));
+    partial void OnTikTokEnabledChanged(bool value)
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        _shell.Runtime.SetTikTokEnabled(value);
+        RefreshPortCards();
+    }
+
+    partial void OnTwitchEnabledChanged(bool value)
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        _shell.Runtime.SetTwitchEnabled(value);
+        RefreshPortCards();
     }
 
     private void LoadDeathPrefs()
@@ -345,6 +467,7 @@ public sealed partial class StudioViewModel : ViewModelBase
         DeathStartText = _shell.Prefs.ResolveDeathStart().ToString();
         ShowCounterOnStream = _shell.Prefs.DeathOverlayEnabled;
         ShowGiftsOnStream = _shell.Prefs.GiftOverlayEnabled;
+        ShowGoalsOnStream = _shell.Prefs.GoalOverlayEnabled;
         OverlayScale = _shell.Prefs.ResolveOverlayScale();
         var resolvedTitle = _shell.Prefs.ResolveOverlayTitle();
         CounterTitleText = resolvedTitle;
@@ -404,6 +527,9 @@ public sealed partial class StudioViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsModeLive));
         OnPropertyChanged(nameof(IsModeCapture));
         OnPropertyChanged(nameof(IsModeSdk));
+        OnPropertyChanged(nameof(CaptureNeedsTikTok));
+        OnPropertyChanged(nameof(ModeHint));
+        OnPropertyChanged(nameof(ChannelSummary));
     }
 
     partial void OnLivesModeChanged(bool value)
@@ -479,6 +605,25 @@ public sealed partial class StudioViewModel : ViewModelBase
         else
         {
             _shell.Overlays.HideGifts(_shell.Prefs);
+        }
+    }
+
+    partial void OnShowGoalsOnStreamChanged(bool value)
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        _shell.Prefs.GoalOverlayEnabled = value;
+        _shell.Prefs.Save();
+        if (value)
+        {
+            _shell.Overlays.ShowGoals(_shell.Runtime.Goals.Snapshots(), _shell.Prefs);
+        }
+        else
+        {
+            _shell.Overlays.HideGoals(_shell.Prefs);
         }
     }
 
@@ -605,30 +750,110 @@ public sealed partial class StudioViewModel : ViewModelBase
         }
     }
 
-    public bool EnsureChannelSaved()
+    [RelayCommand]
+    private async Task ConnectTwitchAsync()
     {
-        if (SelectedMode is BridgeRunMode.Live or BridgeRunMode.Capture)
+        TwitchBusy = true;
+        var cts = new CancellationTokenSource();
+        var dlg = new TwitchDeviceDialog();
+        var progress = new Progress<TwitchDeviceStart>(dlg.ShowStart);
+        dlg.Closed += (_, _) => cts.Cancel();
+        var owner = _shell.Dialogs.Owner;
+        try
         {
-            if (string.IsNullOrWhiteSpace(Channel) &&
-                string.IsNullOrWhiteSpace(_shell.Runtime.Options.TikTokUniqueId))
+            var login = _shell.Runtime.LoginTwitchAsync(progress, cts.Token);
+            var shown = owner != null
+                ? dlg.ShowDialog<bool?>(owner)
+                : ShowLoose(dlg);
+            try
             {
-                _shell.Dialogs.Warn("Usuario de TikTok", "Escribe tu usuario de TikTok (sin @) antes de conectar.");
-                return false;
+                await login.ConfigureAwait(true);
+                dlg.Close(true);
+            }
+            catch (OperationCanceledException)
+            {
+                // cancel
             }
 
-            if (!string.IsNullOrWhiteSpace(Channel) &&
-                !string.Equals(Channel.Trim(), _shell.Runtime.Options.TikTokUniqueId, StringComparison.OrdinalIgnoreCase))
+            await shown.ConfigureAwait(true);
+            RefreshPortCards();
+        }
+        catch (Exception ex)
+        {
+            dlg.Close(false);
+            _shell.Dialogs.Error("Twitch", ex.Message);
+        }
+        finally
+        {
+            TwitchBusy = false;
+            OnPropertyChanged(nameof(CanTwitchConnect));
+        }
+    }
+
+    partial void OnTwitchBusyChanged(bool value) => OnPropertyChanged(nameof(CanTwitchConnect));
+
+    private static Task ShowLoose(global::Avalonia.Controls.Window dlg)
+    {
+        var tcs = new TaskCompletionSource<bool?>();
+        dlg.Closed += (_, _) => tcs.TrySetResult(false);
+        dlg.Show();
+        return tcs.Task;
+    }
+
+    [RelayCommand]
+    private void DisconnectTwitch()
+    {
+        _shell.Runtime.LogoutTwitch();
+        RefreshPortCards();
+    }
+
+    [RelayCommand]
+    private void SaveTwitchClientId()
+    {
+        if (string.IsNullOrWhiteSpace(TwitchClientId))
+        {
+            _shell.Dialogs.Warn("Twitch", "El Client ID no puede estar vacío.");
+            return;
+        }
+
+        _shell.Runtime.SaveTwitchClientId(TwitchClientId);
+        BridgeLog.Info("Twitch Client ID guardado.");
+    }
+
+    public bool EnsureChannelSaved()
+    {
+        if (!string.IsNullOrWhiteSpace(Channel) &&
+            !string.Equals(Channel.Trim(), _shell.Runtime.Options.TikTokUniqueId, StringComparison.OrdinalIgnoreCase))
+        {
+            try
             {
-                try
-                {
-                    _shell.Runtime.SaveChannel(Channel);
-                    Channel = _shell.Runtime.Options.TikTokUniqueId;
-                }
-                catch (Exception ex)
-                {
-                    _shell.Dialogs.Warn("Usuario de TikTok", ex.Message);
-                    return false;
-                }
+                _shell.Runtime.SaveChannel(Channel);
+                Channel = _shell.Runtime.Options.TikTokUniqueId;
+            }
+            catch (Exception ex)
+            {
+                _shell.Dialogs.Warn("TikTok", ex.Message);
+                return false;
+            }
+        }
+
+        _shell.Runtime.SetTikTokEnabled(TikTokEnabled);
+        _shell.Runtime.SetTwitchEnabled(TwitchEnabled);
+
+        if (SelectedMode is BridgeRunMode.Capture)
+        {
+            if (!_shell.Runtime.Options.TikTokReady)
+            {
+                _shell.Dialogs.Warn("TikTok", "Anotar regalos necesita este canal: marca Usar en este directo y guarda tu usuario (sin @).");
+                return false;
+            }
+        }
+        else if (SelectedMode is BridgeRunMode.Live)
+        {
+            if (!_shell.Runtime.Options.HasAnyLivePort)
+            {
+                _shell.Dialogs.Warn("Canales", "Activa TikTok (con usuario) o Twitch (con cuenta) para conectar en vivo.");
+                return false;
             }
         }
 

@@ -1,7 +1,7 @@
 {
   "id": "dusklight",
   "displayName": "Twilight Princess (Dusklight)",
-  "description": "Abre Dusklight, entra en una partida y activa el puente de TikTok en Mods.",
+  "description": "Dusklight: entra en una partida y activa el puente en Mods.",
   "gameHost": "127.0.0.1",
   "gamePort": 43000,
   "crowdControlPort": 43001,
@@ -73,5 +73,5 @@
     "poison_mite": "Enemigo — Ácaros venenosos",
     "goat": "NPC — Cabra de Ordon"
   },
-  "helpNotes": "Abre Dusklight, entra en una partida y activa el puente de TikTok en Mods."
+  "helpNotes": "Entra en una partida y activa el puente en Mods."
 }

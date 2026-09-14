@@ -1,4 +1,6 @@
+using HiveShock;
 using HiveShock.Configuration;
+using HiveShock.Live;
 using HiveShock.Logging;
 using HiveShock.Networking;
 using HiveShock.Services;
@@ -36,6 +38,8 @@ public sealed class BridgeRuntime : IAsyncDisposable
     public string GiftsPath => _profile.GiftsPath;
     public DeathCounter DeathCounter { get; } = new();
     public OverlayNotifier Overlay { get; } = new();
+    public GiftGoalBank Goals { get; } = new();
+    public LivePortHub Ports { get; } = new();
 
     /// <summary>Compat: valor mostrado del contador de partida.</summary>
     public int DeathsThisRun => DeathCounter.Value;
@@ -91,7 +95,9 @@ public sealed class BridgeRuntime : IAsyncDisposable
         var catalog = GiftCatalogStore.LoadOrCreate();
 
         BridgeLog.Info($"Perfil activo: {profile.DisplayName} ({profile.Id}) → {options.GameHost}:{options.GamePort}");
-        return new BridgeRuntime(options, profile, effects, gifts, catalog);
+        var runtime = new BridgeRuntime(options, profile, effects, gifts, catalog);
+        runtime.Goals.ApplyDefinitions(gifts.Snapshot.Goals);
+        return runtime;
     }
 
     /// <summary>Cambia de perfil. Debe estar detenido el host.</summary>
@@ -114,6 +120,8 @@ public sealed class BridgeRuntime : IAsyncDisposable
         _effects = effects;
         _gifts = gifts;
         Options.ProfileId = profile.Id;
+        Goals.ResetAll();
+        Goals.ApplyDefinitions(_gifts.Snapshot.Goals);
 
         BridgeLog.Info($"Perfil cambiado: {profile.DisplayName} ({profile.Id}) → {Options.GameHost}:{Options.GamePort}");
         ProfileChanged?.Invoke(this, EventArgs.Empty);
@@ -121,19 +129,53 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
     public IReadOnlyList<LoadedGameProfile> ListProfiles() => ProfileStore.ListProfiles();
 
-    public void ReloadGifts() => _gifts.Reload(GiftsPath);
+    public void ReloadGifts()
+    {
+        _gifts.Reload(GiftsPath);
+        Goals.ApplyDefinitions(_gifts.Snapshot.Goals);
+    }
 
     public void ReloadEffectsAndGifts()
     {
         _effects = EffectCatalog.Load(EffectsPath, _profile.Info);
         _gifts = new GiftConfigStore(_effects);
         _gifts.Reload(GiftsPath);
+        Goals.ApplyDefinitions(_gifts.Snapshot.Goals);
         ProfileChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void ReloadCatalog() => Catalog.Load();
 
     public void ResetDeathCounter() => DeathCounter.Reset();
+
+    public Task SimulateGoalAsync(string goalId, int units = 1, CancellationToken ct = default)
+    {
+        var snap = Goals.Snapshots().FirstOrDefault(g =>
+            string.Equals(g.Id, goalId, StringComparison.OrdinalIgnoreCase));
+        if (snap == null)
+        {
+            throw new InvalidOperationException("No hay esa meta.");
+        }
+
+        var key = snap.Keys.FirstOrDefault() ?? snap.Label;
+        var tick = Goals.Contribute(key, key, Math.Max(1, units));
+        if (tick == null)
+        {
+            return Task.CompletedTask;
+        }
+
+        BridgeLog.Info($"Meta {tick.Label} {tick.Count}/{tick.Need} (prueba +{tick.Added})");
+        if (!tick.Fired || string.IsNullOrWhiteSpace(tick.Effect))
+        {
+            return Task.CompletedTask;
+        }
+
+        BridgeLog.Info($"Meta {tick.Label} -> {tick.Effect}");
+        return _gameClient.SendAsync(
+            _effects.Resolve(tick.Effect, "Test") ??
+            throw new InvalidOperationException($"Efecto desconocido: {tick.Effect}"),
+            ct);
+    }
 
     public Task DeleteSaveAsync(CancellationToken ct = default)
     {
@@ -164,7 +206,35 @@ public sealed class BridgeRuntime : IAsyncDisposable
         string testerName = "Test",
         CancellationToken ct = default)
     {
-        if (gift == null || string.IsNullOrWhiteSpace(gift.Effect))
+        if (gift == null)
+        {
+            throw new ArgumentException("El regalo no tiene efecto.");
+        }
+
+        var repeat = Math.Max(1, comboCount);
+        var tick = Goals.Contribute(gift.Gift, gift.Id, repeat);
+        if (tick != null)
+        {
+            BridgeLog.Info($"Meta {tick.Label} {tick.Count}/{tick.Need} ({testerName} +{tick.Added})");
+            if (tick.Fired && !string.IsNullOrWhiteSpace(tick.Effect))
+            {
+                var goalCmd = _effects.Resolve(tick.Effect, testerName);
+                if (goalCmd != null)
+                {
+                    BridgeLog.Info($"Meta {tick.Label} -> {tick.Effect}");
+                    await _gameClient.SendAsync(goalCmd, ct).ConfigureAwait(false);
+                    BridgeLog.Info($"OK prueba {tick.Effect} (meta)");
+                }
+            }
+
+            if (!tick.AlsoInstant)
+            {
+                Overlay.Notify(gift.Gift, gift.Id);
+                return;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(gift.Effect))
         {
             throw new ArgumentException("El regalo no tiene efecto.");
         }
@@ -174,7 +244,6 @@ public sealed class BridgeRuntime : IAsyncDisposable
             throw new ArgumentException($"Efecto desconocido: {gift.Effect}");
         }
 
-        var repeat = Math.Max(1, comboCount);
         var minCount = Math.Max(1, gift.MinCount);
         if (repeat < minCount)
         {
@@ -240,6 +309,58 @@ public sealed class BridgeRuntime : IAsyncDisposable
         EnvFileWriter.Upsert(EnvFileWriter.EnsureEnvPath(), "TIKTOK_UNIQUE_ID", normalized);
     }
 
+    public void SetTikTokEnabled(bool enabled)
+    {
+        Options.TikTokEnabled = enabled;
+        EnvFileWriter.Upsert(EnvFileWriter.EnsureEnvPath(), "TIKTOK_ENABLED", enabled ? "1" : "0");
+    }
+
+    public void SetTwitchEnabled(bool enabled)
+    {
+        Options.TwitchEnabled = enabled;
+        EnvFileWriter.Upsert(EnvFileWriter.EnsureEnvPath(), "TWITCH_ENABLED", enabled ? "1" : "0");
+    }
+
+    public void SaveTwitchClientId(string clientId)
+    {
+        Options.TwitchClientId = clientId.Trim();
+        EnvFileWriter.Upsert(EnvFileWriter.EnsureEnvPath(), "TWITCH_CLIENT_ID", Options.TwitchClientId);
+    }
+
+    public async Task LoginTwitchAsync(IProgress<TwitchDeviceStart>? progress, CancellationToken ct)
+    {
+        var clientId = Options.ResolvedTwitchClientId();
+        if (string.IsNullOrWhiteSpace(clientId))
+        {
+            throw new InvalidOperationException("Twitch no está disponible en esta copia.");
+        }
+
+        using var auth = new TwitchAuthClient();
+        var start = await auth.StartDeviceLoginAsync(clientId, ct).ConfigureAwait(false);
+        progress?.Report(start);
+        try
+        {
+            PlatformShell.OpenUrl(start.VerificationUri);
+        }
+        catch
+        {
+            // el usuario puede abrir la URL a mano
+        }
+
+        var tokens = await auth.WaitForDeviceTokenAsync(clientId, start, ct).ConfigureAwait(false);
+        var user = await auth.GetUserAsync(clientId, tokens.AccessToken, ct).ConfigureAwait(false);
+        TwitchSessionStore.Persist(Options, clientId, tokens.AccessToken, tokens.RefreshToken, user.Login, user.Id);
+        BridgeLog.Info($"Twitch cuenta @{user.Login}");
+        Options.TwitchEnabled = true;
+        EnvFileWriter.Upsert(EnvFileWriter.EnsureEnvPath(), "TWITCH_ENABLED", "1");
+    }
+
+    public void LogoutTwitch()
+    {
+        TwitchSessionStore.Clear(Options);
+        BridgeLog.Info("Twitch: sesión cerrada.");
+    }
+
     public void SetDryRun(bool value) => Options.DryRun = value;
 
     public async Task StartAsync(BridgeRunMode mode, CancellationToken ct = default)
@@ -254,16 +375,22 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
         ApplyMode(mode);
 
-        if ((mode is BridgeRunMode.Live or BridgeRunMode.Capture) &&
-            string.IsNullOrWhiteSpace(Options.TikTokUniqueId))
+        if (mode is BridgeRunMode.Capture && !Options.TikTokReady)
         {
-            throw new InvalidOperationException("Configura el canal de TikTok antes de iniciar.");
+            throw new InvalidOperationException("Anotar regalos necesita el canal TikTok activo y un usuario.");
         }
 
+        if (mode is BridgeRunMode.Live && !Options.HasAnyLivePort)
+        {
+            throw new InvalidOperationException("Activa al menos un canal (TikTok o Twitch) antes de conectar.");
+        }
+
+        Ports.ResetSession();
         BridgeLog.Init();
         BridgeLog.Info(
             $"Inicio mode={mode.ToString().ToLowerInvariant()} perfil={_profile.Id} " +
-            $"canal=@{Options.TikTokUniqueId} juego={Options.GameHost}:{Options.GamePort} dry={Options.DryRun}");
+            $"tiktok={Options.TikTokUniqueId} twitch={Options.TwitchUserLogin} " +
+            $"juego={Options.GameHost}:{Options.GamePort} dry={Options.DryRun}");
 
         var builder = Host.CreateApplicationBuilder(Array.Empty<string>());
         builder.Services.AddSingleton(Options);
@@ -272,13 +399,17 @@ public sealed class BridgeRuntime : IAsyncDisposable
         builder.Services.AddSingleton(_gifts);
         builder.Services.AddSingleton(Catalog);
         builder.Services.AddSingleton(Overlay);
+        builder.Services.AddSingleton(Goals);
+        builder.Services.AddSingleton(Ports);
         builder.Services.AddSingleton(_gameClient);
         builder.Services.AddSingleton<EffectDispatcher>();
+        builder.Services.AddSingleton<LiveEffectRouter>();
         builder.Services.AddSingleton<CrowdControlServer>();
         builder.Services.AddHostedService<EffectPumpService>();
         builder.Services.AddHostedService<ConfigWatchService>();
         builder.Services.AddHostedService<CrowdControlHostedService>();
         builder.Services.AddHostedService<TikTokLiveHostedService>();
+        builder.Services.AddHostedService<TwitchLiveHostedService>();
 
         var host = builder.Build();
         var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);

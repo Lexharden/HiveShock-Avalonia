@@ -63,4 +63,13 @@ public static class PlatformShell
             ArgumentList = { path },
         })?.Dispose();
     }
+
+    public static void OpenUrl(string url)
+    {
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = url,
+            UseShellExecute = true,
+        })?.Dispose();
+    }
 }

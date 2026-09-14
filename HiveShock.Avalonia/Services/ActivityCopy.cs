@@ -33,6 +33,21 @@ public static class ActivityCopy
             return FormatArrowLine(m["Chat ".Length..], "escribió en el chat");
         }
 
+        if (m.StartsWith("Bits ", StringComparison.Ordinal))
+        {
+            return FormatArrowLine(m["Bits ".Length..], "mandó bits");
+        }
+
+        if (m.StartsWith("Meta ", StringComparison.Ordinal))
+        {
+            if (m.Contains("->", StringComparison.Ordinal))
+            {
+                return FormatArrowLine(m["Meta ".Length..], "completó la meta");
+            }
+
+            return m["Meta ".Length..].Trim();
+        }
+
         if (m.StartsWith("Capturado ", StringComparison.Ordinal))
         {
             return "Anotamos un regalo nuevo del live.";
@@ -40,28 +55,55 @@ public static class ActivityCopy
 
         if (m.StartsWith("TikTok conectando", StringComparison.Ordinal))
         {
-            return "Conectando al live…";
+            return "TikTok: conectando al live…";
         }
 
         if (m.StartsWith("TikTok conectado", StringComparison.Ordinal))
         {
-            return "¡Conectado! Ya estás en vivo.";
+            return "TikTok: en vivo.";
         }
 
         if (m.StartsWith("TikTok desconectado", StringComparison.Ordinal) ||
             m.StartsWith("TikTok: ", StringComparison.Ordinal))
         {
-            return "Se cortó el live. Reintentando…";
+            return "TikTok: se cortó. Reintentando…";
         }
 
         if (m.StartsWith("TikTok reconectando", StringComparison.Ordinal))
         {
-            return "Reconectando al live…";
+            return "TikTok: reconectando…";
         }
 
         if (m.StartsWith("TikTok live terminado", StringComparison.Ordinal))
         {
-            return "El live se cerró.";
+            return "TikTok: el live se cerró.";
+        }
+
+        if (m.StartsWith("Twitch conectando", StringComparison.Ordinal))
+        {
+            return "Twitch: conectando…";
+        }
+
+        if (m.StartsWith("Twitch conectado", StringComparison.Ordinal) ||
+            m.StartsWith("Twitch cuenta", StringComparison.Ordinal))
+        {
+            return m.StartsWith("Twitch cuenta", StringComparison.Ordinal)
+                ? "Twitch: cuenta guardada."
+                : "Twitch: en vivo.";
+        }
+
+        if (m.StartsWith("Twitch bits:", StringComparison.Ordinal))
+        {
+            return "Twitch: bits no autorizado. Sal y entra otra vez.";
+        }
+
+        if (m.StartsWith("Twitch desconectado", StringComparison.Ordinal) ||
+            m.StartsWith("Twitch: ", StringComparison.Ordinal) ||
+            m.StartsWith("Twitch token", StringComparison.Ordinal) ||
+            m.StartsWith("Twitch follow", StringComparison.Ordinal) ||
+            m.StartsWith("Twitch socket", StringComparison.Ordinal))
+        {
+            return "Twitch: se cortó o falló. Reintentando…";
         }
 
         if (m.StartsWith("Pruebas escuchando", StringComparison.Ordinal) ||
@@ -98,8 +140,8 @@ public static class ActivityCopy
         if (m.StartsWith("Muerte", StringComparison.Ordinal))
         {
             return m.Contains("vidas", StringComparison.OrdinalIgnoreCase)
-                ? "Link cayó. Se restó una vida."
-                : "Link cayó. El contador subió.";
+                ? "El personaje cayó. Se restó una vida."
+                : "El personaje cayó. El contador subió.";
         }
 
         if (m.StartsWith("Partida borrada", StringComparison.Ordinal))
@@ -110,6 +152,11 @@ public static class ActivityCopy
         if (m.StartsWith("Canal guardado", StringComparison.Ordinal))
         {
             return "Usuario de TikTok guardado.";
+        }
+
+        if (m.StartsWith("Twitch Client ID", StringComparison.Ordinal))
+        {
+            return "Twitch: Client ID guardado.";
         }
 
         if (m.StartsWith("gifts.json guardado", StringComparison.Ordinal) ||

@@ -24,9 +24,9 @@
                         </StackPanel>
                     </StackPanel>
                     <TextBlock Classes="helpBody"
-                               Text="HiveShock conecta tu live de TikTok con el juego: los regalos, likes y el chat se convierten en efectos dentro de la partida." />
+                               Text="HiveShock conecta tu live con el juego: chat, regalos y el resto de eventos se convierten en efectos dentro de la partida." />
                     <TextBlock Classes="helpBody"
-                               Text="Incluye Majora’s Mask y Twilight Princess. Cada juego tiene su propia lista de regalos." />
+                               Text="Cada juego es un perfil con sus propios efectos. Los que vienen ahora son ejemplos; puedes añadir más." />
                 </StackPanel>
             </Border>
 
@@ -58,7 +58,7 @@
             </Border>
 
             <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"
-                       Text="Windows y macOS · TikTok Live · efectos en el juego." />
+                       Text="Windows y macOS · live → efectos en el juego." />
         </StackPanel>
     </ScrollViewer>
 </UserControl>
