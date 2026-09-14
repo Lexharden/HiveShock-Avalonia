@@ -1,0 +1,116 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Android.ViewModels"
+             x:Class="HiveShock.Android.Views.MainView"
+             x:DataType="vm:MainViewModel">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Padding="16,12" Background="#075BAA">
+            <StackPanel>
+                <TextBlock Text="HiveShock" FontSize="20" FontWeight="SemiBold" Foreground="#EBA00A" />
+                <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="White" Margin="0,4,0,0" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer>
+            <StackPanel Margin="16">
+                <TextBlock Classes="hint"
+                           Text="El juego corre en el PC. Aquí pones la IP de ese equipo y conectas el live. Overlays OBS siguen en el escritorio. Al conectar queda una notificación fija para no cortar TikTok/Twitch al cambiar de app." />
+
+                <TextBlock Classes="fieldLabel" Text="Juego" />
+                <ItemsControl ItemsSource="{Binding Profiles}" Margin="0,0,0,12">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ProfileItem">
+                            <Button Classes="secondary" Margin="0,0,8,8" MinWidth="160"
+                                    Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).SelectProfileCommand}"
+                                    CommandParameter="{Binding}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                    <TextBlock Text="Activo" FontSize="11" Foreground="#EBA00A"
+                                               IsVisible="{Binding IsSelected}" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Classes="fieldLabel" Text="IP del PC" />
+                        <TextBox Text="{Binding GameHost}" PlaceholderText="10.0.2.2 en emulador" />
+                        <TextBlock Classes="hint" Margin="0,8,0,0"
+                                   Text="Misma Wi‑Fi. En el emulador usa 10.0.2.2. Abre el puerto 43000 en el PC." />
+                        <Button Classes="secondary" Content="Guardar IP"
+                                Command="{Binding SaveHostCommand}" HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Classes="fieldLabel" Text="TikTok" />
+                        <TextBox Text="{Binding TikTokUser}" PlaceholderText="usuario, sin @" />
+                        <CheckBox Content="Usar TikTok" IsChecked="{Binding TikTokEnabled}" Margin="0,8,0,0"
+                                  IsEnabled="{Binding CanEdit}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Classes="fieldLabel" Text="Twitch" />
+                        <TextBlock Text="{Binding TwitchAccount}" Margin="0,0,0,8" />
+                        <WrapPanel>
+                            <Button Classes="primary" Content="Entrar con Twitch"
+                                    Command="{Binding ConnectTwitchCommand}"
+                                    IsEnabled="{Binding CanEdit}" />
+                            <Button Classes="secondary" Content="Salir"
+                                    Command="{Binding DisconnectTwitchCommand}"
+                                    IsEnabled="{Binding CanEdit}" />
+                        </WrapPanel>
+                        <CheckBox Content="Usar Twitch" IsChecked="{Binding TwitchEnabled}" Margin="0,4,0,0"
+                                  IsEnabled="{Binding CanEdit}" />
+                        <StackPanel IsVisible="{Binding TwitchCodeVisible}" Margin="0,10,0,0">
+                            <TextBlock Classes="fieldLabel" Text="Código Twitch" />
+                            <TextBlock Text="{Binding TwitchDeviceCode}" FontSize="24" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" />
+                            <TextBlock Classes="hint" Text="{Binding TwitchDeviceHint}" Margin="0,8,0,0" />
+                            <Button Classes="secondary" Content="Cancelar" Command="{Binding CancelTwitchCommand}"
+                                    HorizontalAlignment="Left" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Button Classes="primary" Classes.live="{Binding IsLive}"
+                        Content="{Binding ConnectLabel}"
+                        Command="{Binding ConnectCommand}"
+                        HorizontalAlignment="Stretch" Margin="0,0,0,12"
+                        IsEnabled="{Binding CanConnect}" />
+
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Classes="fieldLabel" Text="Enviar al juego" />
+                        <ComboBox ItemsSource="{Binding Effects}"
+                                  SelectedItem="{Binding SelectedEffect}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:EffectItem">
+                                    <TextBlock Text="{Binding Display}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Button Classes="primary" Content="Enviar"
+                                Command="{Binding SendEffectCommand}"
+                                HorizontalAlignment="Left" Margin="0,10,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Classes="fieldLabel" Text="Actividad" />
+                <TextBox Text="{Binding ActivityText, Mode=OneWay}" IsReadOnly="True"
+                         AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto" />
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

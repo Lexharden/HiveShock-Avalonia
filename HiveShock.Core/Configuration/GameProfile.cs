@@ -84,8 +84,7 @@ public static class ProfileStore
     public static string ProfilesRoot =>
         FindProfilesRoot()
         ?? throw new DirectoryNotFoundException(
-            $"No se encontró la carpeta profiles/. Debe estar junto a {ProductInfo.ExecutableFileName} " +
-            $"(carpeta: {AppPaths.AppDirectory}).");
+            $"No se encontró la carpeta profiles/ (carpeta: {AppPaths.AppDirectory}).");
 
     public static IReadOnlyList<LoadedGameProfile> ListProfiles()
     {

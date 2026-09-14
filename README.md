@@ -9,6 +9,7 @@ La app WPF original sigue en el repo CrowdBridge (solo Windows) hasta confirmar 
 ## Solución
 
 - `HiveShock.Avalonia` — GUI (`HiveShock` / `HiveShock.exe`)
+- `HiveShock.Android` — compañero en el teléfono (misma lógica, sin overlays OBS)
 - `HiveShock.Core` — runtime, perfiles, canales (TikTok/Twitch), TCP al juego
 - `HiveShock.Cli` — misma lógica en consola
 - `libs/TikTokLive` — cliente TikTok Live
@@ -38,6 +39,27 @@ dotnet run --project HiveShock.Avalonia/HiveShock.Avalonia.csproj
 No hay RID fijo en el `.csproj`: `dotnet run` usa el sistema donde compilas.
 
 Abre Inicio, elige el juego y conecta. Las cuentas se enlazan en **TikTok** y **Twitch**.
+
+## Android (compañero)
+
+El juego sigue en el **PC**. El teléfono habla por la red (`GAME_HOST` = IP del ordenador, puerto 43000). Overlays OBS no van en el móvil. Al **Conectar** queda una notificación fija («HiveShock conectado»): el live sigue si cambias de app o apagas la pantalla. **Detener** quita la notificación. Algunos fabricantes (batería agresiva) pueden cortar igual; en esos casos deja HiveShock sin optimizar batería.
+
+```powershell
+dotnet workload install android
+dotnet run --project HiveShock.Android/HiveShock.Android.csproj
+```
+
+En el **emulador** la IP del PC es `10.0.2.2`. En un móvil real, la IP LAN del PC (firewall al puerto 43000).
+
+Pack (APK/AAB, firma opcional con `ANDROID_SIGNING_*`):
+
+```powershell
+.\scripts\Pack-Android.ps1
+```
+
+No subas el `.keystore` al git. Contraseña: variable `ANDROID_SIGNING_PASSWORD` (`env:` en el publish, [docs Avalonia](https://docs.avaloniaui.net/docs/deployment/android)).
+
+El CI de escritorio **no** restaura el `.slnx` entero (el proyecto Android exige el workload). Hay un job aparte `android`.
 
 ## Twitch (empaquetado)
 
@@ -104,7 +126,7 @@ Opcional: `-IncludeCli` / `--cli` añade la consola.
 
 ## GitHub Actions
 
-- [`ci.yml`](.github/workflows/ci.yml) — `dotnet build` en Windows, macOS y Ubuntu (push/PR a `main` o `master`).
+- [`ci.yml`](.github/workflows/ci.yml) — escritorio en Windows, macOS y Ubuntu; job `android` aparte (workload + SDK).
 - [`release.yml`](.github/workflows/release.yml) — al pushear `vX.Y.Z` (o *Run workflow*) genera:
 
   - `win-x64`

@@ -62,7 +62,7 @@ public sealed class BridgeOptions
             TwitchRefreshToken = Env("TWITCH_REFRESH_TOKEN"),
             TwitchUserLogin = Env("TWITCH_USER_LOGIN") ?? "",
             TwitchUserId = Env("TWITCH_USER_ID") ?? "",
-            GameHost = Env("GAME_HOST") ?? "127.0.0.1",
+            GameHost = Env("GAME_HOST") ?? (OperatingSystem.IsAndroid() ? "" : "127.0.0.1"),
             GamePort = EnvInt("GAME_PORT", 43000),
             CrowdControlPort = EnvInt("CC_PORT", 43001),
             EventPort = EnvInt("EVENT_PORT", 43002),
@@ -75,10 +75,17 @@ public sealed class BridgeOptions
         };
     }
 
+    public bool GameHostLooksLocal =>
+        string.IsNullOrWhiteSpace(GameHost) ||
+        GameHost.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase) ||
+        GameHost.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+        GameHost.Equals("::1", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Aplica host/puertos del perfil (sin pisar overrides explícitos de .env si ya diferían del default del perfil anterior).</summary>
     public void ApplyProfileEndpoints(GameProfileInfo profile, bool force = true)
     {
-        if (force || string.IsNullOrWhiteSpace(GameHost))
+        // En Android el host es la IP del PC, no la del perfil (127.0.0.1).
+        if (!OperatingSystem.IsAndroid() && (force || string.IsNullOrWhiteSpace(GameHost)))
         {
             GameHost = string.IsNullOrWhiteSpace(profile.GameHost) ? "127.0.0.1" : profile.GameHost;
         }
@@ -176,11 +183,26 @@ public sealed class BridgeOptions
 
 public static class AppPaths
 {
-    /// <summary>Directory that holds the published exe (not the single-file extract folder).</summary>
+    /// <summary>Directory that holds the published exe (not the single-file extract folder). On Android: app data.</summary>
     public static string AppDirectory
     {
         get
         {
+            if (OperatingSystem.IsAndroid())
+            {
+                var data = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                if (string.IsNullOrWhiteSpace(data))
+                {
+                    data = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                }
+
+                if (!string.IsNullOrWhiteSpace(data))
+                {
+                    Directory.CreateDirectory(data);
+                    return data.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                }
+            }
+
             var processPath = Environment.ProcessPath;
             if (!string.IsNullOrWhiteSpace(processPath))
             {
@@ -211,7 +233,7 @@ public static class AppPaths
 
     public static string Require(string fileName) =>
         Find(fileName) ?? throw new FileNotFoundException(
-            $"No se encontró {fileName}. Debe estar junto a {ProductInfo.ExecutableFileName} (carpeta: {AppDirectory}).");
+            $"No se encontró {fileName} (carpeta: {AppDirectory}).");
 
     public static IEnumerable<string> CandidateRootsPublic() => CandidateRoots();
 

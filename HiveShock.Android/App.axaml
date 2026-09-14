@@ -1,0 +1,19 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="HiveShock.Android.App"
+             RequestedThemeVariant="Dark">
+    <Application.Resources>
+        <SolidColorBrush x:Key="BrandGoldBrush" Color="#EBA00A" />
+        <SolidColorBrush x:Key="BrandBlueBrush" Color="#075BAA" />
+        <SolidColorBrush x:Key="MutedBrush" Color="#9AA4B2" />
+        <SolidColorBrush x:Key="TextBrush" Color="#F2F4F7" />
+        <SolidColorBrush x:Key="CardBrush" Color="#1A2330" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#075BAA" />
+        <SolidColorBrush x:Key="AccentForegroundBrush" Color="White" />
+        <SolidColorBrush x:Key="LiveBrush" Color="#1F8A4C" />
+    </Application.Resources>
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="/Controls.axaml" />
+    </Application.Styles>
+</Application>

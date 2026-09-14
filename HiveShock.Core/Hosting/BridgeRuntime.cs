@@ -297,6 +297,26 @@ public sealed class BridgeRuntime : IAsyncDisposable
         }
     }
 
+    public void SaveGameHost(string host)
+    {
+        var value = host.Trim();
+        Options.GameHost = value;
+        EnvFileWriter.Upsert(EnvFileWriter.EnsureEnvPath(), "GAME_HOST", value);
+    }
+
+    public Task SendEffectAsync(string effectId, string testerName = "Test", CancellationToken ct = default)
+    {
+        if (OperatingSystem.IsAndroid() && Options.GameHostLooksLocal)
+        {
+            throw new InvalidOperationException(
+                "Pon la IP del PC (en el emulador: 10.0.2.2). 127.0.0.1 es el teléfono, no el juego.");
+        }
+
+        var cmd = _effects.Resolve(effectId, testerName)
+                  ?? throw new InvalidOperationException($"Efecto desconocido: {effectId}");
+        return _gameClient.SendAsync(cmd, ct);
+    }
+
     public void SaveChannel(string uniqueId)
     {
         var normalized = BridgeOptions.NormalizeUniqueId(uniqueId);
@@ -374,6 +394,12 @@ public sealed class BridgeRuntime : IAsyncDisposable
         }
 
         ApplyMode(mode);
+
+        if (OperatingSystem.IsAndroid() && Options.GameHostLooksLocal)
+        {
+            throw new InvalidOperationException(
+                "Pon la IP del PC (en el emulador: 10.0.2.2). 127.0.0.1 es el teléfono, no el juego.");
+        }
 
         if (mode is BridgeRunMode.Capture && !Options.TikTokReady)
         {
@@ -533,7 +559,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         else
         {
             // First load: profile fills defaults; .env already applied in FromEnvironmentAndArgs.
-            if (Environment.GetEnvironmentVariable("GAME_HOST") is null)
+            if (Environment.GetEnvironmentVariable("GAME_HOST") is null && !OperatingSystem.IsAndroid())
             {
                 options.GameHost = string.IsNullOrWhiteSpace(profile.Info.GameHost)
                     ? "127.0.0.1"

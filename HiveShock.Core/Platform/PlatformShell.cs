@@ -6,6 +6,11 @@ public static class PlatformShell
 {
     public static void OpenFolder(string path)
     {
+        if (OperatingSystem.IsAndroid())
+        {
+            return;
+        }
+
         if (OperatingSystem.IsWindows())
         {
             Process.Start(new ProcessStartInfo
@@ -36,6 +41,11 @@ public static class PlatformShell
 
     public static void OpenFile(string path)
     {
+        if (OperatingSystem.IsAndroid())
+        {
+            return;
+        }
+
         if (OperatingSystem.IsWindows())
         {
             Process.Start(new ProcessStartInfo
