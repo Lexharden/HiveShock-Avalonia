@@ -18,6 +18,8 @@ public sealed class BridgeKeepAliveService : Service
     public const string ChannelId = "hiveshock.bridge";
     public const int NotificationId = 43000;
 
+    private PowerManager.WakeLock? _wakeLock;
+
     public static void Start()
     {
         var context = global::Android.App.Application.Context;
@@ -65,7 +67,42 @@ public sealed class BridgeKeepAliveService : Service
             StartForeground(NotificationId, notification);
         }
 
+        AcquireWakeLock();
         return StartCommandResult.NotSticky;
+    }
+
+    public override void OnDestroy()
+    {
+        ReleaseWakeLock();
+        base.OnDestroy();
+    }
+
+    private void AcquireWakeLock()
+    {
+        if (_wakeLock is { IsHeld: true })
+        {
+            return;
+        }
+
+        var pm = GetSystemService(PowerService) as PowerManager;
+        _wakeLock = pm?.NewWakeLock(WakeLockFlags.Partial, "HiveShock:Bridge");
+        if (_wakeLock is null)
+        {
+            return;
+        }
+
+        _wakeLock.SetReferenceCounted(false);
+        _wakeLock.Acquire();
+    }
+
+    private void ReleaseWakeLock()
+    {
+        if (_wakeLock is { IsHeld: true })
+        {
+            _wakeLock.Release();
+        }
+
+        _wakeLock = null;
     }
 
     private void EnsureChannel()
