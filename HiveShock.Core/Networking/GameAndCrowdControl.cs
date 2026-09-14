@@ -57,6 +57,7 @@ public sealed class EffectDispatcher
 
     private readonly EffectCatalog _effects;
     private readonly GameTcpClient _game;
+    private int _pendingChat;
 
     public EffectDispatcher(EffectCatalog effects, GameTcpClient game)
     {
@@ -64,16 +65,41 @@ public sealed class EffectDispatcher
         _game = game;
     }
 
-    public ValueTask EnqueueAsync(string effectId, string? user, string reason, CancellationToken ct = default)
+    public int PendingChat => Volatile.Read(ref _pendingChat);
+
+    public async ValueTask EnqueueAsync(
+        string effectId,
+        string? user,
+        string reason,
+        CancellationToken ct = default,
+        bool fromChat = false)
     {
         var cmd = _effects.Resolve(effectId, user);
         if (cmd is null)
         {
             BridgeLog.Warn($"Efecto desconocido: {effectId}");
-            return ValueTask.CompletedTask;
+            return;
         }
 
-        return _channel.Writer.WriteAsync(new EffectWorkItem(effectId, user, reason, cmd), ct);
+        if (fromChat)
+        {
+            Interlocked.Increment(ref _pendingChat);
+        }
+
+        try
+        {
+            await _channel.Writer.WriteAsync(new EffectWorkItem(effectId, user, reason, cmd, fromChat), ct)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            if (fromChat)
+            {
+                Interlocked.Decrement(ref _pendingChat);
+            }
+
+            throw;
+        }
     }
 
     public async Task RunAsync(CancellationToken ct)
@@ -95,6 +121,13 @@ public sealed class EffectDispatcher
                 {
                     BridgeLog.Error($"Fallo {item.EffectId}: {ex.Message}");
                 }
+                finally
+                {
+                    if (item.FromChat)
+                    {
+                        Interlocked.Decrement(ref _pendingChat);
+                    }
+                }
             }
         }
         catch (OperationCanceledException)
@@ -107,7 +140,8 @@ public sealed class EffectDispatcher
         string EffectId,
         string? User,
         string Reason,
-        Dictionary<string, object?> Command);
+        Dictionary<string, object?> Command,
+        bool FromChat);
 }
 
 public sealed class CrowdControlServer

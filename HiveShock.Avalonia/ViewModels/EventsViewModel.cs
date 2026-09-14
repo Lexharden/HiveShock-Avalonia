@@ -17,9 +17,13 @@ public sealed partial class EventsViewModel : ViewModelBase
     [ObservableProperty] private string _shareEffect = "";
     [ObservableProperty] private bool _chatEnabled;
     [ObservableProperty] private string _chatPrefix = "!";
+    [ObservableProperty] private string _chatCooldownText = "30";
+    [ObservableProperty] private string _chatGlobalGapText = "2";
     [ObservableProperty] private ChatCommandRowViewModel? _selectedCommand;
     [ObservableProperty] private bool _twitchChatEnabled;
     [ObservableProperty] private string _twitchChatPrefix = "!";
+    [ObservableProperty] private string _twitchChatCooldownText = "30";
+    [ObservableProperty] private string _twitchChatGlobalGapText = "2";
     [ObservableProperty] private string _twitchFollowEffect = "";
     [ObservableProperty] private ChatCommandRowViewModel? _selectedTwitchCommand;
     [ObservableProperty] private BitsRowViewModel? _selectedBitsRule;
@@ -41,6 +45,8 @@ public sealed partial class EventsViewModel : ViewModelBase
         ShareEffect = editor.ShareEffect;
         ChatEnabled = editor.ChatEnabled;
         ChatPrefix = editor.ChatPrefix;
+        ChatCooldownText = editor.ChatCooldownSec.ToString();
+        ChatGlobalGapText = editor.ChatGlobalGapSec.ToString();
         ChatCommands.Clear();
         foreach (var cmd in editor.ChatCommands)
         {
@@ -52,6 +58,8 @@ public sealed partial class EventsViewModel : ViewModelBase
         TwitchFollowEffect = editor.TwitchFollowEffect;
         TwitchChatEnabled = editor.TwitchChatEnabled;
         TwitchChatPrefix = editor.TwitchChatPrefix;
+        TwitchChatCooldownText = editor.TwitchChatCooldownSec.ToString();
+        TwitchChatGlobalGapText = editor.TwitchChatGlobalGapSec.ToString();
         TwitchChatCommands.Clear();
         foreach (var cmd in editor.TwitchChatCommands)
         {
@@ -81,6 +89,8 @@ public sealed partial class EventsViewModel : ViewModelBase
         editor.ShareEffect = ShareEffect ?? "";
         editor.ChatEnabled = ChatEnabled;
         editor.ChatPrefix = string.IsNullOrWhiteSpace(ChatPrefix) ? "!" : ChatPrefix.Trim();
+        editor.ChatCooldownSec = ParseWaitSec(ChatCooldownText, 30);
+        editor.ChatGlobalGapSec = ParseWaitSec(ChatGlobalGapText, 2);
         editor.ChatCommands.Clear();
         foreach (var cmd in ChatCommands)
         {
@@ -90,6 +100,8 @@ public sealed partial class EventsViewModel : ViewModelBase
         editor.TwitchFollowEffect = TwitchFollowEffect ?? "";
         editor.TwitchChatEnabled = TwitchChatEnabled;
         editor.TwitchChatPrefix = string.IsNullOrWhiteSpace(TwitchChatPrefix) ? "!" : TwitchChatPrefix.Trim();
+        editor.TwitchChatCooldownSec = ParseWaitSec(TwitchChatCooldownText, 30);
+        editor.TwitchChatGlobalGapSec = ParseWaitSec(TwitchChatGlobalGapText, 2);
         editor.TwitchChatCommands.Clear();
         foreach (var cmd in TwitchChatCommands)
         {
@@ -143,6 +155,16 @@ public sealed partial class EventsViewModel : ViewModelBase
 
         TwitchBits.Remove(SelectedBitsRule);
         SelectedBitsRule = TwitchBits.FirstOrDefault();
+    }
+
+    private static int ParseWaitSec(string text, int fallback)
+    {
+        if (!int.TryParse((text ?? "").Trim(), out var n))
+        {
+            return fallback;
+        }
+
+        return Math.Clamp(n, 0, 3600);
     }
 
     private void AddTo(

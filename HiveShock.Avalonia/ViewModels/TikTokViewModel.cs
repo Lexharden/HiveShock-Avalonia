@@ -1,8 +1,14 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace HiveShock.Avalonia.ViewModels;
 
-public sealed class TikTokViewModel : ViewModelBase
+public sealed partial class TikTokViewModel : ViewModelBase
 {
-    public TikTokViewModel(MainViewModel shell) => Shell = shell;
+    public TikTokViewModel(MainViewModel shell)
+    {
+        Shell = shell;
+        AccountOpen = string.IsNullOrWhiteSpace(shell.Studio.Channel);
+    }
 
     public MainViewModel Shell { get; }
     public StudioViewModel Studio => Shell.Studio;
@@ -10,4 +16,6 @@ public sealed class TikTokViewModel : ViewModelBase
     public CatalogViewModel Catalog => Shell.Catalog;
     public EventsViewModel Events => Shell.Events;
     public GoalsViewModel Goals => Shell.Goals;
+
+    [ObservableProperty] private bool _accountOpen;
 }

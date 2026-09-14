@@ -19,6 +19,7 @@ public sealed class LiveEffectRouter
     private readonly OverlayNotifier _overlay;
     private readonly GiftGoalBank _goals;
     private readonly GiftStreakTracker _streaks = new();
+    private readonly ChatCommandGate _chatGate = new();
     private readonly ConcurrentDictionary<string, byte> _seenUnmapped = new();
     private long _likeBucket;
 
@@ -40,7 +41,7 @@ public sealed class LiveEffectRouter
         _goals = goals;
     }
 
-    public void HandleChat(string user, string text, CancellationToken ct, string portId)
+    public void HandleChat(string user, string? stableId, string text, CancellationToken ct, string portId)
     {
         if (_options.CaptureOnly)
         {
@@ -81,8 +82,59 @@ public sealed class LiveEffectRouter
             return;
         }
 
-        BridgeLog.Info($"Chat {Viewer(user)} {prefix}{command} -> {effectId}");
-        _ = _dispatcher.EnqueueAsync(effectId, Viewer(user), $"Chat {prefix}{command}", ct);
+        var viewer = Viewer(user);
+        var key = ChatCommandGate.ViewerKey(portId, stableId);
+        var admit = _chatGate.TryAdmit(key, cfg.CooldownSec, cfg.GlobalGapSec, _dispatcher.PendingChat);
+        if (!admit.Allowed)
+        {
+            LogChatDenied(admit, viewer, prefix, command);
+            return;
+        }
+
+        BridgeLog.Info($"Chat {viewer} {prefix}{command} -> {effectId}");
+        _ = _dispatcher.EnqueueAsync(effectId, viewer, $"Chat {prefix}{command}", ct, fromChat: true);
+    }
+
+    public static string TikTokStableId(UserIdentity? user)
+    {
+        if (user?.UniqueId is { Length: > 0 } uid)
+        {
+            return uid;
+        }
+
+        if (user?.DisplayId is { Length: > 0 } display)
+        {
+            return display;
+        }
+
+        if (user is { UserId: > 0 })
+        {
+            return user.UserId.ToString();
+        }
+
+        if (user?.Nickname is { Length: > 0 } nick)
+        {
+            return nick;
+        }
+
+        return "anon";
+    }
+
+    private static void LogChatDenied(ChatAdmitResult admit, string viewer, string prefix, string command)
+    {
+        if (!admit.Log)
+        {
+            return;
+        }
+
+        if (admit.Kind == ChatAdmitKind.Cooldown)
+        {
+            var who = string.IsNullOrEmpty(viewer) ? "alguien" : viewer;
+            BridgeLog.Info($"Chat {who} {prefix}{command} — espera {admit.RetrySec}s");
+            return;
+        }
+
+        BridgeLog.Info("Chat saturado, se omiten comandos");
     }
 
     public void HandleFollow(string user, CancellationToken ct, string portId)

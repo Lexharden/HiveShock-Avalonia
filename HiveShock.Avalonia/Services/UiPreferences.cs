@@ -24,6 +24,7 @@ public sealed class UiPreferences
     public double GoalOverlayTop { get; set; } = double.NaN;
     public double OverlayScale { get; set; } = 1.5;
     public bool DetailLogOpen { get; set; }
+    public bool NavExpanded { get; set; } = true;
 
     public string GiftsOverlayTitle { get; set; } = "Regalos";
     public bool ShowGiftsOverlayTitle { get; set; } = true;
@@ -72,6 +73,10 @@ public sealed class UiPreferences
             // ignore
         }
     }
+
+    public bool FollowsSystem =>
+        !string.Equals(Theme, "dark", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(Theme, "light", StringComparison.OrdinalIgnoreCase);
 
     public AppTheme ResolveTheme() => Theme switch
     {

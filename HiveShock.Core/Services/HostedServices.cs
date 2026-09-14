@@ -271,7 +271,12 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
             _router.HandleLike(ViewerName(like.User), like.LikeCount > 0 ? like.LikeCount : 1, ct);
         client.OnFollow += social => _router.HandleFollow(ViewerName(social.User), ct, LivePortIds.TikTok);
         client.OnShare += social => _router.HandleShare(ViewerName(social.User), ct);
-        client.OnChat += chat => _router.HandleChat(ViewerName(chat.User), chat.Comment ?? "", ct, LivePortIds.TikTok);
+        client.OnChat += chat => _router.HandleChat(
+            ViewerName(chat.User),
+            LiveEffectRouter.TikTokStableId(chat.User),
+            chat.Comment ?? "",
+            ct,
+            LivePortIds.TikTok);
 
         await client.RunAsync(ct).ConfigureAwait(false);
     }

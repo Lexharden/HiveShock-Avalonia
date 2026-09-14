@@ -112,7 +112,7 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
             clientId,
             access,
             userId,
-            (user, text) => _router.HandleChat(user, text, ct, LivePortIds.Twitch),
+            (chatter, chatterId, text) => _router.HandleChat(chatter, chatterId, text, ct, LivePortIds.Twitch),
             user => _router.HandleFollow(user, ct, LivePortIds.Twitch),
             (user, bits) => _router.HandleCheer(user, bits, ct),
             () =>

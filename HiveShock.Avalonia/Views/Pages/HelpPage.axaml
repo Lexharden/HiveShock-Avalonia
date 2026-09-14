@@ -20,6 +20,7 @@
             <TextBlock Classes="helpBullet" Text="Inicio — juego, conectar y ventanas de OBS." />
             <TextBlock Classes="helpBullet" Text="TikTok — tu usuario, regalos, vistos, metas y chat de TikTok." />
             <TextBlock Classes="helpBullet" Text="Twitch — entrar con tu cuenta, chat, follows y bits." />
+            <TextBlock Classes="helpBullet" Text="Chat: el mismo viewer espera unos segundos entre comandos. 0 = sin espera." />
 
             <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,16,0,8" Text="Cuentas" />
             <TextBlock Classes="helpBody"

@@ -3,8 +3,8 @@
   Publica HiveShock (Release) para Windows, macOS o Linux y genera zips FULL y UPDATE.
 
 .DESCRIPTION
-  - full:   primera instalacion (app + profiles + catalogo + .env.example + gifts-images)
-  - update: solo el ejecutable. Sin profiles, catalogo, .env ni datos del usuario.
+  - full:   primera instalacion (app + profiles + catalogo + gifts-images)
+  - update: solo el ejecutable. Sin profiles, catalogo ni datos del usuario.
 
   Salida en: dist\
 

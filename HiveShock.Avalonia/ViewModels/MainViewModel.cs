@@ -28,7 +28,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Prefs = UiPreferences.Load();
         if (Application.Current != null)
         {
-            ThemeManager.Apply(Application.Current, Prefs.ResolveTheme());
+            ThemeManager.Apply(Application.Current, Prefs.ResolveTheme(), Prefs.FollowsSystem);
         }
 
         EffectChoices = [];
@@ -49,6 +49,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         CurrentPage = Studio;
         CurrentPageKey = "studio";
         DetailLogOpen = Prefs.DetailLogOpen;
+        NavExpanded = Prefs.NavExpanded;
         SelectedThemeId = Prefs.Theme is "dark" or "light" ? Prefs.Theme : "system";
 
         Overlays.CounterClosedByUser += () =>
@@ -127,6 +128,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private string _activityText = "Nada todavía. Cuando conectes, aquí verás lo que pasa.";
     [ObservableProperty] private string _detailLogText = "";
     [ObservableProperty] private string _selectedThemeId = "system";
+    [ObservableProperty] private bool _navExpanded = true;
 
     public bool IsStudioNav => CurrentPageKey == "studio";
     public bool IsTikTokNav => CurrentPageKey is "tiktok" or "gifts" or "catalog";
@@ -140,6 +142,9 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public bool IsToneOk => StatusTone == "ok";
     public bool IsToneLive => StatusTone == "live";
     public bool StatusOn => StatusTone is "connecting" or "ok" or "live";
+    public bool NavCollapsed => !NavExpanded;
+    public double SidebarWidth => NavExpanded ? 208 : 56;
+    public string NavToggleTip => NavExpanded ? "Ocultar menú" : "Mostrar menú";
 
     public void Attach()
     {
@@ -394,10 +399,22 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     private void NavTwitch() => GoTwitch();
 
     [RelayCommand]
+    private void ToggleNav() => NavExpanded = !NavExpanded;
+
+    [RelayCommand]
     private void NavHelp() => GoHelp();
 
     [RelayCommand]
     private void NavAbout() => GoAbout();
+
+    partial void OnNavExpandedChanged(bool value)
+    {
+        Prefs.NavExpanded = value;
+        Prefs.Save();
+        OnPropertyChanged(nameof(NavToggleTip));
+        OnPropertyChanged(nameof(NavCollapsed));
+        OnPropertyChanged(nameof(SidebarWidth));
+    }
 
     partial void OnDetailLogOpenChanged(bool value)
     {
@@ -412,7 +429,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         OnPropertyChanged(nameof(SelectedTheme));
         if (Application.Current != null)
         {
-            ThemeManager.Apply(Application.Current, Prefs.ResolveTheme());
+            ThemeManager.Apply(Application.Current, Prefs.ResolveTheme(), Prefs.FollowsSystem);
         }
     }
 

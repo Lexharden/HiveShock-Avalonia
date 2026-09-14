@@ -91,9 +91,13 @@ public sealed class GiftFileEditor
     public string ShareEffect { get; set; } = "";
     public bool ChatEnabled { get; set; }
     public string ChatPrefix { get; set; } = "!";
+    public int ChatCooldownSec { get; set; } = 30;
+    public int ChatGlobalGapSec { get; set; } = 2;
     public List<EditableChatCommand> ChatCommands { get; } = [];
     public bool TwitchChatEnabled { get; set; }
     public string TwitchChatPrefix { get; set; } = "!";
+    public int TwitchChatCooldownSec { get; set; } = 30;
+    public int TwitchChatGlobalGapSec { get; set; } = 2;
     public List<EditableChatCommand> TwitchChatCommands { get; } = [];
     public string TwitchFollowEffect { get; set; } = "";
     public List<EditableBitsRule> TwitchBits { get; } = [];
@@ -146,9 +150,13 @@ public sealed class GiftFileEditor
         ShareEffect = "";
         ChatEnabled = false;
         ChatPrefix = "!";
+        ChatCooldownSec = 30;
+        ChatGlobalGapSec = 2;
         ChatCommands.Clear();
         TwitchChatEnabled = false;
         TwitchChatPrefix = "!";
+        TwitchChatCooldownSec = 30;
+        TwitchChatGlobalGapSec = 2;
         TwitchChatCommands.Clear();
         TwitchFollowEffect = "";
         TwitchBits.Clear();
@@ -174,6 +182,8 @@ public sealed class GiftFileEditor
         {
             ChatEnabled = ReadBool(chat, "enabled");
             ChatPrefix = chat["prefix"]?.GetValue<string>() ?? "!";
+            ChatCooldownSec = ClampWaitSec(ReadInt(chat, "cooldownSec") ?? 30);
+            ChatGlobalGapSec = ClampWaitSec(ReadInt(chat, "globalGapSec") ?? 2);
             if (chat["commands"] is JsonObject cmds)
             {
                 foreach (var kv in cmds)
@@ -195,6 +205,8 @@ public sealed class GiftFileEditor
             {
                 TwitchChatEnabled = ReadBool(twChat, "enabled");
                 TwitchChatPrefix = twChat["prefix"]?.GetValue<string>() ?? "!";
+                TwitchChatCooldownSec = ClampWaitSec(ReadInt(twChat, "cooldownSec") ?? 30);
+                TwitchChatGlobalGapSec = ClampWaitSec(ReadInt(twChat, "globalGapSec") ?? 2);
                 if (twChat["commands"] is JsonObject twCmds)
                 {
                     foreach (var kv in twCmds)
@@ -230,6 +242,8 @@ public sealed class GiftFileEditor
             TwitchFollowEffect = FollowEffect;
             TwitchChatEnabled = ChatEnabled;
             TwitchChatPrefix = ChatPrefix;
+            TwitchChatCooldownSec = ChatCooldownSec;
+            TwitchChatGlobalGapSec = ChatGlobalGapSec;
             foreach (var cmd in ChatCommands)
             {
                 TwitchChatCommands.Add(new EditableChatCommand { Word = cmd.Word, Effect = cmd.Effect });
@@ -280,6 +294,8 @@ public sealed class GiftFileEditor
         var chat = _root["chat"] as JsonObject ?? new JsonObject();
         chat["enabled"] = ChatEnabled;
         chat["prefix"] = string.IsNullOrWhiteSpace(ChatPrefix) ? "!" : ChatPrefix.Trim();
+        chat["cooldownSec"] = ClampWaitSec(ChatCooldownSec);
+        chat["globalGapSec"] = ClampWaitSec(ChatGlobalGapSec);
         var cmds = new JsonObject();
         foreach (var cmd in ChatCommands)
         {
@@ -301,6 +317,8 @@ public sealed class GiftFileEditor
         var twChat = twitch["chat"] as JsonObject ?? new JsonObject();
         twChat["enabled"] = TwitchChatEnabled;
         twChat["prefix"] = string.IsNullOrWhiteSpace(TwitchChatPrefix) ? "!" : TwitchChatPrefix.Trim();
+        twChat["cooldownSec"] = ClampWaitSec(TwitchChatCooldownSec);
+        twChat["globalGapSec"] = ClampWaitSec(TwitchChatGlobalGapSec);
         var twCmds = new JsonObject();
         foreach (var cmd in TwitchChatCommands)
         {
@@ -424,6 +442,8 @@ public sealed class GiftFileEditor
             }
         }
     }
+
+    private static int ClampWaitSec(int value) => Math.Clamp(value, 0, 3600);
 
     private static bool ReadBoolOr(JsonObject obj, string key, bool fallback) =>
         obj[key] is null ? fallback : ReadBool(obj, key);

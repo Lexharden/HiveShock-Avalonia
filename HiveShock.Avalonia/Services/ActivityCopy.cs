@@ -28,6 +28,20 @@ public static class ActivityCopy
             return FormatArrowLine(m["Share ".Length..], "compartió el live");
         }
 
+        if (m.StartsWith("Chat saturado", StringComparison.Ordinal))
+        {
+            return "El chat mandó muchos comandos a la vez. Se omiten unos.";
+        }
+
+        if (m.StartsWith("Chat ", StringComparison.Ordinal) &&
+            m.Contains(" — espera ", StringComparison.Ordinal))
+        {
+            var rest = m["Chat ".Length..];
+            var userEnd = rest.IndexOf(' ');
+            var user = userEnd > 0 ? rest[..userEnd] : rest;
+            return $"{user} ya usó un comando. Espera un poco.";
+        }
+
         if (m.StartsWith("Chat ", StringComparison.Ordinal))
         {
             return FormatArrowLine(m["Chat ".Length..], "escribió en el chat");

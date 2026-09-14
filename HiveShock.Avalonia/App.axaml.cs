@@ -38,7 +38,7 @@ public partial class App : Application
         };
 
         var prefs = UiPreferences.Load();
-        ThemeManager.Apply(this, prefs.ResolveTheme());
+        ThemeManager.Apply(this, prefs.ResolveTheme(), prefs.FollowsSystem);
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {

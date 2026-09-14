@@ -83,6 +83,8 @@
   "chat": {
     "enabled": false,
     "prefix": "!",
+    "cooldownSec": 30,
+    "globalGapSec": 2,
     "commands": {
       "salto": "impulse",
       "cura": "heal",

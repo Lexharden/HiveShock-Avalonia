@@ -14,7 +14,7 @@ public sealed class TwitchEventSubClient
         string clientId,
         string accessToken,
         string userId,
-        Action<string, string> onChat,
+        Action<string, string, string> onChat,
         Action<string> onFollow,
         Action<string, int> onCheer,
         Action connected,
@@ -108,7 +108,7 @@ public sealed class TwitchEventSubClient
 
     private static void HandleNotification(
         JsonElement root,
-        Action<string, string> onChat,
+        Action<string, string, string> onChat,
         Action<string> onFollow,
         Action<string, int> onCheer)
     {
@@ -124,6 +124,12 @@ public sealed class TwitchEventSubClient
         if (string.Equals(subType, "channel.chat.message", StringComparison.OrdinalIgnoreCase))
         {
             var user = evt.TryGetProperty("chatter_user_name", out var n) ? n.GetString() ?? "" : "";
+            var userId = evt.TryGetProperty("chatter_user_id", out var id) ? id.GetString() ?? "" : "";
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                userId = user;
+            }
+
             var text = "";
             if (evt.TryGetProperty("message", out var message) &&
                 message.TryGetProperty("text", out var t))
@@ -131,7 +137,7 @@ public sealed class TwitchEventSubClient
                 text = t.GetString() ?? "";
             }
 
-            onChat(user, text);
+            onChat(user, userId, text);
             return;
         }
 

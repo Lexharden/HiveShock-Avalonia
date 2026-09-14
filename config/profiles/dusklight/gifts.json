@@ -130,6 +130,8 @@
   "chat": {
     "enabled": false,
     "prefix": "!",
+    "cooldownSec": 30,
+    "globalGapSec": 2,
     "commands": {
       "cura": "heal",
       "cucco": "cucco",

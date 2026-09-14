@@ -4,6 +4,13 @@ Cambios relevantes de HiveShock. El versionado está en `Directory.Build.props`.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-09-14
+
+- Tema “Igual que el sistema” sigue al claro/oscuro de Windows.
+- En vivo en verde (barra, TikTok y el punto parpadeante), legible en tema claro y oscuro.
+- Comandos de chat: espera por viewer y hueco entre todos para no saturar el juego (TikTok y Twitch).
+- Menú hamburguesa (☰). Cuenta TikTok/Twitch plegable. Regalos, vistos, metas, chat y logs al ancho de la página.
+
 ## [1.1.0] - 2026-09-14
 
 - TikTok y Twitch como canales separados; pueden ir a la vez. Cada uno guarda chat y follows por su lado.

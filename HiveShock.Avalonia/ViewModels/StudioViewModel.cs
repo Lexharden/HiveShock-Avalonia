@@ -72,6 +72,9 @@ public sealed partial class StudioViewModel : ViewModelBase
     [ObservableProperty] private string _twitchClientId = "";
     [ObservableProperty] private string _tikTokPortStatus = "Apagado";
     [ObservableProperty] private string _twitchPortStatus = "Apagado";
+    [ObservableProperty] private bool _tikTokLive;
+    [ObservableProperty] private bool _tikTokConnecting;
+    [ObservableProperty] private bool _tikTokError;
     [ObservableProperty] private bool _twitchBusy;
 
     public bool CanEditSetup => !_shell.IsRunning;
@@ -412,6 +415,9 @@ public sealed partial class StudioViewModel : ViewModelBase
         var twitch = _shell.Runtime.Ports.Get(LivePortIds.Twitch);
         TikTokPortStatus = PortStatusLabel(tiktok.Status, tiktok.Message, TikTokEnabled);
         TwitchPortStatus = PortStatusLabel(twitch.Status, twitch.Message, TwitchEnabled);
+        TikTokLive = TikTokEnabled && tiktok.Status == LivePortStatus.Live;
+        TikTokConnecting = TikTokEnabled && tiktok.Status == LivePortStatus.Connecting;
+        TikTokError = TikTokEnabled && tiktok.Status == LivePortStatus.Error;
         TwitchLogin = _shell.Runtime.Options.TwitchUserLogin;
         TwitchClientId = _shell.Runtime.Options.TwitchClientId;
         OnPropertyChanged(nameof(TwitchHasAccount));

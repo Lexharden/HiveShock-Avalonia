@@ -4,7 +4,7 @@
              x:Class="HiveShock.Avalonia.Views.Pages.StudioPage"
              x:DataType="vm:StudioViewModel">
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel MaxWidth="880" HorizontalAlignment="Left">
+        <StackPanel>
             <TextBlock Classes="pageTitle" Text="Inicio" />
             <TextBlock Classes="pageLead"
                        Text="Elige el juego y conecta." />
@@ -69,7 +69,7 @@
                                 <Setter Property="Foreground" Value="{DynamicResource BrandGoldBrush}" />
                             </Style>
                             <Style Selector="TextBlock.live">
-                                <Setter Property="Foreground" Value="{DynamicResource BrandGoldBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource LiveTextBrush}" />
                             </Style>
                             <Style Selector="TextBlock.ok">
                                 <Setter Property="Foreground" Value="{DynamicResource StatusOkBrush}" />
@@ -137,7 +137,9 @@
                                 Value="{Binding OverlayScale}" VerticalAlignment="Center" />
                     </DockPanel>
 
-                    <Expander Header="Personalizar aspecto" Margin="0,8,0,0">
+                    <Expander Header="Personalizar aspecto" Margin="0,8,0,0"
+                              HorizontalAlignment="Stretch"
+                              HorizontalContentAlignment="Stretch">
                         <StackPanel Margin="0,14,0,0">
                             <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,0,0,12"
                                        TextWrapping="Wrap"

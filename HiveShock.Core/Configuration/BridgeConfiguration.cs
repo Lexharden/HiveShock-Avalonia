@@ -405,6 +405,8 @@ public sealed class ChatConfig
 {
     public bool Enabled { get; init; }
     public string Prefix { get; init; } = "!";
+    public int CooldownSec { get; init; } = 30;
+    public int GlobalGapSec { get; init; } = 2;
     public Dictionary<string, string> Commands { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
@@ -1118,8 +1120,26 @@ public sealed class GiftConfigStore
         {
             Enabled = chat.TryGetProperty("enabled", out var en) && en.ValueKind == JsonValueKind.True,
             Prefix = GetString(chat, "prefix") ?? "!",
+            CooldownSec = ReadWaitSec(chat, "cooldownSec", 30),
+            GlobalGapSec = ReadWaitSec(chat, "globalGapSec", 2),
             Commands = commands,
         };
+    }
+
+    private static int ReadWaitSec(JsonElement obj, string name, int fallback)
+    {
+        if (!obj.TryGetProperty(name, out var el))
+        {
+            return fallback;
+        }
+
+        var n = el.ValueKind switch
+        {
+            JsonValueKind.Number when el.TryGetInt32(out var i) => i,
+            JsonValueKind.String when int.TryParse(el.GetString(), out var s) => s,
+            _ => fallback,
+        };
+        return Math.Clamp(n, 0, 3600);
     }
 
     private static string? GetString(JsonElement el, string name)
