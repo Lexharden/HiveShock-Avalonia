@@ -33,9 +33,15 @@
 
         <Panel>
             <views:HomeView IsVisible="{Binding IsHomeNav}" />
-            <views:GiftsMapView DataContext="{Binding Gifts}" IsVisible="{Binding IsGiftsNav}" />
-            <views:EventsMapView DataContext="{Binding Events}" IsVisible="{Binding IsEventsNav}" />
-            <views:TwitchMapView DataContext="{Binding Events}" IsVisible="{Binding IsTwitchNav}" />
+            <Panel IsVisible="{Binding IsGiftsNav}">
+                <views:GiftsMapView DataContext="{Binding Gifts}" />
+            </Panel>
+            <Panel IsVisible="{Binding IsEventsNav}">
+                <views:EventsMapView DataContext="{Binding Events}" />
+            </Panel>
+            <Panel IsVisible="{Binding IsTwitchNav}">
+                <views:TwitchMapView DataContext="{Binding Events}" />
+            </Panel>
         </Panel>
     </DockPanel>
 </UserControl>
