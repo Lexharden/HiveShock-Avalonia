@@ -8,8 +8,8 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <!-- android:name lo inyecta el atributo [Application] (CRC). No fijarlo a mano. -->
   <application
-      android:name="dev.yafel.hiveshock.AndroidApp"
       android:allowBackup="true"
       android:icon="@drawable/icon"
       android:roundIcon="@drawable/icon"

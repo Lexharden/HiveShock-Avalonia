@@ -51,13 +51,15 @@ dotnet run --project HiveShock.Android/HiveShock.Android.csproj
 
 En el **emulador**, si el juego está en el PC usa `10.0.2.2`. En un móvil, `127.0.0.1` para el APK local o la IP LAN del PC (firewall al puerto 43000).
 
-Pack (APK/AAB, firma opcional con `ANDROID_SIGNING_*`):
+Pack (APK desde la carpeta `publish/`, no intermedios de `bin/`):
 
-```powershell
-.\scripts\Pack-Android.ps1
+```bash
+./scripts/Pack-Android.sh
+adb uninstall dev.yafel.hiveshock
+adb install -r dist/HiveShock-*-android.apk
 ```
 
-No subas el `.keystore` al git. Contraseña: variable `ANDROID_SIGNING_PASSWORD` (`env:` en el publish, [docs Avalonia](https://docs.avaloniaui.net/docs/deployment/android)).
+En Windows: `.\scripts\Pack-Android.ps1`. Firma opcional con `ANDROID_SIGNING_*`. No subas el `.keystore` al git.
 
 El CI de escritorio **no** restaura el `.slnx` entero (el proyecto Android exige el workload). Hay un job aparte `android`.
 

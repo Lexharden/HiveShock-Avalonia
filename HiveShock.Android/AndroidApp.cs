@@ -6,7 +6,11 @@ using Avalonia.Fonts.Inter;
 
 namespace HiveShock.Android;
 
-[Application(Name = "dev.yafel.hiveshock.AndroidApp")]
+/// <summary>
+/// Bootstrap Avalonia 12. Sin Name custom: el tooling genera el CRC estable
+/// y registra JNI (evita UnsatisfiedLinkError en AvaloniaAndroidApplication.OnCreate).
+/// </summary>
+[Application]
 public class AndroidApp : AvaloniaAndroidApplication<App>
 {
     protected AndroidApp(nint javaReference, JniHandleOwnership transfer)

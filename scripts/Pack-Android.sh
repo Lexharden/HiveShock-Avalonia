@@ -14,6 +14,9 @@ if [[ -z "$VER" ]]; then
   VER="$(grep -m1 '<Version>' "$PROPS" | sed -E 's/.*<Version>([^<]+)<\/Version>.*/\1/' | tr -d '[:space:]')"
 fi
 
+# Limpia salidas viejas para no instalar un APK intermedio sin libs nativas.
+rm -rf "$ROOT/HiveShock.Android/bin/Release" "$ROOT/HiveShock.Android/obj/Release"
+
 args=(publish "$PROJ" -f net10.0-android -c Release)
 if [[ -n "${ANDROID_SIGNING_KEYSTORE:-}" && -n "${ANDROID_SIGNING_ALIAS:-}" && -n "${ANDROID_SIGNING_PASSWORD:-}" ]]; then
   args+=(
@@ -28,11 +31,35 @@ fi
 dotnet "${args[@]}"
 
 mkdir -p "$ROOT/dist"
-mapfile -t files < <(find "$ROOT/HiveShock.Android/bin/Release" -type f \( -name '*.apk' -o -name '*.aab' \) | sort)
-for f in "${files[@]:0:4}"; do
+PUBLISH_DIR="$ROOT/HiveShock.Android/bin/Release/net10.0-android/publish"
+if [[ ! -d "$PUBLISH_DIR" ]]; then
+  # Algunas versiones del SDK usan RID en la ruta
+  PUBLISH_DIR="$(find "$ROOT/HiveShock.Android/bin/Release" -type d -name publish | head -n1 || true)"
+fi
+if [[ -z "${PUBLISH_DIR:-}" || ! -d "$PUBLISH_DIR" ]]; then
+  echo "No hay carpeta publish. Revisa el log de dotnet publish." >&2
+  exit 1
+fi
+
+# Preferir el APK firmado / de publish; nunca copiar intermedios sueltos de bin/.
+mapfile -t files < <(find "$PUBLISH_DIR" -maxdepth 1 -type f \( -name '*-Signed.apk' -o -name '*.apk' -o -name '*.aab' \) | sort)
+if [[ ${#files[@]} -eq 0 ]]; then
+  echo "No hay APK/AAB en $PUBLISH_DIR" >&2
+  exit 1
+fi
+
+for f in "${files[@]}"; do
   ext="${f##*.}"
-  cp -f "$f" "$ROOT/dist/HiveShock-${VER}-android.${ext}"
-  echo "  $(basename "$f") -> dist/HiveShock-${VER}-android.${ext}"
+  base="$(basename "$f")"
+  if [[ "$base" == *-Signed.apk ]]; then
+    dest="$ROOT/dist/HiveShock-${VER}-android-signed.apk"
+  else
+    dest="$ROOT/dist/HiveShock-${VER}-android.${ext}"
+  fi
+  cp -f "$f" "$dest"
+  echo "  $base -> $dest"
 done
 
-echo "Listo. No subas el .keystore al git."
+echo "Listo. Instala el de dist/ (desinstala la app anterior antes)."
+echo "  adb uninstall dev.yafel.hiveshock"
+echo "  adb install -r dist/HiveShock-${VER}-android.apk"

@@ -16,6 +16,8 @@
     <AndroidManifest>AndroidManifest.xml</AndroidManifest>
     <PublishTrimmed>false</PublishTrimmed>
     <RunAOTCompilation>false</RunAOTCompilation>
+    <AndroidEnableMarshalMethods>false</AndroidEnableMarshalMethods>
+    <RuntimeIdentifiers>android-arm64;android-arm;android-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>
