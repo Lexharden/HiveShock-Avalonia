@@ -34,6 +34,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Runtime = AndroidBridge.Shared;
         Gifts = new GiftsMapViewModel(this);
         Events = new EventsMapViewModel(this);
+        About = new AboutViewModel();
         GameHost = Runtime.Options.GameHost;
         TikTokUser = Runtime.Options.TikTokUniqueId;
         TikTokEnabled = Runtime.Options.TikTokEnabled;
@@ -54,6 +55,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public BridgeRuntime Runtime { get; }
     public GiftsMapViewModel Gifts { get; }
     public EventsMapViewModel Events { get; }
+    public AboutViewModel About { get; }
 
     public ObservableCollection<ProfileItem> Profiles { get; } = [];
     public ObservableCollection<EffectItem> Effects { get; } = [];
@@ -81,6 +83,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public bool IsGiftsNav => PageKey == "gifts";
     public bool IsEventsNav => PageKey == "events";
     public bool IsTwitchNav => PageKey == "twitch";
+    public bool IsAboutNav => PageKey == "about";
 
     private GiftFileEditor? _editor;
 
@@ -90,6 +93,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsGiftsNav));
         OnPropertyChanged(nameof(IsEventsNav));
         OnPropertyChanged(nameof(IsTwitchNav));
+        OnPropertyChanged(nameof(IsAboutNav));
     }
 
     public void Log(string line) => AppendActivity(line);
@@ -155,6 +159,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     [RelayCommand]
     private void NavTwitch() => PageKey = "twitch";
+
+    [RelayCommand]
+    private void NavAbout() => PageKey = "about";
 
     partial void OnTikTokEnabledChanged(bool value)
     {
@@ -306,6 +313,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                     TwitchDeviceCode = start.UserCode;
                     TwitchDeviceHint = start.VerificationUri;
                     TwitchCodeVisible = true;
+                    try
+                    {
+                        AndroidIntents.OpenUrl(start.VerificationUri);
+                    }
+                    catch (Exception ex)
+                    {
+                        AppendActivity($"Navegador: {ex.Message}");
+                    }
                 });
             });
             await Runtime.LoginTwitchAsync(progress, ct).ConfigureAwait(true);
@@ -330,6 +345,48 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Runtime.LogoutTwitch();
         RefreshTwitchAccount();
         AppendActivity("Twitch cerrado");
+    }
+
+    [RelayCommand]
+    private void OpenTwitchUrl()
+    {
+        if (string.IsNullOrWhiteSpace(TwitchDeviceHint))
+        {
+            return;
+        }
+
+        try
+        {
+            AndroidIntents.OpenUrl(TwitchDeviceHint);
+        }
+        catch (Exception ex)
+        {
+            AppendActivity(ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private void CopyTwitchUrl()
+    {
+        if (string.IsNullOrWhiteSpace(TwitchDeviceHint))
+        {
+            return;
+        }
+
+        AndroidIntents.CopyText(TwitchDeviceHint);
+        AppendActivity("URL de Twitch copiada");
+    }
+
+    [RelayCommand]
+    private void CopyTwitchCode()
+    {
+        if (string.IsNullOrWhiteSpace(TwitchDeviceCode))
+        {
+            return;
+        }
+
+        AndroidIntents.CopyText(TwitchDeviceCode);
+        AppendActivity("Código Twitch copiado");
     }
 
     [RelayCommand]

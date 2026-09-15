@@ -1,0 +1,47 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Android.ViewModels"
+             x:Class="HiveShock.Android.Views.AboutView"
+             x:DataType="vm:AboutViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="16">
+            <TextBlock Classes="pageTitle" Text="Acerca de" />
+            <Border Classes="card">
+                <StackPanel>
+                    <Image Source="avares://HiveShock.Android/Assets/app.png" Width="96" Height="96" Stretch="Uniform"
+                           HorizontalAlignment="Left" Margin="0,0,0,12" />
+                    <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding AppName}" />
+                    <TextBlock Margin="0,4,0,12" FontSize="14" Foreground="#9AA4B2"
+                               Text="{Binding VersionLabel}" />
+                    <TextBlock Classes="hint" Margin="0"
+                               Text="HiveShock conecta tu live con el juego: chat, regalos y el resto de eventos se convierten en efectos dentro de la partida." />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="QUIÉN LO HACE" />
+                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding Developer}" />
+                    <TextBlock Classes="hint"
+                               Text="Hola, soy Yafel. Diseño y programo HiveShock." />
+                    <Button Classes="secondary" Content="Abrir la web"
+                            Command="{Binding OpenWebsiteCommand}" HorizontalAlignment="Left" />
+                    <TextBlock FontSize="12" Foreground="#9AA4B2" Text="{Binding WebsiteUrl}"
+                               TextWrapping="Wrap" Margin="0,6,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="APOYAR EL PROYECTO" />
+                    <TextBlock Classes="hint"
+                               Text="Si HiveShock te sirve en el stream, un café en Ko-fi ayuda a seguir. No es obligatorio." />
+                    <Button Classes="primary" Content="Invitar un café"
+                            Command="{Binding OpenKofiCommand}" HorizontalAlignment="Left" />
+                    <TextBlock FontSize="12" Foreground="#9AA4B2" Text="{Binding KoFiUrl}"
+                               TextWrapping="Wrap" Margin="0,6,0,0" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

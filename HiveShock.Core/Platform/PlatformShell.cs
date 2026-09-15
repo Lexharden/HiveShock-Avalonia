@@ -74,8 +74,21 @@ public static class PlatformShell
         })?.Dispose();
     }
 
+    public static Action<string>? UrlLauncher { get; set; }
+
     public static void OpenUrl(string url)
     {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return;
+        }
+
+        if (UrlLauncher != null)
+        {
+            UrlLauncher(url);
+            return;
+        }
+
         Process.Start(new ProcessStartInfo
         {
             FileName = url,
