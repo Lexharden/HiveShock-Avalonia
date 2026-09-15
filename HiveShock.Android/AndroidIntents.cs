@@ -36,7 +36,11 @@ internal static class AndroidIntents
         }
 
         var context = global::Android.App.Application.Context;
-        var clipboard = context.GetSystemService(Context.ClipboardService) as ClipboardManager;
-        clipboard?.SetPrimaryClip(ClipData.NewPlainText("HiveShock", text));
+        if (context.GetSystemService(Context.ClipboardService) is not global::Android.Content.ClipboardManager clipboard)
+        {
+            return;
+        }
+
+        clipboard.PrimaryClip = ClipData.NewPlainText("HiveShock", text);
     }
 }
