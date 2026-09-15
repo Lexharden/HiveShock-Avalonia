@@ -12,6 +12,7 @@ public partial class App : Avalonia.Application
 
     public override void Initialize()
     {
+        AndroidIntents.Register();
         AvaloniaXamlLoader.Load(this);
         RequestedThemeVariant = ThemeVariant.Dark;
     }

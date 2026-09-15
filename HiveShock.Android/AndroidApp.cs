@@ -14,14 +14,9 @@ public class AndroidApp : AvaloniaAndroidApplication<App>
     {
     }
 
-    public override void OnCreate()
-    {
-        AndroidIntents.Register();
-        base.OnCreate();
-    }
-
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
     {
+        AndroidIntents.Register();
         return base.CustomizeAppBuilder(builder)
             .WithInterFont();
     }
