@@ -479,4 +479,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         ActivityText = string.Join(Environment.NewLine, _activity);
     }
+
+    [RelayCommand]
+    private void ClearActivity()
+    {
+        _activity.Clear();
+        ActivityText = "";
+    }
 }

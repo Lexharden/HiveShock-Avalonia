@@ -103,7 +103,11 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Classes="fieldLabel" Text="Actividad" />
+            <DockPanel Margin="0,0,0,6">
+                <Button DockPanel.Dock="Right" Classes="secondary" Content="Limpiar"
+                        Command="{Binding ClearActivityCommand}" Margin="8,0,0,0" />
+                <TextBlock Classes="fieldLabel" Text="Actividad" VerticalAlignment="Center" Margin="0" />
+            </DockPanel>
             <TextBox Text="{Binding ActivityText, Mode=OneWay}" IsReadOnly="True"
                      AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120"
                      ScrollViewer.VerticalScrollBarVisibility="Auto" />
