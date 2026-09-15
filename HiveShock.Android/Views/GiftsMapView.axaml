@@ -1,0 +1,83 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Android.ViewModels"
+             xmlns:cfg="using:HiveShock.Configuration"
+             x:Class="HiveShock.Android.Views.GiftsMapView"
+             x:DataType="vm:GiftsMapViewModel">
+    <Grid>
+        <ScrollViewer>
+            <StackPanel Margin="16">
+                <TextBlock Classes="hint"
+                           Text="Regalos de TikTok. El mínimo es el combo de un viewer, no el total del chat." />
+                <WrapPanel>
+                    <Button Classes="secondary" Content="Nuevo" Command="{Binding NewGiftCommand}" />
+                    <Button Classes="secondary" Content="De vistos" Command="{Binding OpenCatalogCommand}" />
+                    <Button Classes="secondary" Content="Quitar" Command="{Binding DeleteGiftCommand}" />
+                    <Button Classes="primary" Content="Guardar" Command="{Binding SaveCommand}" />
+                </WrapPanel>
+
+                <TextBlock Classes="fieldLabel" Text="Regalos" />
+                <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}"
+                         MinHeight="120" MaxHeight="220" Margin="0,0,0,12">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:GiftMapRow">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Note}" FontSize="11" Foreground="#9AA4B2"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <Border Classes="card" IsVisible="{Binding HasSelection}">
+                    <StackPanel>
+                        <TextBlock Classes="fieldLabel" Text="Nombre" />
+                        <TextBox Text="{Binding Selected.Name}" Margin="0,0,0,10" />
+                        <TextBlock Classes="fieldLabel" Text="Qué hace" />
+                        <ComboBox Margin="0,0,0,10"
+                                  ItemsSource="{Binding EffectChoices}"
+                                  SelectedValue="{Binding Selected.Effect}"
+                                  SelectedValueBinding="{Binding Id}"
+                                  DisplayMemberBinding="{Binding Display}" />
+                        <TextBlock Classes="fieldLabel" Text="Nota" />
+                        <TextBox Text="{Binding Selected.Note}" Margin="0,0,0,10" />
+                        <TextBlock Classes="fieldLabel" Text="Mínimo del combo" />
+                        <TextBox Text="{Binding Selected.MinCount}" Margin="0,0,0,8" />
+                        <CheckBox Content="Repetir el efecto en cada uno"
+                                  IsChecked="{Binding Selected.Each}" Margin="0,0,0,10" />
+                        <TextBlock Classes="fieldLabel" Text="ID TikTok (opcional)" />
+                        <TextBox Text="{Binding Selected.Id}" Margin="0,0,0,10" />
+                        <TextBlock Classes="fieldLabel" Text="Otros nombres, separados por coma" />
+                        <TextBox Text="{Binding Selected.Also}" Margin="0,0,0,12" />
+                        <DockPanel>
+                            <TextBlock Classes="fieldLabel" Text="Probar ×" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBox Text="{Binding TestComboText}" Width="56" Margin="0,0,12,0" />
+                            <Button Classes="primary" Content="Enviar" Command="{Binding TestCommand}" />
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Background="#CC0E1520" IsVisible="{Binding CatalogOpen}">
+            <Border Classes="card" Margin="24" VerticalAlignment="Center">
+                <StackPanel>
+                    <TextBlock Classes="fieldLabel" Text="Regalos vistos" />
+                    <ListBox ItemsSource="{Binding CatalogPicks}" SelectedItem="{Binding CatalogSelected}"
+                             MinHeight="160" MaxHeight="280" Margin="0,0,0,12">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="cfg:CatalogGift">
+                                <TextBlock Text="{Binding DisplayName}" TextWrapping="Wrap" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <WrapPanel>
+                        <Button Classes="primary" Content="Usar" Command="{Binding PickCatalogCommand}" />
+                        <Button Classes="secondary" Content="Cerrar" Command="{Binding CancelCatalogCommand}" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

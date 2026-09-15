@@ -36,7 +36,28 @@
         <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Margin" Value="0,0,8,8" />
     </Style>
-    <Style Selector="Button.connect.live">
+    <Style Selector="TextBlock.sectionTitle">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="LetterSpacing" Value="0.6" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+        <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+    <Style Selector="Button.navTab">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+        <Setter Property="Padding" Value="8,10" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Margin" Value="2" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.navTab.active">
+        <Setter Property="Foreground" Value="{DynamicResource BrandGoldBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Background" Value="#1A2330" />
+    </Style>
+    <Style Selector="Button.primary.live">
         <Setter Property="Background" Value="{DynamicResource LiveBrush}" />
         <Setter Property="Foreground" Value="White" />
     </Style>

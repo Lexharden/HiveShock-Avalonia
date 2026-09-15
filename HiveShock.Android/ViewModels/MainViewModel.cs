@@ -32,15 +32,19 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public MainViewModel()
     {
         Runtime = AndroidBridge.Shared;
+        Gifts = new GiftsMapViewModel(this);
+        Events = new EventsMapViewModel(this);
         GameHost = Runtime.Options.GameHost;
         TikTokUser = Runtime.Options.TikTokUniqueId;
         TikTokEnabled = Runtime.Options.TikTokEnabled;
         TwitchEnabled = Runtime.Options.TwitchEnabled;
         RefreshProfiles();
         RefreshEffects();
+        ReloadMappings();
         RefreshTwitchAccount();
         RefreshStatus();
         Runtime.Ports.Changed += OnPortsChanged;
+        Runtime.Goals.Changed += OnGoalsChanged;
         BridgeLog.Logged += OnLogged;
         BridgeLog.Init();
         BridgeLog.Info($"Android · {Runtime.Profile.DisplayName}");
@@ -48,9 +52,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     public BridgeRuntime Runtime { get; }
+    public GiftsMapViewModel Gifts { get; }
+    public EventsMapViewModel Events { get; }
 
     public ObservableCollection<ProfileItem> Profiles { get; } = [];
     public ObservableCollection<EffectItem> Effects { get; } = [];
+
+    [ObservableProperty] private string _pageKey = "home";
 
     [ObservableProperty] private string _gameHost = "";
     [ObservableProperty] private string _tikTokUser = "";
@@ -68,6 +76,85 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _twitchCodeVisible;
     [ObservableProperty] private string _twitchDeviceCode = "";
     [ObservableProperty] private string _twitchDeviceHint = "";
+
+    public bool IsHomeNav => PageKey == "home";
+    public bool IsGiftsNav => PageKey == "gifts";
+    public bool IsEventsNav => PageKey == "events";
+    public bool IsTwitchNav => PageKey == "twitch";
+
+    private GiftFileEditor? _editor;
+
+    partial void OnPageKeyChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsHomeNav));
+        OnPropertyChanged(nameof(IsGiftsNav));
+        OnPropertyChanged(nameof(IsEventsNav));
+        OnPropertyChanged(nameof(IsTwitchNav));
+    }
+
+    public void Log(string line) => AppendActivity(line);
+
+    public bool EffectExists(string effectId) =>
+        Effects.Any(e => string.Equals(e.Id, effectId, StringComparison.OrdinalIgnoreCase));
+
+    public string DefaultEffectId()
+    {
+        var heal = Effects.FirstOrDefault(e =>
+            string.Equals(e.Id, "heal", StringComparison.OrdinalIgnoreCase));
+        if (heal != null)
+        {
+            return heal.Id;
+        }
+
+        var impulse = Effects.FirstOrDefault(e =>
+            string.Equals(e.Id, "impulse", StringComparison.OrdinalIgnoreCase));
+        return impulse?.Id ?? Effects.FirstOrDefault()?.Id ?? "";
+    }
+
+    public void ReloadMappings()
+    {
+        try
+        {
+            _editor = new GiftFileEditor(Runtime.GiftsPath);
+            _editor.Load();
+            Gifts.LoadFrom(_editor);
+            Events.LoadFrom(_editor);
+        }
+        catch (Exception ex)
+        {
+            AppendActivity(ex.Message);
+        }
+    }
+
+    public void SaveMappings()
+    {
+        try
+        {
+            _editor ??= new GiftFileEditor(Runtime.GiftsPath);
+            Gifts.ApplyTo(_editor);
+            Events.ApplyTo(_editor);
+            _editor.Save();
+            Runtime.ReloadGifts();
+            Events.RefreshGoalProgress();
+            AppendActivity("Mapeos guardados");
+        }
+        catch (Exception ex)
+        {
+            AppendActivity(ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private void NavHome() => PageKey = "home";
+
+    [RelayCommand]
+    private void NavGifts() => PageKey = "gifts";
+
+    [RelayCommand]
+    private void NavEvents() => PageKey = "events";
+
+    [RelayCommand]
+    private void NavTwitch() => PageKey = "twitch";
 
     partial void OnTikTokEnabledChanged(bool value)
     {
@@ -116,6 +203,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             Runtime.SwitchProfile(item.Id);
             RefreshProfiles();
             RefreshEffects();
+            ReloadMappings();
             AppendActivity($"Juego: {Runtime.Profile.DisplayName}");
         }
         catch (Exception ex)
@@ -254,6 +342,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         Runtime.Ports.Changed -= OnPortsChanged;
+        Runtime.Goals.Changed -= OnGoalsChanged;
         BridgeLog.Logged -= OnLogged;
         _twitchCts?.Cancel();
         _twitchCts?.Dispose();
@@ -336,6 +425,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         SelectedEffect = Effects.FirstOrDefault(e => e.Id == "heal") ?? Effects.FirstOrDefault();
+        Events.NotifyEffects();
     }
 
     private void RefreshTwitchAccount()
@@ -368,6 +458,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             StatusText = ports;
         }
     }
+
+    private void OnGoalsChanged(object? sender, EventArgs e) =>
+        Dispatcher.UIThread.Post(Events.RefreshGoalProgress);
 
     private void OnPortsChanged() => Dispatcher.UIThread.Post(RefreshStatus);
 

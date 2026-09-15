@@ -42,7 +42,7 @@ Abre Inicio, elige el juego y conecta. Las cuentas se enlazan en **TikTok** y **
 
 ## Android (compañero)
 
-El live corre en el **teléfono**. El juego es el APK en el mismo aparato (`GAME_HOST=127.0.0.1`, puerto 43000) o el del **PC** en la misma Wi‑Fi (IP LAN). Overlays OBS no van en el móvil. Al **Conectar** queda una notificación fija («HiveShock conectado»): puedes pasar al port y el live sigue. **Detener** quita la notificación. Algunos fabricantes (batería agresiva) pueden cortar igual; en esos casos deja HiveShock sin optimizar batería.
+El live corre en el **teléfono**. Menú **Inicio / Regalos / Eventos / Twitch**: el mapeo es el mismo `gifts.json` que en el escritorio (sin overlays OBS). El juego es el APK en el mismo aparato (`GAME_HOST=127.0.0.1`, puerto 43000) o el del **PC** si el port escucha en la LAN. Al **Conectar** queda una notificación fija: puedes pasar al port y el live sigue. **Detener** quita la notificación. Algunos fabricantes (batería agresiva) pueden cortar igual; en esos casos deja HiveShock sin optimizar batería.
 
 ```powershell
 dotnet workload install android
