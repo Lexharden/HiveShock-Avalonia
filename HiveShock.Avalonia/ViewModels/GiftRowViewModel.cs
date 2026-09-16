@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using HiveShock.Avalonia.Services;
@@ -7,9 +8,12 @@ namespace HiveShock.Avalonia.ViewModels;
 
 public sealed partial class GiftRowViewModel : ObservableObject
 {
-    public GiftRowViewModel(EditableGift model)
+    private readonly EffectCatalog _effects;
+
+    public GiftRowViewModel(EditableGift model, EffectCatalog effects)
     {
         Model = model;
+        _effects = effects;
         _name = model.Gift;
         _id = model.Id;
         _effect = model.Effect;
@@ -21,9 +25,19 @@ public sealed partial class GiftRowViewModel : ObservableObject
         _diamonds = model.Diamonds;
         _image = model.Image;
         _also = string.Join(", ", model.Also);
+        RebuildParamFields();
     }
 
     public EditableGift Model { get; }
+
+    public ObservableCollection<EffectParamFieldViewModel> ParamFields { get; } = [];
+
+    public bool HasParams => ParamFields.Count > 0;
+
+    public bool ShowInstaKillHint =>
+        string.Equals(Effect, "insta_kill", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(Effect, "instakill", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(Effect, "kill", StringComparison.OrdinalIgnoreCase);
 
     [ObservableProperty] private string _name = "";
     [ObservableProperty] private string _id = "";
@@ -53,7 +67,12 @@ public sealed partial class GiftRowViewModel : ObservableObject
         OnPropertyChanged(nameof(Thumb));
     }
 
-    partial void OnEffectChanged(string value) => Model.Effect = value;
+    partial void OnEffectChanged(string value)
+    {
+        Model.Effect = value;
+        RebuildParamFields();
+        OnPropertyChanged(nameof(ShowInstaKillHint));
+    }
 
     partial void OnNoteChanged(string value) => Model.What = value;
 
@@ -82,4 +101,22 @@ public sealed partial class GiftRowViewModel : ObservableObject
     }
 
     public void RefreshThumb() => OnPropertyChanged(nameof(Thumb));
+
+    private void RebuildParamFields()
+    {
+        var schema = _effects.GetParamSchema(Effect);
+        var allowed = new HashSet<string>(schema.Select(p => p.Key), StringComparer.OrdinalIgnoreCase);
+        foreach (var key in Model.Params.Keys.Where(k => !allowed.Contains(k)).ToList())
+        {
+            Model.Params.Remove(key);
+        }
+
+        ParamFields.Clear();
+        foreach (var def in schema)
+        {
+            ParamFields.Add(new EffectParamFieldViewModel(Model, def));
+        }
+
+        OnPropertyChanged(nameof(HasParams));
+    }
 }

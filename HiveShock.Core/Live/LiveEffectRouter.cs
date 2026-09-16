@@ -306,7 +306,7 @@ public sealed class LiveEffectRouter
             var reason = times > 1
                 ? $"Regalo {giftLabel} x{repeat} ({i + 1}/{times})"
                 : $"Regalo {giftLabel} x{repeat}";
-            _ = _dispatcher.EnqueueAsync(match.EffectId, user, reason, ct);
+            _ = _dispatcher.EnqueueAsync(match.EffectId, user, reason, ct, paramOverrides: match.Params);
         }
     }
 

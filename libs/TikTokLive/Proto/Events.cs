@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using ProtoBuf;
 
@@ -54,13 +55,21 @@ namespace TikTokLive.Proto
         [ProtoMember(32)] public UserIdentityContext? UserIdentity { get; set; }
         [ProtoMember(44)] public bool MultiGenerateMessage { get; set; }
 
-        public bool IsComboGift() => GiftDetails != null && GiftDetails.GiftType == 1;
+        public bool IsComboGift() =>
+            (GiftDetails is { GiftType: 1 }) ||
+            (GiftDetails?.Combo == true) ||
+            RepeatCount > 1 ||
+            ComboCount > 1;
+
         public bool IsStreakOver() => !IsComboGift() || RepeatEnd == 1;
+
+        public int ComboTotal() =>
+            Math.Max(1, Math.Max(RepeatCount, ComboCount));
+
         public long DiamondTotal()
         {
             long perGift = GiftDetails != null ? (long)GiftDetails.DiamondCount : 0;
-            long count = RepeatCount > 0 ? RepeatCount : 1;
-            return perGift * count;
+            return perGift * ComboTotal();
         }
     }
 

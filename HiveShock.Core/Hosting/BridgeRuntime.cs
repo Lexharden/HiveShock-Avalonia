@@ -260,7 +260,8 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
         for (var i = 0; i < times; i++)
         {
-            var cmd = _effects.Resolve(gift.Effect, testerName);
+            var overrides = gift.Params.Count > 0 ? gift.Params : null;
+            var cmd = _effects.Resolve(gift.Effect, testerName, overrides);
             if (cmd is null)
             {
                 throw new InvalidOperationException($"No se pudo resolver el efecto {gift.Effect}");
@@ -390,7 +391,8 @@ public sealed class BridgeRuntime : IAsyncDisposable
         BridgeLog.Info(
             $"Inicio mode={mode.ToString().ToLowerInvariant()} perfil={_profile.Id} " +
             $"tiktok={Options.TikTokUniqueId} twitch={Options.TwitchUserLogin} " +
-            $"juego={Options.GameHost}:{Options.GamePort} dry={Options.DryRun}");
+            $"juego={Options.GameHost}:{Options.GamePort} dry={Options.DryRun} " +
+            $"gap={Options.EffectGapMs}ms");
 
         var builder = Host.CreateApplicationBuilder(Array.Empty<string>());
         builder.Services.AddSingleton(Options);

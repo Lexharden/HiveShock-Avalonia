@@ -22,6 +22,8 @@ public sealed class EditableGift
     public bool Overlay { get; set; }
     /// <summary>Texto en el overlay. Vacío = nombre del gift.</summary>
     public string OverlayText { get; set; } = "";
+    /// <summary>Overrides numéricos en unidades wire (p.ej. value=4 = 1 corazón). Vacío = default del efecto.</summary>
+    public Dictionary<string, double> Params { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     public string OverlayLabel =>
         string.IsNullOrWhiteSpace(OverlayText) ? Gift : OverlayText;
@@ -517,7 +519,55 @@ public sealed class GiftFileEditor
             Image = obj["image"]?.GetValue<string>() ?? obj["img"]?.GetValue<string>() ?? "",
             Overlay = ReadBool(obj, "overlay"),
             OverlayText = obj["overlayText"]?.GetValue<string>() ?? obj["overlay_text"]?.GetValue<string>() ?? "",
+            Params = ReadParams(obj),
         };
+    }
+
+    private static Dictionary<string, double> ReadParams(JsonObject obj)
+    {
+        var dict = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        if (obj["params"] is not JsonObject paramsObj)
+        {
+            return dict;
+        }
+
+        foreach (var kv in paramsObj)
+        {
+            if (string.IsNullOrWhiteSpace(kv.Key) || kv.Key.StartsWith('_'))
+            {
+                continue;
+            }
+
+            if (kv.Value is JsonValue v && TryReadDouble(v, out var n))
+            {
+                dict[kv.Key] = n;
+            }
+        }
+
+        return dict;
+    }
+
+    private static bool TryReadDouble(JsonValue v, out double value)
+    {
+        if (v.TryGetValue<double>(out value))
+        {
+            return true;
+        }
+
+        if (v.TryGetValue<int>(out var i))
+        {
+            value = i;
+            return true;
+        }
+
+        if (v.TryGetValue<long>(out var l))
+        {
+            value = l;
+            return true;
+        }
+
+        value = 0;
+        return false;
     }
 
     private static bool ReadBool(JsonObject obj, string key)
@@ -602,6 +652,27 @@ public sealed class GiftFileEditor
         if (!string.IsNullOrWhiteSpace(gift.OverlayText))
         {
             obj["overlayText"] = gift.OverlayText.Trim();
+        }
+
+        if (gift.Params.Count > 0)
+        {
+            var paramsObj = new JsonObject();
+            foreach (var (key, value) in gift.Params)
+            {
+                if (string.IsNullOrWhiteSpace(key) || key.StartsWith('_'))
+                {
+                    continue;
+                }
+
+                paramsObj[key] = Math.Abs(value - Math.Round(value)) < 0.0000001
+                    ? JsonValue.Create((long)Math.Round(value))
+                    : JsonValue.Create(value);
+            }
+
+            if (paramsObj.Count > 0)
+            {
+                obj["params"] = paramsObj;
+            }
         }
 
         return obj;

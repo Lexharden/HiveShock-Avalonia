@@ -49,18 +49,17 @@ namespace TikTokLive.Helpers
             long nowTicks = DateTime.UtcNow.Ticks;
             EvictStale(nowTicks);
 
+            int total = msg.ComboTotal();
             int prevCount = 0;
             if (_streaks.TryGetValue(msg.GroupId, out var prev))
                 prevCount = prev.lastRepeatCount;
 
-            int delta = Math.Max(msg.RepeatCount - prevCount, 0);
+            int delta = Math.Max(total - prevCount, 0);
 
             if (isFinal)
                 _streaks.Remove(msg.GroupId);
             else
-                _streaks[msg.GroupId] = (msg.RepeatCount, nowTicks);
-
-            long rc = Math.Max(msg.RepeatCount, 1);
+                _streaks[msg.GroupId] = (total, nowTicks);
 
             return new GiftStreakEvent
             {
@@ -68,9 +67,9 @@ namespace TikTokLive.Helpers
                 IsActive = !isFinal,
                 IsFinal = isFinal,
                 EventGiftCount = delta,
-                TotalGiftCount = msg.RepeatCount,
+                TotalGiftCount = total,
                 EventDiamondCount = (long)diamondPer * delta,
-                TotalDiamondCount = (long)diamondPer * rc,
+                TotalDiamondCount = (long)diamondPer * total,
             };
         }
 

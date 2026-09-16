@@ -407,6 +407,18 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [RelayCommand]
     private void NavAbout() => GoAbout();
 
+    [RelayCommand]
+    private void ClearActivity()
+    {
+        _activityLines.Clear();
+        _logLines.Clear();
+        ActivityText = "";
+        DetailLogText = "";
+    }
+
+    [RelayCommand]
+    private void ClearLog() => ClearActivity();
+
     partial void OnNavExpandedChanged(bool value)
     {
         Prefs.NavExpanded = value;

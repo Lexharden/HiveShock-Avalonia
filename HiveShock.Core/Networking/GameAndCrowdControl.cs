@@ -10,6 +10,8 @@ namespace HiveShock.Networking;
 public sealed class GameTcpClient
 {
     private readonly BridgeOptions _options;
+    private readonly SemaphoreSlim _sendLock = new(1, 1);
+    private long _earliestNextSendMs;
 
     public GameTcpClient(BridgeOptions options) => _options = options;
 
@@ -17,37 +19,73 @@ public sealed class GameTcpClient
     {
         var line = JsonSerializer.Serialize(command, JsonDefaults.Options) + "\n";
 
-        if (_options.DryRun)
-        {
-            BridgeLog.Info($"Dry-run {line.TrimEnd()}");
-            return;
-        }
-
-        using var client = new TcpClient();
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeoutCts.CancelAfter(_options.GameConnectTimeout);
-
+        await _sendLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            await client.ConnectAsync(_options.GameHost, _options.GamePort, timeoutCts.Token).ConfigureAwait(false);
-            var stream = client.GetStream();
-            var bytes = Encoding.UTF8.GetBytes(line);
-            await stream.WriteAsync(bytes, timeoutCts.Token).ConfigureAwait(false);
-            await stream.FlushAsync(timeoutCts.Token).ConfigureAwait(false);
+            await WaitForGapAsync(ct).ConfigureAwait(false);
+
+            if (_options.DryRun)
+            {
+                BridgeLog.Info($"Dry-run {line.TrimEnd()}");
+                MarkSent();
+                return;
+            }
+
+            using var client = new TcpClient();
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(_options.GameConnectTimeout);
+
+            try
+            {
+                await client.ConnectAsync(_options.GameHost, _options.GamePort, timeoutCts.Token)
+                    .ConfigureAwait(false);
+                var stream = client.GetStream();
+                var bytes = Encoding.UTF8.GetBytes(line);
+                await stream.WriteAsync(bytes, timeoutCts.Token).ConfigureAwait(false);
+                await stream.FlushAsync(timeoutCts.Token).ConfigureAwait(false);
+                MarkSent();
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                throw new TimeoutException(
+                    $"Timeout juego {_options.GameHost}:{_options.GamePort}");
+            }
+            catch (SocketException ex)
+            {
+                throw new InvalidOperationException($"Juego: {ex.Message}", ex);
+            }
         }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        finally
         {
-            throw new TimeoutException(
-                $"Timeout juego {_options.GameHost}:{_options.GamePort}");
-        }
-        catch (SocketException ex)
-        {
-            throw new InvalidOperationException($"Juego: {ex.Message}", ex);
+            _sendLock.Release();
         }
     }
 
     public Task SendActionAsync(string action, CancellationToken ct = default) =>
         SendAsync(new Dictionary<string, object?> { ["action"] = action }, ct);
+
+    private async Task WaitForGapAsync(CancellationToken ct)
+    {
+        var gapMs = _options.EffectGapMs;
+        if (gapMs <= 0)
+        {
+            return;
+        }
+
+        var wait = _earliestNextSendMs - Environment.TickCount64;
+        if (wait > 0)
+        {
+            await Task.Delay((int)Math.Min(wait, int.MaxValue), ct).ConfigureAwait(false);
+        }
+    }
+
+    private void MarkSent()
+    {
+        var gapMs = _options.EffectGapMs;
+        _earliestNextSendMs = gapMs > 0
+            ? Environment.TickCount64 + gapMs
+            : 0;
+    }
 }
 
 public sealed class EffectDispatcher
@@ -72,9 +110,10 @@ public sealed class EffectDispatcher
         string? user,
         string reason,
         CancellationToken ct = default,
-        bool fromChat = false)
+        bool fromChat = false,
+        IReadOnlyDictionary<string, double>? paramOverrides = null)
     {
-        var cmd = _effects.Resolve(effectId, user);
+        var cmd = _effects.Resolve(effectId, user, paramOverrides);
         if (cmd is null)
         {
             BridgeLog.Warn($"Efecto desconocido: {effectId}");

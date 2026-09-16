@@ -1,5 +1,5 @@
 {
-  "_help": "gift=nombre, id=recomendado, effect=efecto. Combos: minCount=mínimo xN (default 1), each=true → un efecto por unidad (x10→10). diamonds=solo referencia. image=opcional en gifts-images/.",
+  "_help": "gift=nombre, id=recomendado, effect=efecto. Combos: minCount=mínimo xN (default 1), each=true → un efecto por unidad (x10→10). params={ value } override en unidades del juego (4=1 corazón en damage/heal). Para quitar N corazones usa damage, no insta_kill. diamonds=solo referencia. image=opcional en gifts-images/.",
 
   "gifts": [
     {
@@ -13,7 +13,8 @@
       "gift": "Heart Me",
       "id": "7934",
       "effect": "heal",
-      "what": "Cura 1 corazón"
+      "what": "Cura 1 corazón",
+      "params": { "value": 4 }
     },
     {
       "gift": "Finger Heart",
@@ -24,7 +25,8 @@
     {
       "gift": "TikTok",
       "effect": "heal",
-      "what": "Cura 1 corazón"
+      "what": "Cura 1 corazón",
+      "params": { "value": 4 }
     },
     {
       "gift": "GG",

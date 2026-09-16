@@ -199,9 +199,17 @@
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="0,1,0,0" Padding="14,8">
-                    <Expander Header="Qué está pasando" IsExpanded="True"
+                    <Expander IsExpanded="True"
                               HorizontalAlignment="Stretch"
                               HorizontalContentAlignment="Stretch">
+                        <Expander.Header>
+                            <DockPanel LastChildFill="True">
+                                <Button DockPanel.Dock="Right" Classes="secondary" Content="Limpiar"
+                                        Command="{Binding ClearActivityCommand}" Margin="8,0,0,0"
+                                        VerticalAlignment="Center" />
+                                <TextBlock Text="Qué está pasando" VerticalAlignment="Center" />
+                            </DockPanel>
+                        </Expander.Header>
                         <Grid RowDefinitions="*,Auto" Margin="0,8,0,0">
                             <TextBox Text="{Binding ActivityText, Mode=OneWay}" IsReadOnly="True"
                                      TextWrapping="Wrap" AcceptsReturn="True"
