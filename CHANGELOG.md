@@ -4,6 +4,14 @@ Cambios relevantes de HiveShock. El versionado está en `Directory.Build.props`.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-16
+
+- Parámetros por efecto (daño/cura en corazones) en regalos; solo aparecen si el efecto lo declara.
+- Envíos al juego espaciados (EFFECT_GAP_MS, default 300 ms) para que los combos xN no se pierdan.
+- Botón Limpiar en el log de actividad del escritorio.
+- Mejor detección de combos de TikTok (RepeatCount / ComboCount).
+
+
 ## [1.1.2] - 2026-09-14
 
 - Perfil Ocarina of Time (Ship of Harkinian): efectos propios de SoH (Dark Link, Arwing, canciones de warp), no el catálogo de 2s2h.
