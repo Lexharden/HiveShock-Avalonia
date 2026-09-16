@@ -18,7 +18,7 @@
   ],
   "labels": {
     "impulse": "Saltito / impulso",
-    "knockback": "Empujón fuerte (lanza lejos)",
+    "knockback": "Empujón (lanza; daño opcional)",
     "explode": "Explosión de bomba (daño + vuelo)",
     "bomb_explode": "Explosión de bomba (daño + vuelo)",
     "freeze": "Congelar",

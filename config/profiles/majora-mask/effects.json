@@ -1,8 +1,18 @@
 {
   "impulse": { "action": "impulse", "strength": 8 },
-  "knockback": { "action": "knockback", "strength": 16 },
-  "explode": { "action": "explode", "strength": 18, "damage": 16 },
-  "bomb_explode": { "action": "bomb_explode", "strength": 18, "damage": 16 },
+  "knockback": {
+    "action": "knockback",
+    "strength": 7,
+    "damage": 4,
+    "deal_damage": true,
+    "_params": {
+      "strength": { "label": "Fuerza", "min": 0.5, "max": 14, "step": 0.5 },
+      "damage": { "label": "Daño", "unit": "hearts", "scale": 4, "min": 0, "max": 4, "step": 0.25 },
+      "deal_damage": { "label": "Hacer daño", "type": "bool" }
+    }
+  },
+  "explode": { "action": "explode", "strength": 7, "damage": 2 },
+  "bomb_explode": { "action": "bomb_explode", "strength": 7, "damage": 2 },
   "freeze": { "action": "freeze" },
   "shock": { "action": "shock" },
   "fire": { "action": "fire" },
