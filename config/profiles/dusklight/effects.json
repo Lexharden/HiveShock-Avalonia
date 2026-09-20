@@ -65,5 +65,7 @@
   "twilight_insect": { "action": "twilight_insect" },
   "twilight_vermin": { "action": "twilight_vermin" },
   "poison_mite": { "action": "poison_mite" },
-  "goat": { "action": "goat" }
+  "goat": { "action": "goat" },
+  "reset": { "action": "reset" },
+  "helmsaurus": { "action": "helmsaurus" }
 }

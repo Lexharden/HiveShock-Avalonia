@@ -8,6 +8,9 @@ public sealed partial class TikTokViewModel : ViewModelBase
     {
         Shell = shell;
         AccountOpen = string.IsNullOrWhiteSpace(shell.Studio.Channel);
+#if DEBUG
+        Diagnostics = new DiagnosticViewModel(shell.Runtime.Diagnostics);
+#endif
     }
 
     public MainViewModel Shell { get; }
@@ -18,4 +21,18 @@ public sealed partial class TikTokViewModel : ViewModelBase
     public GoalsViewModel Goals => Shell.Goals;
 
     [ObservableProperty] private bool _accountOpen;
+
+    /// <summary>Returns true only in DEBUG builds; used to show/hide the Debug tab in AXAML.</summary>
+    public bool IsDebugBuild =>
+#if DEBUG
+        true;
+#else
+        false;
+#endif
+
+#if DEBUG
+    public DiagnosticViewModel? Diagnostics { get; }
+#else
+    public DiagnosticViewModel? Diagnostics => null;
+#endif
 }

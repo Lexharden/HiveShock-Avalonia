@@ -192,6 +192,9 @@
                     </ScrollViewer>
                 </Grid>
             </TabItem>
+            <TabItem Header="🔬 Debug" IsVisible="{Binding IsDebugBuild}">
+                <ContentControl Content="{Binding Diagnostics}" Margin="0,8,0,0" />
+            </TabItem>
         </TabControl>
     </Grid>
 </UserControl>

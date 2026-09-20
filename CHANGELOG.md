@@ -4,6 +4,12 @@ Cambios relevantes de HiveShock. El versionado está en `Directory.Build.props`.
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-09-19
+
+- Fix: los combos de TikTok sin mensaje de cierre (regalos "battle"/gallery como galaxias y ballenas) se quedaban sin procesar — nunca se enviaba el efecto ni se registraba en el log. Ahora se cierran solos por timeout (6s de inactividad) si TikTok nunca manda el `RepeatEnd=1`.
+- Pestaña "🔬 Debug" en TikTok (solo en builds DEBUG): registro en vivo de eventos crudos de TikTok para diagnóstico.
+- Perfil Dusklight: nuevo enemigo Helmsaurus y acción de reset.
+
 ## [1.2.0] - 2026-09-16
 
 - Parámetros por efecto (daño/cura en corazones) en regalos; solo aparecen si el efecto lo declara.

@@ -40,6 +40,9 @@ public sealed class BridgeRuntime : IAsyncDisposable
     public OverlayNotifier Overlay { get; } = new();
     public GiftGoalBank Goals { get; } = new();
     public LivePortHub Ports { get; } = new();
+#if DEBUG
+    public Live.LiveDiagnosticSink Diagnostics { get; } = new();
+#endif
 
     /// <summary>Compat: valor mostrado del contador de partida.</summary>
     public int DeathsThisRun => DeathCounter.Value;
@@ -410,6 +413,9 @@ public sealed class BridgeRuntime : IAsyncDisposable
         builder.Services.AddHostedService<EffectPumpService>();
         builder.Services.AddHostedService<ConfigWatchService>();
         builder.Services.AddHostedService<CrowdControlHostedService>();
+#if DEBUG
+        builder.Services.AddSingleton(Diagnostics);
+#endif
         builder.Services.AddHostedService<TikTokLiveHostedService>();
         builder.Services.AddHostedService<TwitchLiveHostedService>();
 

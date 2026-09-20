@@ -16,7 +16,7 @@
     "tektite", "skulltula", "helmasaur", "wolfos", "poe", "gibdo", "keese_twilight",
     "cucco", "random_enemy", "cucco_army", "bokoblin_army", "goat_army", "bee_swarm",
     "shadow_beast", "twilight_insect", "twilight_vermin", "poison_mite", "goat",
-    "spawn_bomb", "spawn_bombchu"
+    "spawn_bomb", "spawn_bombchu", "helmsaurus"
   ],
   "labels": {
     "heal": "Curar corazones",
@@ -71,7 +71,9 @@
     "twilight_insect": "Enemigo — Insecto Twilight",
     "twilight_vermin": "Enemigo — Vermin Twilight",
     "poison_mite": "Enemigo — Ácaros venenosos",
-    "goat": "NPC — Cabra de Ordon"
+    "goat": "NPC — Cabra de Ordon",
+    "reset": "Reset (mandar al menú)",
+    "helmsaurus": "Enemigo — Helmsaurus (el capibara gigante)"
   },
   "helpNotes": "Entra en una partida y activa el puente en Mods."
 }

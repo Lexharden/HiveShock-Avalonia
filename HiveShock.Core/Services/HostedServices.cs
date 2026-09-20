@@ -141,17 +141,27 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
     private readonly GiftCatalogStore _catalog;
     private readonly LiveEffectRouter _router;
     private readonly LivePortHub _hub;
+#if DEBUG
+    private readonly HiveShock.Live.LiveDiagnosticSink? _diagnostics;
+#endif
 
     public TikTokLiveHostedService(
         BridgeOptions options,
         GiftCatalogStore catalog,
         LiveEffectRouter router,
-        LivePortHub hub)
+        LivePortHub hub
+#if DEBUG
+        , HiveShock.Live.LiveDiagnosticSink? diagnostics = null
+#endif
+        )
     {
         _options = options;
         _catalog = catalog;
         _router = router;
         _hub = hub;
+#if DEBUG
+        _diagnostics = diagnostics;
+#endif
     }
 
     public string Id => LivePortIds.TikTok;
@@ -277,6 +287,12 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
             chat.Comment ?? "",
             ct,
             LivePortIds.TikTok);
+
+#if DEBUG
+        // Catch-all: feed every raw event to the diagnostic sink.
+        if (_diagnostics != null)
+            client.OnEvent += diagEvt => _diagnostics.Record(diagEvt, LivePortIds.TikTok);
+#endif
 
         await client.RunAsync(ct).ConfigureAwait(false);
     }
