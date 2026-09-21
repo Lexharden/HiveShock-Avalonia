@@ -141,17 +141,27 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
     private readonly GiftCatalogStore _catalog;
     private readonly LiveEffectRouter _router;
     private readonly LivePortHub _hub;
+#if DEBUG
+    private readonly HiveShock.Live.LiveDiagnosticSink? _diagnostics;
+#endif
 
     public TikTokLiveHostedService(
         BridgeOptions options,
         GiftCatalogStore catalog,
         LiveEffectRouter router,
-        LivePortHub hub)
+        LivePortHub hub
+#if DEBUG
+        , HiveShock.Live.LiveDiagnosticSink? diagnostics = null
+#endif
+        )
     {
         _options = options;
         _catalog = catalog;
         _router = router;
         _hub = hub;
+#if DEBUG
+        _diagnostics = diagnostics;
+#endif
     }
 
     public string Id => LivePortIds.TikTok;
@@ -187,12 +197,13 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
             BridgeLog.Info($"TikTok conectando @{_options.TikTokUniqueId}");
         }
 
+        var backoff = new ReconnectBackoff();
         while (!stoppingToken.IsCancellationRequested)
         {
+            var reachedLive = false;
             try
             {
-                await ConnectOnceAsync(stoppingToken).ConfigureAwait(false);
-                BridgeLog.Warn("TikTok desconectado. Reintento en 8s");
+                await ConnectOnceAsync(stoppingToken, () => reachedLive = true).ConfigureAwait(false);
                 _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Connecting, "Reintentando…");
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -217,11 +228,9 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
                 _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Error, ex.Message);
             }
 
-            try
-            {
-                await Task.Delay(TimeSpan.FromSeconds(8), stoppingToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
+            var wait = backoff.NextDelay(reachedLive);
+            BridgeLog.Warn($"TikTok desconectado. Reintento en {wait.TotalSeconds:0}s");
+            if (!await DelayAsync(wait, stoppingToken).ConfigureAwait(false))
             {
                 break;
             }
@@ -230,7 +239,20 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Off, "");
     }
 
-    private async Task ConnectOnceAsync(CancellationToken ct)
+    private static async Task<bool> DelayAsync(TimeSpan wait, CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(wait, ct).ConfigureAwait(false);
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+    }
+
+    private async Task ConnectOnceAsync(CancellationToken ct, Action onLive)
     {
         var client = new TikTokLiveClient(_options.TikTokUniqueId)
             .MaxRetries(8)
@@ -250,6 +272,7 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
 
         client.OnConnected += roomId =>
         {
+            onLive();
             _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Live, "");
             BridgeLog.Info($"TikTok conectado room={roomId}");
         };
@@ -277,6 +300,12 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
             chat.Comment ?? "",
             ct,
             LivePortIds.TikTok);
+
+#if DEBUG
+        // Catch-all: feed every raw event to the diagnostic sink.
+        if (_diagnostics != null)
+            client.OnEvent += diagEvt => _diagnostics.Record(diagEvt, LivePortIds.TikTok);
+#endif
 
         await client.RunAsync(ct).ConfigureAwait(false);
     }

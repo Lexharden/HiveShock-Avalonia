@@ -18,7 +18,14 @@ public sealed class BridgeKeepAliveService : Service
     public const string ChannelId = "hiveshock.live.v2";
     public const int NotificationId = 43000;
 
+    /// <summary>Cota dura del wake lock: si algo impide liberarlo, no se queda encendido para siempre.</summary>
+    private static readonly TimeSpan WakeLockTimeout = TimeSpan.FromHours(6);
+    /// <summary>Renovar bastante antes de la cota para no dejar un hueco sin wake lock.</summary>
+    private static readonly TimeSpan WakeLockRenewInterval = TimeSpan.FromMinutes(30);
+
     private PowerManager.WakeLock? _wakeLock;
+    private Handler? _renewHandler;
+    private Action? _renewAction;
 
     public static void Start()
     {
@@ -73,26 +80,54 @@ public sealed class BridgeKeepAliveService : Service
 
     public override void OnDestroy()
     {
+        StopWakeLockRenewal();
         ReleaseWakeLock();
         base.OnDestroy();
     }
 
     private void AcquireWakeLock()
     {
-        if (_wakeLock is { IsHeld: true })
+        if (_wakeLock is null)
         {
-            return;
+            var pm = GetSystemService(PowerService) as PowerManager;
+            _wakeLock = pm?.NewWakeLock(WakeLockFlags.Partial, "HiveShock:Bridge");
+            _wakeLock?.SetReferenceCounted(false);
         }
 
-        var pm = GetSystemService(PowerService) as PowerManager;
-        _wakeLock = pm?.NewWakeLock(WakeLockFlags.Partial, "HiveShock:Bridge");
         if (_wakeLock is null)
         {
             return;
         }
 
-        _wakeLock.SetReferenceCounted(false);
-        _wakeLock.Acquire();
+        // Con timeout: si por lo que sea nunca llega OnDestroy, el sistema lo suelta solo.
+        _wakeLock.Acquire((long)WakeLockTimeout.TotalMilliseconds);
+        StartWakeLockRenewal();
+    }
+
+    /// <summary>Vuelve a pedir el wake lock antes de que caduque, mientras el servicio siga vivo.</summary>
+    private void StartWakeLockRenewal()
+    {
+        _renewHandler ??= new Handler(Looper.MainLooper!);
+        _renewAction ??= () =>
+        {
+            if (_wakeLock is { } wakeLock)
+            {
+                wakeLock.Acquire((long)WakeLockTimeout.TotalMilliseconds);
+            }
+
+            _renewHandler?.PostDelayed(_renewAction!, (long)WakeLockRenewInterval.TotalMilliseconds);
+        };
+
+        _renewHandler.RemoveCallbacks(_renewAction);
+        _renewHandler.PostDelayed(_renewAction, (long)WakeLockRenewInterval.TotalMilliseconds);
+    }
+
+    private void StopWakeLockRenewal()
+    {
+        if (_renewHandler != null && _renewAction != null)
+        {
+            _renewHandler.RemoveCallbacks(_renewAction);
+        }
     }
 
     private void ReleaseWakeLock()

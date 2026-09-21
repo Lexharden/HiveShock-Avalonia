@@ -35,6 +35,8 @@ public sealed class BridgeOptions
     public TimeSpan GameConnectTimeout { get; set; } = TimeSpan.FromSeconds(3);
     /// <summary>Id de perfil preferido (--profile / CROWDBRIDGE_PROFILE). Vacío = active-profile.txt.</summary>
     public string? ProfileId { get; set; }
+    /// <summary>Pausa mínima entre envíos TCP al juego (ms). 0 = sin pacing.</summary>
+    public int EffectGapMs { get; set; } = 300;
 
     public static BridgeOptions FromEnvironmentAndArgs(string[] args)
     {
@@ -72,6 +74,7 @@ public sealed class BridgeOptions
             SkipMenu = skipMenu,
             DevMode = dev,
             ProfileId = string.IsNullOrWhiteSpace(profile) ? null : profile.Trim(),
+            EffectGapMs = Math.Clamp(EnvInt("EFFECT_GAP_MS", 300), 0, 5000),
         };
     }
 
@@ -385,7 +388,8 @@ public sealed record GiftRule(
     string EffectId,
     string What,
     int MinCount = 1,
-    bool Each = false);
+    bool Each = false,
+    IReadOnlyDictionary<string, double>? Params = null);
 
 public sealed record GiftGroup(IReadOnlyList<string> Names, string EffectId, string What);
 
@@ -397,6 +401,31 @@ public sealed class GiftMatch
     public int MinCount { get; init; } = 1;
     /// <summary>Si true, encola el efecto una vez por unidad (x10 → 10). Si false, una sola vez al cerrar el combo.</summary>
     public bool Each { get; init; }
+    /// <summary>Overrides de parámetros del efecto (valores wire).</summary>
+    public IReadOnlyDictionary<string, double>? Params { get; init; }
+}
+
+/// <summary>Esquema UI/override de un parámetro numérico declarado en effects.json (_params).</summary>
+public sealed class EffectParamDef
+{
+    public string Key { get; init; } = "";
+    public string Label { get; init; } = "";
+    /// <summary>hearts = UI en corazones (wire = UI × Scale); raw = misma unidad que el juego.</summary>
+    public string Unit { get; init; } = "raw";
+    public double Scale { get; init; } = 1;
+    public double Min { get; init; }
+    public double Max { get; init; } = 100;
+    public double Step { get; init; } = 1;
+
+    public double EffectiveScale => Scale > 0 ? Scale : 1;
+
+    public double ClampUi(double uiValue) => Math.Clamp(uiValue, Min, Max);
+
+    public double ToWire(double uiValue) => ClampUi(uiValue) * EffectiveScale;
+
+    public double ToUi(double wireValue) => wireValue / EffectiveScale;
+
+    public double ClampWire(double wireValue) => ToWire(ToUi(wireValue));
 }
 
 public sealed class DiamondBracket
@@ -571,7 +600,23 @@ public sealed class EffectCatalog
     public bool IsEnemyEffect(string effectId) =>
         _enemyEffectIds.Contains(effectId);
 
-    public Dictionary<string, object?>? Resolve(string effectId, string? user)
+    public IReadOnlyList<EffectParamDef> GetParamSchema(string effectId)
+    {
+        if (string.IsNullOrWhiteSpace(effectId) || !_effects.TryGetValue(effectId, out var template))
+        {
+            return [];
+        }
+
+        return ParseParamSchema(template);
+    }
+
+    public Dictionary<string, object?>? Resolve(string effectId, string? user) =>
+        Resolve(effectId, user, null);
+
+    public Dictionary<string, object?>? Resolve(
+        string effectId,
+        string? user,
+        IReadOnlyDictionary<string, double>? overrides)
     {
         if (string.IsNullOrWhiteSpace(effectId) || effectId.StartsWith('_'))
         {
@@ -587,7 +632,33 @@ public sealed class EffectCatalog
         var cmd = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         foreach (var (key, value) in template)
         {
+            if (key.StartsWith('_'))
+            {
+                continue;
+            }
+
             cmd[key] = JsonElementToObject(value);
+        }
+
+        if (overrides is { Count: > 0 })
+        {
+            var schema = ParseParamSchema(template);
+            foreach (var (key, wireValue) in overrides)
+            {
+                if (string.IsNullOrWhiteSpace(key) || key.StartsWith('_'))
+                {
+                    continue;
+                }
+
+                var def = schema.FirstOrDefault(p =>
+                    string.Equals(p.Key, key, StringComparison.OrdinalIgnoreCase));
+                if (def == null)
+                {
+                    continue;
+                }
+
+                cmd[def.Key] = ToJsonNumber(def.ClampWire(wireValue));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(user))
@@ -596,6 +667,68 @@ public sealed class EffectCatalog
         }
 
         return cmd;
+    }
+
+    private static IReadOnlyList<EffectParamDef> ParseParamSchema(Dictionary<string, JsonElement> template)
+    {
+        if (!template.TryGetValue("_params", out var paramsEl) || paramsEl.ValueKind != JsonValueKind.Object)
+        {
+            return [];
+        }
+
+        var list = new List<EffectParamDef>();
+        foreach (var prop in paramsEl.EnumerateObject())
+        {
+            if (prop.Value.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            var o = prop.Value;
+            list.Add(new EffectParamDef
+            {
+                Key = prop.Name,
+                Label = ReadParamString(o, "label") ?? prop.Name,
+                Unit = ReadParamString(o, "unit") ?? "raw",
+                Scale = ReadParamDouble(o, "scale") ?? 1,
+                Min = ReadParamDouble(o, "min") ?? 0,
+                Max = ReadParamDouble(o, "max") ?? 100,
+                Step = ReadParamDouble(o, "step") ?? 1,
+            });
+        }
+
+        return list;
+    }
+
+    private static string? ReadParamString(JsonElement obj, string name) =>
+        obj.TryGetProperty(name, out var el) && el.ValueKind == JsonValueKind.String
+            ? el.GetString()
+            : null;
+
+    private static double? ReadParamDouble(JsonElement obj, string name)
+    {
+        if (!obj.TryGetProperty(name, out var el) || el.ValueKind != JsonValueKind.Number)
+        {
+            return null;
+        }
+
+        return el.TryGetDouble(out var d) ? d : null;
+    }
+
+    private static object ToJsonNumber(double value)
+    {
+        if (double.IsNaN(value) || double.IsInfinity(value))
+        {
+            return 0L;
+        }
+
+        var rounded = Math.Round(value, 6);
+        if (Math.Abs(rounded - Math.Round(rounded)) < 0.0000001)
+        {
+            return (long)Math.Round(rounded);
+        }
+
+        return rounded;
     }
 
     private static object? JsonElementToObject(JsonElement el) => el.ValueKind switch
@@ -692,6 +825,7 @@ public sealed class GiftConfigStore
             EffectId = rule.EffectId,
             MinCount = Math.Max(1, rule.MinCount),
             Each = rule.Each,
+            Params = rule.Params,
         };
 
     public void PrintRules()
@@ -727,11 +861,12 @@ public sealed class GiftConfigStore
                 var what = GetString(row, "what") ?? GetString(row, "note") ?? "";
                 var minCount = ParsePositiveInt(row, "minCount") ?? ParsePositiveInt(row, "min") ?? 1;
                 var each = ParseBool(row, "each") || ParseBool(row, "perGift");
+                var paramOverrides = ParseParamOverrides(row);
                 var names = CollectNames(row);
                 var groupNames = new List<string>();
                 foreach (var name in names)
                 {
-                    if (TryAddRule(rules, name, effectId, what, minCount, each))
+                    if (TryAddRule(rules, name, effectId, what, minCount, each, paramOverrides))
                     {
                         groupNames.Add(name);
                     }
@@ -765,7 +900,10 @@ public sealed class GiftConfigStore
                     : 1;
                 var each = prop.Value.ValueKind == JsonValueKind.Object &&
                            (ParseBool(prop.Value, "each") || ParseBool(prop.Value, "perGift"));
-                if (TryAddRule(rules, prop.Name, effectId, what, minCount, each))
+                var paramOverrides = prop.Value.ValueKind == JsonValueKind.Object
+                    ? ParseParamOverrides(prop.Value)
+                    : null;
+                if (TryAddRule(rules, prop.Name, effectId, what, minCount, each, paramOverrides))
                 {
                     groups.Add(new GiftGroup([prop.Name], effectId, what));
                 }
@@ -807,7 +945,8 @@ public sealed class GiftConfigStore
         string effectId,
         string what,
         int minCount = 1,
-        bool each = false)
+        bool each = false,
+        IReadOnlyDictionary<string, double>? paramOverrides = null)
     {
         if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(effectId))
         {
@@ -826,8 +965,35 @@ public sealed class GiftConfigStore
             effectId,
             what.Trim(),
             Math.Max(1, minCount),
-            each));
+            each,
+            paramOverrides));
         return true;
+    }
+
+    private static IReadOnlyDictionary<string, double>? ParseParamOverrides(JsonElement row)
+    {
+        if (!row.TryGetProperty("params", out var paramsEl) || paramsEl.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var dict = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        foreach (var prop in paramsEl.EnumerateObject())
+        {
+            if (prop.Value.ValueKind != JsonValueKind.Number || !prop.Value.TryGetDouble(out var value))
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(prop.Name) || prop.Name.StartsWith('_'))
+            {
+                continue;
+            }
+
+            dict[prop.Name] = value;
+        }
+
+        return dict.Count > 0 ? dict : null;
     }
 
     private static int? ParsePositiveInt(JsonElement row, string prop)

@@ -118,3 +118,29 @@ public sealed class LivePortHub
         return parts.Count == 0 ? "" : string.Join(" · ", parts);
     }
 }
+
+/// <summary>
+/// Backoff creciente para el bucle de reconexión de un canal: si el streamer
+/// lleva horas sin empezar el live, no tiene sentido tocar la API cada 8s
+/// indefinidamente. Vuelve al mínimo en cuanto se llega a "en vivo" una vez.
+/// </summary>
+public sealed class ReconnectBackoff
+{
+    private static readonly TimeSpan MinDelay = TimeSpan.FromSeconds(8);
+    private static readonly TimeSpan MaxDelay = TimeSpan.FromSeconds(60);
+
+    private TimeSpan _next = MinDelay;
+
+    public TimeSpan NextDelay(bool reachedLive)
+    {
+        if (reachedLive)
+        {
+            _next = MinDelay;
+            return MinDelay;
+        }
+
+        var current = _next;
+        _next = TimeSpan.FromSeconds(Math.Min(MaxDelay.TotalSeconds, _next.TotalSeconds * 2));
+        return current;
+    }
+}

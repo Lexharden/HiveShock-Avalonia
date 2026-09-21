@@ -34,6 +34,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Runtime = AndroidBridge.Shared;
         Gifts = new GiftsMapViewModel(this);
         Events = new EventsMapViewModel(this);
+        Profile = new ProfileEditorViewModel(this);
         About = new AboutViewModel();
         GameHost = Runtime.Options.GameHost;
         TikTokUser = Runtime.Options.TikTokUniqueId;
@@ -42,6 +43,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         RefreshProfiles();
         RefreshEffects();
         ReloadMappings();
+        Profile.Load();
         RefreshTwitchAccount();
         RefreshStatus();
         Runtime.Ports.Changed += OnPortsChanged;
@@ -55,6 +57,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public BridgeRuntime Runtime { get; }
     public GiftsMapViewModel Gifts { get; }
     public EventsMapViewModel Events { get; }
+    public ProfileEditorViewModel Profile { get; }
     public AboutViewModel About { get; }
 
     public ObservableCollection<ProfileItem> Profiles { get; } = [];
@@ -82,6 +85,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public bool IsHomeNav => PageKey == "home";
     public bool IsGiftsNav => PageKey == "gifts";
     public bool IsEventsNav => PageKey == "events";
+    public bool IsProfileNav => PageKey == "profile";
     public bool IsTwitchNav => PageKey == "twitch";
     public bool IsAboutNav => PageKey == "about";
 
@@ -92,6 +96,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsHomeNav));
         OnPropertyChanged(nameof(IsGiftsNav));
         OnPropertyChanged(nameof(IsEventsNav));
+        OnPropertyChanged(nameof(IsProfileNav));
         OnPropertyChanged(nameof(IsTwitchNav));
         OnPropertyChanged(nameof(IsAboutNav));
     }
@@ -158,6 +163,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void NavEvents() => PageKey = "events";
 
     [RelayCommand]
+    private void NavProfile() => PageKey = "profile";
+
+    [RelayCommand]
     private void NavTwitch() => PageKey = "twitch";
 
     [RelayCommand]
@@ -211,6 +219,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             RefreshProfiles();
             RefreshEffects();
             ReloadMappings();
+            Profile.Load();
             AppendActivity($"Juego: {Runtime.Profile.DisplayName}");
         }
         catch (Exception ex)
@@ -498,6 +507,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         IsRunning = running;
         CanEdit = !running;
         CanConnect = true;
+        Profile.RefreshCanEdit();
         IsLive = Runtime.Ports.AnyLive();
         ConnectLabel = running ? "Detener" : "Conectar";
         if (!running)

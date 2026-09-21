@@ -13,7 +13,8 @@
       "gift": "Heart Me",
       "id": "7934",
       "effect": "heal",
-      "what": "Cura 1 corazón"
+      "what": "Cura 1 corazón",
+      "params": { "value": 4 }
     },
     {
       "gift": "Finger Heart",
@@ -24,7 +25,8 @@
     {
       "gift": "TikTok",
       "effect": "heal",
-      "what": "Cura 1 corazón"
+      "what": "Cura 1 corazón",
+      "params": { "value": 4 }
     },
     {
       "gift": "GG",

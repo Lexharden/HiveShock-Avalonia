@@ -9,7 +9,7 @@ using TikTokLive.Proto;
 namespace HiveShock.Live;
 
 /// <summary>Traduce eventos de cualquier port a efectos del juego. Copy de logs estable para la UI.</summary>
-public sealed class LiveEffectRouter
+public sealed class LiveEffectRouter : IDisposable
 {
     private readonly BridgeOptions _options;
     private readonly EffectCatalog _effects;
@@ -19,6 +19,8 @@ public sealed class LiveEffectRouter
     private readonly OverlayNotifier _overlay;
     private readonly GiftGoalBank _goals;
     private readonly GiftStreakTracker _streaks = new();
+    private readonly object _streakGate = new();
+    private readonly Timer _streakFlushTimer;
     private readonly ChatCommandGate _chatGate = new();
     private readonly ConcurrentDictionary<string, byte> _seenUnmapped = new();
     private long _likeBucket;
@@ -39,7 +41,14 @@ public sealed class LiveEffectRouter
         _dispatcher = dispatcher;
         _overlay = overlay;
         _goals = goals;
+        _streakFlushTimer = new Timer(
+            _ => FlushStaleStreaks(),
+            null,
+            GiftStreakTracker.PremiumComboIdleTimeout,
+            TimeSpan.FromMilliseconds(150));
     }
+
+    public void Dispose() => _streakFlushTimer.Dispose();
 
     public void HandleChat(string user, string? stableId, string text, CancellationToken ct, string portId)
     {
@@ -244,16 +253,50 @@ public sealed class LiveEffectRouter
             BridgeLog.Info($"Catálogo + {(!string.IsNullOrWhiteSpace(name) ? name : id)} id={id} ({diamondsPer ?? 0}d) total={_catalog.Count}");
         }
 
-        var streak = _streaks.Process(gift);
+        GiftStreakEvent streak;
+        lock (_streakGate)
+        {
+            streak = _streaks.Process(gift);
+        }
+
         if (!streak.IsFinal)
         {
             return;
         }
 
         var user = ViewerName(gift.User);
-        var giftLabel = !string.IsNullOrWhiteSpace(name) ? name : id;
         var repeat = Math.Max(1, streak.TotalGiftCount);
         var diamonds = streak.TotalDiamondCount;
+
+        ProcessFinalGift(user, name, id, repeat, diamonds, ct);
+    }
+
+    private void FlushStaleStreaks()
+    {
+        List<PendingStreak> pending;
+        lock (_streakGate)
+        {
+            pending = _streaks.FlushStale();
+        }
+
+        foreach (var p in pending)
+        {
+            BridgeLog.Warn(
+                $"Combo sin cierre de TikTok (timeout): {p.ViewerName} " +
+                $"{(!string.IsNullOrWhiteSpace(p.GiftName) ? p.GiftName : p.GiftId.ToString())} x{p.TotalGiftCount}");
+            ProcessFinalGift(
+                p.ViewerName,
+                p.GiftName,
+                p.GiftId != 0 ? p.GiftId.ToString() : "",
+                Math.Max(1, p.TotalGiftCount),
+                p.TotalDiamondCount,
+                CancellationToken.None);
+        }
+    }
+
+    private void ProcessFinalGift(string user, string name, string id, int repeat, long diamonds, CancellationToken ct)
+    {
+        var giftLabel = !string.IsNullOrWhiteSpace(name) ? name : id;
 
         if (_options.CaptureOnly)
         {
@@ -306,7 +349,7 @@ public sealed class LiveEffectRouter
             var reason = times > 1
                 ? $"Regalo {giftLabel} x{repeat} ({i + 1}/{times})"
                 : $"Regalo {giftLabel} x{repeat}";
-            _ = _dispatcher.EnqueueAsync(match.EffectId, user, reason, ct);
+            _ = _dispatcher.EnqueueAsync(match.EffectId, user, reason, ct, paramOverrides: match.Params);
         }
     }
 

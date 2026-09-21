@@ -38,12 +38,13 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
         _hub.Set(LivePortIds.Twitch, "Twitch", LivePortStatus.Connecting, "");
         BridgeLog.Info($"Twitch conectando @{_options.TwitchUserLogin}");
 
+        var backoff = new ReconnectBackoff();
         while (!stoppingToken.IsCancellationRequested)
         {
+            var reachedLive = false;
             try
             {
-                await ConnectOnceAsync(stoppingToken).ConfigureAwait(false);
-                BridgeLog.Warn("Twitch desconectado. Reintento en 8s");
+                await ConnectOnceAsync(stoppingToken, () => reachedLive = true).ConfigureAwait(false);
                 _hub.Set(LivePortIds.Twitch, "Twitch", LivePortStatus.Connecting, "Reintentando…");
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -60,9 +61,11 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
                 _hub.Set(LivePortIds.Twitch, "Twitch", LivePortStatus.Error, ex.Message);
             }
 
+            var wait = backoff.NextDelay(reachedLive);
+            BridgeLog.Warn($"Twitch desconectado. Reintento en {wait.TotalSeconds:0}s");
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(8), stoppingToken).ConfigureAwait(false);
+                await Task.Delay(wait, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -73,7 +76,7 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
         _hub.Set(LivePortIds.Twitch, "Twitch", LivePortStatus.Off, "");
     }
 
-    private async Task ConnectOnceAsync(CancellationToken ct)
+    private async Task ConnectOnceAsync(CancellationToken ct, Action onLive)
     {
         var clientId = _options.ResolvedTwitchClientId();
         var access = _options.TwitchAccessToken ?? "";
@@ -117,6 +120,7 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
             (user, bits) => _router.HandleCheer(user, bits, ct),
             () =>
             {
+                onLive();
                 _hub.Set(LivePortIds.Twitch, "Twitch", LivePortStatus.Live, "");
                 BridgeLog.Info($"Twitch conectado @{_options.TwitchUserLogin}");
             },

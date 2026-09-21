@@ -19,13 +19,15 @@
         </Border>
 
         <Border DockPanel.Dock="Bottom" Background="#12202E" Padding="4,6">
-            <UniformGrid Columns="5">
+            <UniformGrid Columns="6">
                 <Button Classes="navTab" Classes.active="{Binding IsHomeNav}"
                         Content="Inicio" Command="{Binding NavHomeCommand}" />
                 <Button Classes="navTab" Classes.active="{Binding IsGiftsNav}"
                         Content="Regalos" Command="{Binding NavGiftsCommand}" />
                 <Button Classes="navTab" Classes.active="{Binding IsEventsNav}"
                         Content="Eventos" Command="{Binding NavEventsCommand}" />
+                <Button Classes="navTab" Classes.active="{Binding IsProfileNav}"
+                        Content="Perfil" Command="{Binding NavProfileCommand}" />
                 <Button Classes="navTab" Classes.active="{Binding IsTwitchNav}"
                         Content="Twitch" Command="{Binding NavTwitchCommand}" />
                 <Button Classes="navTab" Classes.active="{Binding IsAboutNav}"
@@ -40,6 +42,9 @@
             </Panel>
             <Panel IsVisible="{Binding IsEventsNav}">
                 <views:EventsMapView DataContext="{Binding Events}" />
+            </Panel>
+            <Panel IsVisible="{Binding IsProfileNav}">
+                <views:ProfileEditorView DataContext="{Binding Profile}" />
             </Panel>
             <Panel IsVisible="{Binding IsTwitchNav}">
                 <views:TwitchMapView DataContext="{Binding Events}" />

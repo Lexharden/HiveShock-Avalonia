@@ -1,0 +1,134 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Android.ViewModels"
+             x:Class="HiveShock.Android.Views.ProfileEditorView"
+             x:DataType="vm:ProfileEditorViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="16">
+            <TextBlock Classes="hint"
+                       Text="profile.json y effects.json del perfil activo. Detén el bridge para poder guardar." />
+
+            <Border Classes="card">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="DATOS DEL PERFIL" />
+                    <TextBlock Classes="fieldLabel" Text="Nombre" Margin="0,8,0,0" />
+                    <TextBox Text="{Binding DisplayName}" IsEnabled="{Binding CanEdit}" />
+                    <TextBlock Classes="fieldLabel" Text="Descripción" Margin="0,8,0,0" />
+                    <TextBox Text="{Binding Description}" AcceptsReturn="True" TextWrapping="Wrap"
+                             MinHeight="48" IsEnabled="{Binding CanEdit}" />
+                    <TextBlock Classes="fieldLabel" Text="Notas de ayuda" Margin="0,8,0,0" />
+                    <TextBox Text="{Binding HelpNotes}" AcceptsReturn="True" TextWrapping="Wrap"
+                             MinHeight="48" IsEnabled="{Binding CanEdit}" />
+
+                    <TextBlock Classes="fieldLabel" Text="Puerto juego" Margin="0,10,0,0" />
+                    <TextBox Text="{Binding GamePortText}" Width="120" HorizontalAlignment="Left"
+                             IsEnabled="{Binding CanEdit}" />
+                    <TextBlock Classes="fieldLabel" Text="Puerto pruebas" Margin="0,8,0,0" />
+                    <TextBox Text="{Binding CcPortText}" Width="120" HorizontalAlignment="Left"
+                             IsEnabled="{Binding CanEdit}" />
+                    <TextBlock Classes="fieldLabel" Text="Puerto eventos" Margin="0,8,0,0" />
+                    <TextBox Text="{Binding EventPortText}" Width="120" HorizontalAlignment="Left"
+                             IsEnabled="{Binding CanEdit}" />
+
+                    <CheckBox Content="Contador de muertes" IsChecked="{Binding SupportsDeathEvents}"
+                              Margin="0,10,0,0" IsEnabled="{Binding CanEdit}" />
+                    <CheckBox Content="Borrar partida" IsChecked="{Binding SupportsDeleteSave}"
+                              IsEnabled="{Binding CanEdit}" />
+                    <CheckBox Content="Rescatar" IsChecked="{Binding SupportsRescue}"
+                              IsEnabled="{Binding CanEdit}" />
+
+                    <TextBlock Classes="sectionTitle" Text="ETIQUETAS (nombre a mostrar por efecto)" Margin="0,16,0,0" />
+                    <WrapPanel Margin="0,4,0,4">
+                        <Button Classes="secondary" Content="Añadir" Command="{Binding AddLabelCommand}"
+                                IsEnabled="{Binding CanEdit}" />
+                        <Button Classes="secondary" Content="Quitar" Command="{Binding RemoveLabelCommand}"
+                                IsEnabled="{Binding CanEdit}" />
+                    </WrapPanel>
+                    <ListBox ItemsSource="{Binding Labels}" SelectedItem="{Binding SelectedLabel}"
+                             MinHeight="80" MaxHeight="160">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ProfileLabelRow">
+                                <StackPanel Spacing="6">
+                                    <TextBox Text="{Binding Key}" PlaceholderText="id del efecto" />
+                                    <TextBox Text="{Binding Value}" PlaceholderText="nombre para mostrar" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <Button Classes="primary" Content="Guardar profile.json" Margin="0,12,0,0"
+                            Command="{Binding SaveProfileCommand}" />
+                    <WrapPanel Margin="0,8,0,0">
+                        <Button Classes="secondary" Content="Importar…" Command="{Binding ImportProfileCommand}" />
+                        <Button Classes="secondary" Content="Exportar…" Command="{Binding ExportProfileCommand}" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="EFECTOS (comandos al juego)" />
+                    <WrapPanel Margin="0,4,0,4">
+                        <Button Classes="secondary" Content="Nuevo" Command="{Binding AddEffectCommand}"
+                                IsEnabled="{Binding CanEdit}" />
+                        <Button Classes="secondary" Content="Quitar" Command="{Binding RemoveEffectCommand}"
+                                IsEnabled="{Binding CanEdit}" />
+                    </WrapPanel>
+                    <ListBox ItemsSource="{Binding Effects}" SelectedItem="{Binding SelectedEffect}"
+                             MinHeight="120" MaxHeight="220">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ProfileEffectRow">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Id}" FontWeight="SemiBold" />
+                                    <StackPanel Orientation="Horizontal" Spacing="12">
+                                        <TextBlock Text="Enemigo" FontSize="11" Foreground="#9AA4B2"
+                                                   IsVisible="{Binding IsEnemy}" />
+                                        <TextBlock Text="Singleton" FontSize="11" Foreground="#9AA4B2"
+                                                   IsVisible="{Binding IsSingleton}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <StackPanel IsVisible="{Binding HasEffectSelection}" Margin="0,8,0,0">
+                        <TextBlock Classes="fieldLabel" Text="Id del efecto" />
+                        <TextBox Text="{Binding SelectedEffect.Id}" IsEnabled="{Binding CanEdit}" Margin="0,0,0,8" />
+                        <CheckBox Content="Es enemigo" IsChecked="{Binding SelectedEffect.IsEnemy}"
+                                  IsEnabled="{Binding CanEdit}" />
+                        <CheckBox Content="Es singleton (solo se dispara una vez por combo)"
+                                  IsChecked="{Binding SelectedEffect.IsSingleton}" IsEnabled="{Binding CanEdit}" />
+
+                        <TextBlock Classes="fieldLabel" Text="Propiedades del comando" Margin="0,10,0,0" />
+                        <WrapPanel Margin="0,4,0,4">
+                            <Button Classes="secondary" Content="Añadir" Command="{Binding AddPropertyCommand}"
+                                    IsEnabled="{Binding CanEdit}" />
+                            <Button Classes="secondary" Content="Quitar" Command="{Binding RemovePropertyCommand}"
+                                    IsEnabled="{Binding CanEdit}" />
+                        </WrapPanel>
+                        <ListBox ItemsSource="{Binding SelectedProperties}" SelectedItem="{Binding SelectedProperty}"
+                                 MinHeight="120" MaxHeight="220">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ProfileEffectPropertyRow">
+                                    <StackPanel Spacing="6">
+                                        <TextBox Text="{Binding Key}" PlaceholderText="clave" />
+                                        <TextBox Text="{Binding Value}" PlaceholderText="valor" />
+                                        <ComboBox ItemsSource="{x:Static vm:ProfileEffectPropertyRow.KindOptions}"
+                                                  SelectedItem="{Binding KindText}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+
+                    <Button Classes="primary" Content="Guardar effects.json" Margin="0,12,0,0"
+                            Command="{Binding SaveEffectsCommand}" />
+                    <WrapPanel Margin="0,8,0,0">
+                        <Button Classes="secondary" Content="Importar…" Command="{Binding ImportEffectsCommand}" />
+                        <Button Classes="secondary" Content="Exportar…" Command="{Binding ExportEffectsCommand}" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

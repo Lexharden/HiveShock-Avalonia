@@ -102,7 +102,7 @@ public sealed partial class GiftsViewModel : ViewModelBase
 
     private GiftRowViewModel Wrap(EditableGift gift)
     {
-        var row = new GiftRowViewModel(gift);
+        var row = new GiftRowViewModel(gift, _shell.Runtime.Effects);
         row.EffectLabel = LabelFor(gift.Effect);
         return row;
     }

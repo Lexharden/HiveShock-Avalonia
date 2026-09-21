@@ -39,6 +39,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Events = new EventsViewModel(this);
         Catalog = new CatalogViewModel(this);
         Goals = new GoalsViewModel(this);
+        ProfileEditor = new ProfileEditorViewModel(this);
         TikTok = new TikTokViewModel(this);
         Twitch = new TwitchViewModel(this);
         Help = new HelpViewModel();
@@ -49,6 +50,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         CurrentPage = Studio;
         CurrentPageKey = "studio";
         DetailLogOpen = Prefs.DetailLogOpen;
+        ActivityPanelOpen = Prefs.ActivityPanelOpen;
         NavExpanded = Prefs.NavExpanded;
         SelectedThemeId = Prefs.Theme is "dark" or "light" ? Prefs.Theme : "system";
 
@@ -92,6 +94,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public CatalogViewModel Catalog { get; }
     public EventsViewModel Events { get; }
     public GoalsViewModel Goals { get; }
+    public ProfileEditorViewModel ProfileEditor { get; }
     public TikTokViewModel TikTok { get; }
     public TwitchViewModel Twitch { get; }
     public HelpViewModel Help { get; }
@@ -125,6 +128,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private bool _isRunning;
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private bool _detailLogOpen;
+    [ObservableProperty] private bool _activityPanelOpen;
     [ObservableProperty] private string _activityText = "Nada todavía. Cuando conectes, aquí verás lo que pasa.";
     [ObservableProperty] private string _detailLogText = "";
     [ObservableProperty] private string _selectedThemeId = "system";
@@ -181,6 +185,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Catalog.Load();
         Events.NotifyEffects();
         Goals.NotifyEffects();
+        ProfileEditor.Load();
         Studio.RefreshStats();
         Overlays.RefreshGifts(Gifts.Models);
         Overlays.RefreshGoals(Runtime.Goals.Snapshots(), Prefs);
@@ -277,6 +282,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         _sessionReady = false;
         StatusText = "Conectando…";
         StatusTone = "connecting";
+        ActivityPanelOpen = true;
         Studio.RefreshConnectLabel();
         try
         {
@@ -351,6 +357,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Catalog.Load();
         Events.LoadFromEditor(Gifts.Editor);
         Goals.LoadFromEditor(Gifts.Editor);
+        ProfileEditor.Load();
         CurrentPage = TikTok;
         CurrentPageKey = "tiktok";
     }
@@ -407,6 +414,18 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [RelayCommand]
     private void NavAbout() => GoAbout();
 
+    [RelayCommand]
+    private void ClearActivity()
+    {
+        _activityLines.Clear();
+        _logLines.Clear();
+        ActivityText = "";
+        DetailLogText = "";
+    }
+
+    [RelayCommand]
+    private void ClearLog() => ClearActivity();
+
     partial void OnNavExpandedChanged(bool value)
     {
         Prefs.NavExpanded = value;
@@ -419,6 +438,12 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     partial void OnDetailLogOpenChanged(bool value)
     {
         Prefs.DetailLogOpen = value;
+        Prefs.Save();
+    }
+
+    partial void OnActivityPanelOpenChanged(bool value)
+    {
+        Prefs.ActivityPanelOpen = value;
         Prefs.Save();
     }
 

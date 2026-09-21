@@ -25,6 +25,8 @@ public sealed class UiPreferences
     public double OverlayScale { get; set; } = 1.5;
     public bool DetailLogOpen { get; set; }
     public bool NavExpanded { get; set; } = true;
+    /// <summary>El panel de actividad empieza recogido: solo pesa lo justo salvo que el usuario lo abra.</summary>
+    public bool ActivityPanelOpen { get; set; }
 
     public string GiftsOverlayTitle { get; set; } = "Regalos";
     public bool ShowGiftsOverlayTitle { get; set; } = true;

@@ -4,9 +4,29 @@ Cambios relevantes de HiveShock. El versionado está en `Directory.Build.props`.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-21
+
+- TikTok/Twitch: reconexión con espera creciente (8→60s) en vez de cada 8s fijo para siempre mientras el streamer no está en vivo.
+- Android: wake lock del servicio en segundo plano con límite de 6h y renovación automática, en vez de indefinido.
+- Nueva pestaña Perfil (Android y escritorio): edita `profile.json` y `effects.json` del perfil activo (metadatos, puertos, etiquetas, catálogo de efectos) con importar/exportar independiente por archivo.
+- Escritorio: panel "Qué está pasando" recogido por defecto (antes reservaba espacio fijo en toda página); se abre solo al conectar o si el usuario lo pide.
+- Escritorio: sin bloque de marca duplicado en el sidebar, sin descripción de perfil repetida y tarjetas de juego con la misma altura.
 - Cabeza Android (Avalonia): live en el teléfono hacia el APK local (`127.0.0.1:43000`) o el PC en LAN. Sin overlays OBS.
 - Android: menú Inicio / Regalos / Eventos / Twitch con el mismo mapeo de efectos que el escritorio (`gifts.json`).
 - Android: servicio en primer plano al conectar (notificación «HiveShock conectado») para no cortar TikTok/Twitch al cambiar de app.
+
+## [1.2.2] - 2026-09-19
+
+- Fix: los combos de TikTok sin mensaje de cierre (regalos "battle"/gallery como galaxias y ballenas) se quedaban sin procesar — nunca se enviaba el efecto ni se registraba en el log. Ahora se cierran solos por timeout (6s de inactividad) si TikTok nunca manda el `RepeatEnd=1`.
+- Pestaña "🔬 Debug" en TikTok (solo en builds DEBUG): registro en vivo de eventos crudos de TikTok para diagnóstico.
+- Perfil Dusklight: nuevo enemigo Helmsaurus y acción de reset.
+
+## [1.2.0] - 2026-09-16
+
+- Parámetros por efecto (daño/cura en corazones) en regalos; solo aparecen si el efecto lo declara.
+- Envíos al juego espaciados (EFFECT_GAP_MS, default 300 ms) para que los combos xN no se pierdan.
+- Botón Limpiar en el log de actividad del escritorio.
+- Mejor detección de combos de TikTok (RepeatCount / ComboCount).
 
 ## [1.1.2] - 2026-09-14
 

@@ -40,6 +40,9 @@ public sealed class BridgeRuntime : IAsyncDisposable
     public OverlayNotifier Overlay { get; } = new();
     public GiftGoalBank Goals { get; } = new();
     public LivePortHub Ports { get; } = new();
+#if DEBUG
+    public Live.LiveDiagnosticSink Diagnostics { get; } = new();
+#endif
 
     /// <summary>Compat: valor mostrado del contador de partida.</summary>
     public int DeathsThisRun => DeathCounter.Value;
@@ -142,6 +145,18 @@ public sealed class BridgeRuntime : IAsyncDisposable
         _gifts.Reload(GiftsPath);
         Goals.ApplyDefinitions(_gifts.Snapshot.Goals);
         ProfileChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Relee profile.json del perfil activo tras editarlo (sin cambiar de perfil).</summary>
+    public void ReloadProfileMeta()
+    {
+        if (IsRunning)
+        {
+            throw new InvalidOperationException("Detén el bridge antes de editar el perfil.");
+        }
+
+        _profile = ProfileStore.LoadFromDirectory(_profile.Directory);
+        ReloadEffectsAndGifts();
     }
 
     public void ReloadCatalog() => Catalog.Load();
@@ -260,7 +275,8 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
         for (var i = 0; i < times; i++)
         {
-            var cmd = _effects.Resolve(gift.Effect, testerName);
+            var overrides = gift.Params.Count > 0 ? gift.Params : null;
+            var cmd = _effects.Resolve(gift.Effect, testerName, overrides);
             if (cmd is null)
             {
                 throw new InvalidOperationException($"No se pudo resolver el efecto {gift.Effect}");
@@ -409,7 +425,8 @@ public sealed class BridgeRuntime : IAsyncDisposable
         BridgeLog.Info(
             $"Inicio mode={mode.ToString().ToLowerInvariant()} perfil={_profile.Id} " +
             $"tiktok={Options.TikTokUniqueId} twitch={Options.TwitchUserLogin} " +
-            $"juego={Options.GameHost}:{Options.GamePort} dry={Options.DryRun}");
+            $"juego={Options.GameHost}:{Options.GamePort} dry={Options.DryRun} " +
+            $"gap={Options.EffectGapMs}ms");
 
         var builder = Host.CreateApplicationBuilder(Array.Empty<string>());
         builder.Services.AddSingleton(Options);
@@ -427,6 +444,9 @@ public sealed class BridgeRuntime : IAsyncDisposable
         builder.Services.AddHostedService<EffectPumpService>();
         builder.Services.AddHostedService<ConfigWatchService>();
         builder.Services.AddHostedService<CrowdControlHostedService>();
+#if DEBUG
+        builder.Services.AddSingleton(Diagnostics);
+#endif
         builder.Services.AddHostedService<TikTokLiveHostedService>();
         builder.Services.AddHostedService<TwitchLiveHostedService>();
 
