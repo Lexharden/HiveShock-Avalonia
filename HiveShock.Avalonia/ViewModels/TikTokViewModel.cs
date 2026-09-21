@@ -19,6 +19,7 @@ public sealed partial class TikTokViewModel : ViewModelBase
     public CatalogViewModel Catalog => Shell.Catalog;
     public EventsViewModel Events => Shell.Events;
     public GoalsViewModel Goals => Shell.Goals;
+    public ProfileEditorViewModel ProfileEditor => Shell.ProfileEditor;
 
     [ObservableProperty] private bool _accountOpen;
 

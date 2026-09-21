@@ -118,24 +118,12 @@
                     Background="{DynamicResource CardBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="0,0,1,0">
-                <DockPanel Margin="0,8,0,8">
-                    <Border DockPanel.Dock="Top" Margin="10,0,10,12" Padding="10"
-                            Background="{DynamicResource CardAltBrush}" CornerRadius="10"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                            IsVisible="{Binding NavExpanded}">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Border Width="40" Height="40" CornerRadius="8" ClipToBounds="True"
-                                    Background="{DynamicResource BgBrush}"
-                                    BorderBrush="{DynamicResource BrandGoldBrush}" BorderThickness="1">
-                                <Image Source="{DynamicResource BrandLogo}" Stretch="Uniform" />
-                            </Border>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="HiveShock" FontWeight="SemiBold" FontSize="13"
-                                           Foreground="{DynamicResource BrandGoldBrush}" />
-                                <TextBlock Text="por Yafel" Foreground="{DynamicResource MutedBrush}" FontSize="11" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
+                <!--
+                    Sin bloque de marca aquí a propósito: el header ya muestra logo +
+                    "HiveShock" + tagline arriba de todo, repetirlo en el sidebar solo
+                    empujaba la navegación hacia abajo sin aportar nada nuevo.
+                -->
+                <DockPanel Margin="0,12,0,8">
                     <StackPanel DockPanel.Dock="Bottom">
                         <TextBlock Classes="navGroup" Text="INFO" IsVisible="{Binding NavExpanded}" />
                         <Button Classes="nav" Classes.active="{Binding IsHelpNav}"
@@ -189,17 +177,23 @@
                 </DockPanel>
             </Border>
 
-            <Grid Grid.Column="1" RowDefinitions="*,8,160">
+            <Grid Grid.Column="1" RowDefinitions="*,Auto">
                 <ContentControl Content="{Binding CurrentPage}" Margin="14,10,14,8"
                                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-                <GridSplitter Grid.Row="1" Height="8" HorizontalAlignment="Stretch"
-                              ResizeDirection="Rows" />
-                <Border Grid.Row="2"
-                        MinHeight="72"
+                <!--
+                    Recogido por defecto (solo el encabezado, ~40px) en vez de reservar
+                    160px fijos en toda página: antes eso restaba espacio incluso en
+                    Ayuda/Acerca, donde la actividad del live no pinta nada. Se auto-abre
+                    al conectar (ver MainViewModel.ToggleConnectionAsync) y el usuario
+                    decide si lo deja abierto; queda con tope de alto para no dominar la
+                    ventana en sesiones largas.
+                -->
+                <Border Grid.Row="1"
+                        MaxHeight="280"
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="0,1,0,0" Padding="14,8">
-                    <Expander IsExpanded="True"
+                    <Expander IsExpanded="{Binding ActivityPanelOpen}"
                               HorizontalAlignment="Stretch"
                               HorizontalContentAlignment="Stretch">
                         <Expander.Header>
@@ -210,17 +204,18 @@
                                 <TextBlock Text="Qué está pasando" VerticalAlignment="Center" />
                             </DockPanel>
                         </Expander.Header>
-                        <Grid RowDefinitions="*,Auto" Margin="0,8,0,0">
+                        <Grid RowDefinitions="Auto,Auto" Margin="0,8,0,0">
                             <TextBox Text="{Binding ActivityText, Mode=OneWay}" IsReadOnly="True"
                                      TextWrapping="Wrap" AcceptsReturn="True"
-                                     HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                     MinHeight="90" MaxHeight="150"
+                                     HorizontalAlignment="Stretch"
                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
                                      BorderThickness="0" Background="{DynamicResource BgBrush}" />
                             <Expander Grid.Row="1" Header="Más detalle" IsExpanded="{Binding DetailLogOpen}"
                                       Margin="0,8,0,0"
                                       HorizontalAlignment="Stretch"
                                       HorizontalContentAlignment="Stretch">
-                                <TextBox MinHeight="90" MaxHeight="200"
+                                <TextBox MinHeight="90" MaxHeight="150"
                                          Text="{Binding DetailLogText, Mode=OneWay}" IsReadOnly="True"
                                          FontFamily="Cascadia Mono, Consolas, monospace" FontSize="11"
                                          AcceptsReturn="True" TextWrapping="Wrap"
