@@ -4,6 +4,13 @@ Cambios relevantes de HiveShock. El versionado está en `Directory.Build.props`.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-21
+
+- TikTok/Twitch: reconexión con espera creciente (8→60s) en vez de cada 8s fijo para siempre mientras el streamer no está en vivo.
+- Nueva pestaña Perfil: edita `profile.json` y `effects.json` del perfil activo (metadatos, puertos, etiquetas, catálogo de efectos) con importar/exportar independiente por archivo.
+- Panel "Qué está pasando" recogido por defecto (antes reservaba espacio fijo en toda página); se abre solo al conectar o si el usuario lo pide.
+- Sin bloque de marca duplicado en el sidebar, sin descripción de perfil repetida y tarjetas de juego con la misma altura.
+
 ## [1.2.2] - 2026-09-19
 
 - Fix: los combos de TikTok sin mensaje de cierre (regalos "battle"/gallery como galaxias y ballenas) se quedaban sin procesar — nunca se enviaba el efecto ni se registraba en el log. Ahora se cierran solos por timeout (6s de inactividad) si TikTok nunca manda el `RepeatEnd=1`.

@@ -12,7 +12,7 @@
             <TextBlock Classes="sectionTitle" Text="JUEGO" />
             <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"
                        Text="El perfil activo define los efectos de esta partida." />
-            <ItemsControl ItemsSource="{Binding Profiles}" Margin="0,0,0,8">
+            <ItemsControl ItemsSource="{Binding Profiles}" Margin="0,0,0,20">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel />
@@ -23,18 +23,18 @@
                         <Button Classes="gamecard" Classes.active="{Binding IsSelected}"
                                 IsEnabled="{Binding $parent[UserControl].((vm:StudioViewModel)DataContext).CanEditSetup}"
                                 Command="{Binding $parent[UserControl].((vm:StudioViewModel)DataContext).SelectProfileCommand}"
-                                CommandParameter="{Binding}">
-                            <StackPanel>
+                                CommandParameter="{Binding}"
+                                ToolTip.Tip="{Binding Subtitle}">
+                            <StackPanel VerticalAlignment="Top">
                                 <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" />
                                 <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource MutedBrush}"
-                                           TextWrapping="Wrap" MaxWidth="260" Margin="0,6,0,0" FontSize="12" />
+                                           TextWrapping="Wrap" MaxWidth="260" MaxLines="2"
+                                           TextTrimming="CharacterEllipsis" Margin="0,6,0,0" FontSize="12" />
                             </StackPanel>
                         </Button>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <TextBlock Text="{Binding ProfileHint}" Foreground="{DynamicResource MutedBrush}"
-                       TextWrapping="Wrap" Margin="0,0,0,20" />
 
             <TextBlock Classes="sectionTitle" Text="SESIÓN" />
             <Border Classes="card" Margin="0,0,0,16">

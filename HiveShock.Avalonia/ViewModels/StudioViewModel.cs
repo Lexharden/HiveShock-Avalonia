@@ -37,7 +37,6 @@ public sealed partial class StudioViewModel : ViewModelBase
     [ObservableProperty] private string _channel = "";
     [ObservableProperty] private BridgeRunMode _selectedMode = BridgeRunMode.Live;
     [ObservableProperty] private bool _simulate;
-    [ObservableProperty] private string _profileHint = "";
     [ObservableProperty] private string _gameStatus = "";
     [ObservableProperty] private string _mappingSummary = "";
     [ObservableProperty] private bool _supportsDeath;
@@ -222,8 +221,6 @@ public sealed partial class StudioViewModel : ViewModelBase
             .Select(p => new ProfileCardViewModel(p, p.Id == _shell.Runtime.Profile.Id))
             .ToList();
         OnPropertyChanged(nameof(Profiles));
-        var info = _shell.Runtime.Profile.Info;
-        ProfileHint = string.IsNullOrWhiteSpace(info.Description) ? info.HelpNotes : info.Description;
         GameStatus = $"Listo: {_shell.Runtime.Profile.ShortDisplayName}.";
         RefreshCapabilities();
     }

@@ -147,6 +147,18 @@ public sealed class BridgeRuntime : IAsyncDisposable
         ProfileChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>Relee profile.json del perfil activo tras editarlo (sin cambiar de perfil).</summary>
+    public void ReloadProfileMeta()
+    {
+        if (IsRunning)
+        {
+            throw new InvalidOperationException("Detén el bridge antes de editar el perfil.");
+        }
+
+        _profile = ProfileStore.LoadFromDirectory(_profile.Directory);
+        ReloadEffectsAndGifts();
+    }
+
     public void ReloadCatalog() => Catalog.Load();
 
     public void ResetDeathCounter() => DeathCounter.Reset();
