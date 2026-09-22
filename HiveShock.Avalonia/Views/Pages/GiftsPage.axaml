@@ -15,8 +15,9 @@
             </WrapPanel>
         </StackPanel>
 
-        <Grid Grid.Row="1" ColumnDefinitions="280,8,*">
+        <Grid Grid.Row="1" ColumnDefinitions="*,8,1.6*">
             <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}"
+                     MinWidth="200"
                      ScrollViewer.VerticalScrollBarVisibility="Auto">
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:GiftRowViewModel">

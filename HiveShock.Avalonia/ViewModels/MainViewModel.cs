@@ -51,6 +51,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         CurrentPageKey = "studio";
         DetailLogOpen = Prefs.DetailLogOpen;
         ActivityPanelOpen = Prefs.ActivityPanelOpen;
+        ActivityPanelHeight = Math.Clamp(Prefs.ActivityPanelHeight, MinActivityPanelHeight, MaxActivityPanelHeight);
         NavExpanded = Prefs.NavExpanded;
         SelectedThemeId = Prefs.Theme is "dark" or "light" ? Prefs.Theme : "system";
 
@@ -129,6 +130,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private bool _detailLogOpen;
     [ObservableProperty] private bool _activityPanelOpen;
+    [ObservableProperty] private double _activityPanelHeight = 220;
     [ObservableProperty] private string _activityText = "Nada todavía. Cuando conectes, aquí verás lo que pasa.";
     [ObservableProperty] private string _detailLogText = "";
     [ObservableProperty] private string _selectedThemeId = "system";
@@ -444,6 +446,19 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     partial void OnActivityPanelOpenChanged(bool value)
     {
         Prefs.ActivityPanelOpen = value;
+        Prefs.Save();
+    }
+
+    public const double MinActivityPanelHeight = 140;
+    public const double MaxActivityPanelHeight = 640;
+
+    /// <summary>Arrastra el separador del panel "Qué está pasando" (ver MainWindow.axaml.cs).</summary>
+    public void ResizeActivityPanel(double deltaY) =>
+        ActivityPanelHeight = Math.Clamp(ActivityPanelHeight - deltaY, MinActivityPanelHeight, MaxActivityPanelHeight);
+
+    partial void OnActivityPanelHeightChanged(double value)
+    {
+        Prefs.ActivityPanelHeight = value;
         Prefs.Save();
     }
 

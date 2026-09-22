@@ -15,27 +15,79 @@
   },
   "kill": { "action": "kill" },
   "instakill": { "action": "instakill" },
-  "rupees": { "action": "rupees", "value": 20 },
+  "rupees": {
+    "action": "rupees",
+    "value": 20,
+    "_params": {
+      "value": { "label": "Rupias", "unit": "rupees", "scale": 1, "min": 0, "max": 300, "step": 5 }
+    }
+  },
   "steal_rupees": { "action": "steal_rupees" },
   "fill_rupees": { "action": "fill_rupees" },
   "magic": { "action": "magic", "value": 16 },
   "empty_oil": { "action": "empty_oil" },
   "fill_oil": { "action": "fill_oil" },
-  "knockback": { "action": "knockback", "strength": 8 },
-  "explode": { "action": "explode", "strength": 9, "damage": 2 },
-  "bomb_explode": { "action": "bomb_explode", "strength": 9, "damage": 2 },
+  "knockback": {
+    "action": "knockback",
+    "strength": 8,
+    "_params": {
+      "strength": { "label": "Fuerza", "unit": "raw", "scale": 1, "min": 2, "max": 50, "step": 1 }
+    }
+  },
+  "explode": {
+    "action": "explode",
+    "strength": 9,
+    "damage": 2,
+    "_params": {
+      "strength": { "label": "Fuerza", "unit": "raw", "scale": 1, "min": 4, "max": 50, "step": 1 },
+      "damage": { "label": "Daño", "unit": "hearts", "scale": 4, "min": 0.25, "max": 20, "step": 0.25 }
+    }
+  },
+  "bomb_explode": {
+    "action": "bomb_explode",
+    "strength": 9,
+    "damage": 2,
+    "_params": {
+      "strength": { "label": "Fuerza", "unit": "raw", "scale": 1, "min": 4, "max": 50, "step": 1 },
+      "damage": { "label": "Daño", "unit": "hearts", "scale": 4, "min": 0.25, "max": 20, "step": 0.25 }
+    }
+  },
   "delete_save": { "action": "delete_save" },
   "wipe_save": { "action": "wipe_save" },
   "nuke_save": { "action": "nuke_save" },
-  "invert": { "action": "invert", "duration": 20 },
+  "invert": {
+    "action": "invert",
+    "duration": 20,
+    "_params": {
+      "duration": { "label": "Duración", "unit": "seconds", "scale": 1, "min": 5, "max": 120, "step": 5 }
+    }
+  },
   "freeze_time": { "action": "freeze_time", "duration": 30 },
   "resume_time": { "action": "resume_time" },
   "clear_enemies": { "action": "clear_enemies" },
   "random_enemy": { "action": "random_enemy" },
   "cucco_army": { "action": "cucco_army" },
-  "bokoblin_army": { "action": "bokoblin_army", "value": 5 },
-  "goat_army": { "action": "goat_army", "value": 4 },
-  "bee_swarm": { "action": "bee_swarm", "value": 16 },
+  "bokoblin_army": {
+    "action": "bokoblin_army",
+    "value": 5,
+    "_params": {
+      "value": { "label": "Cantidad", "unit": "raw", "scale": 1, "min": 1, "max": 10, "step": 1 }
+    }
+  },
+  "goat_army": {
+    "action": "goat_army",
+    "value": 4,
+    "_params": {
+      "value": { "label": "Cantidad", "unit": "raw", "scale": 1, "min": 1, "max": 10, "step": 1 }
+    }
+  },
+  "bee_swarm": {
+    "action": "bee_swarm",
+    "value": 16,
+    "_params": {
+      "value": { "label": "Cantidad", "unit": "raw", "scale": 1, "min": 1, "max": 30, "step": 1 }
+    }
+  },
   "wolf_toggle": { "action": "wolf_toggle" },
   "force_wolf": { "action": "force_wolf" },
   "force_human": { "action": "force_human" },
@@ -46,17 +98,26 @@
   "dismount_horse": { "action": "dismount_horse" },
   "spawn_bomb": { "action": "spawn_bomb" },
   "spawn_bombchu": { "action": "spawn_bombchu" },
+  "spawn_rupee": { "action": "spawn_rupee" },
+  "give_rupee": { "action": "give_rupee" },
+  "spawn_heart": { "action": "spawn_heart" },
+  "spawn_fairy": { "action": "spawn_fairy" },
+  "great_fairy": { "action": "great_fairy" },
+  "recovery_fairy": { "action": "recovery_fairy" },
+  "spawn_pot": { "action": "spawn_pot" },
   "cucco": { "action": "cucco" },
   "keese": { "action": "keese" },
   "fire_keese": { "action": "fire_keese" },
   "ice_keese": { "action": "ice_keese" },
   "guay": { "action": "guay" },
   "bokoblin": { "action": "bokoblin" },
+  "bulblin": { "action": "bulblin" },
   "lizalfos": { "action": "lizalfos" },
   "chuchu": { "action": "chuchu" },
   "tektite": { "action": "tektite" },
   "skulltula": { "action": "skulltula" },
   "helmasaur": { "action": "helmasaur" },
+  "helmsaurus": { "action": "helmsaurus" },
   "wolfos": { "action": "wolfos" },
   "poe": { "action": "poe" },
   "gibdo": { "action": "gibdo" },
@@ -66,6 +127,9 @@
   "twilight_vermin": { "action": "twilight_vermin" },
   "poison_mite": { "action": "poison_mite" },
   "goat": { "action": "goat" },
-  "reset": { "action": "reset" },
-  "helmsaurus": { "action": "helmsaurus" }
+  "darknut": { "action": "darknut" },
+  "puppet_zelda": { "action": "puppet_zelda" },
+  "freezard": { "action": "freezard" },
+  "leever": { "action": "leever" },
+  "reset": { "action": "reset" }
 }

@@ -4,7 +4,7 @@
              x:Class="HiveShock.Avalonia.Views.Pages.HelpPage"
              x:DataType="vm:HelpViewModel">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+        <StackPanel MaxWidth="640" HorizontalAlignment="Left">
             <TextBlock Classes="pageTitle" Text="Ayuda" />
             <TextBlock Classes="pageLead"
                        Text="HiveShock lleva lo que pasa en el live al juego. Cada canal se configura por separado." />

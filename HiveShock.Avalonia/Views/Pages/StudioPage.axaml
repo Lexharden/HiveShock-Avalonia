@@ -61,21 +61,9 @@
                             IsEnabled="{Binding CanConnect}" />
                     <TextBlock Margin="0,0,0,6" FontSize="12" FontWeight="SemiBold" Text="{Binding SessionHint}"
                                Foreground="{DynamicResource MutedBrush}"
-                               Classes.connecting="{Binding IsToneConnecting}"
-                               Classes.live="{Binding IsToneLive}"
-                               Classes.ok="{Binding IsToneOk}">
-                        <TextBlock.Styles>
-                            <Style Selector="TextBlock.connecting">
-                                <Setter Property="Foreground" Value="{DynamicResource BrandGoldBrush}" />
-                            </Style>
-                            <Style Selector="TextBlock.live">
-                                <Setter Property="Foreground" Value="{DynamicResource LiveTextBrush}" />
-                            </Style>
-                            <Style Selector="TextBlock.ok">
-                                <Setter Property="Foreground" Value="{DynamicResource StatusOkBrush}" />
-                            </Style>
-                        </TextBlock.Styles>
-                    </TextBlock>
+                               Classes.tone-connecting="{Binding IsToneConnecting}"
+                               Classes.tone-live="{Binding IsToneLive}"
+                               Classes.tone-ok="{Binding IsToneOk}" />
                     <TextBlock Text="{Binding MappingSummary}" Foreground="{DynamicResource MutedBrush}" FontSize="12" />
                     <TextBlock Text="{Binding ChannelSummary}" Foreground="{DynamicResource MutedBrush}"
                                FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap" />

@@ -182,14 +182,14 @@
                                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
                 <!--
                     Recogido por defecto (solo el encabezado, ~40px) en vez de reservar
-                    160px fijos en toda página: antes eso restaba espacio incluso en
+                    espacio fijo en toda página: antes eso restaba espacio incluso en
                     Ayuda/Acerca, donde la actividad del live no pinta nada. Se auto-abre
-                    al conectar (ver MainViewModel.ToggleConnectionAsync) y el usuario
-                    decide si lo deja abierto; queda con tope de alto para no dominar la
-                    ventana en sesiones largas.
+                    al conectar (ver MainViewModel.ToggleConnectionAsync). Expandido, el
+                    alto lo maneja el usuario arrastrando el separador de arriba (guardado
+                    en ActivityPanelHeight/UiPreferences) y el contenido interno scrollea
+                    si no entra, en vez de cortarse.
                 -->
                 <Border Grid.Row="1"
-                        MaxHeight="280"
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="0,1,0,0" Padding="14,8">
@@ -204,27 +204,39 @@
                                 <TextBlock Text="Qué está pasando" VerticalAlignment="Center" />
                             </DockPanel>
                         </Expander.Header>
-                        <Grid RowDefinitions="Auto,Auto" Margin="0,8,0,0">
-                            <TextBox Text="{Binding ActivityText, Mode=OneWay}" IsReadOnly="True"
-                                     TextWrapping="Wrap" AcceptsReturn="True"
-                                     MinHeight="90" MaxHeight="150"
-                                     HorizontalAlignment="Stretch"
-                                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                     BorderThickness="0" Background="{DynamicResource BgBrush}" />
-                            <Expander Grid.Row="1" Header="Más detalle" IsExpanded="{Binding DetailLogOpen}"
-                                      Margin="0,8,0,0"
-                                      HorizontalAlignment="Stretch"
-                                      HorizontalContentAlignment="Stretch">
-                                <TextBox MinHeight="90" MaxHeight="150"
-                                         Text="{Binding DetailLogText, Mode=OneWay}" IsReadOnly="True"
-                                         FontFamily="Cascadia Mono, Consolas, monospace" FontSize="11"
-                                         AcceptsReturn="True" TextWrapping="Wrap"
-                                         HorizontalAlignment="Stretch"
-                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                         BorderThickness="0" Background="{DynamicResource BgBrush}" Margin="0,8,0,0" />
-                            </Expander>
-                        </Grid>
+                        <DockPanel LastChildFill="True" Margin="0,8,0,0">
+                            <Border DockPanel.Dock="Top" Height="6" Margin="0,0,0,8" CornerRadius="3"
+                                    Background="{DynamicResource BorderBrush}" Cursor="SizeNorthSouth"
+                                    ToolTip.Tip="Arrastrá para cambiar el alto"
+                                    PointerPressed="ActivityResizeHandle_PointerPressed"
+                                    PointerMoved="ActivityResizeHandle_PointerMoved"
+                                    PointerReleased="ActivityResizeHandle_PointerReleased" />
+                            <ScrollViewer Height="{Binding ActivityPanelHeight}"
+                                          VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBox Text="{Binding ActivityText, Mode=OneWay}" IsReadOnly="True"
+                                             TextWrapping="Wrap" AcceptsReturn="True"
+                                             MinHeight="70"
+                                             HorizontalAlignment="Stretch"
+                                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                             BorderThickness="0" Background="{DynamicResource BgBrush}" />
+                                    <Expander Header="Más detalle" IsExpanded="{Binding DetailLogOpen}"
+                                              Margin="0,8,0,0"
+                                              HorizontalAlignment="Stretch"
+                                              HorizontalContentAlignment="Stretch">
+                                        <TextBox MinHeight="70" Classes="mono"
+                                                 Text="{Binding DetailLogText, Mode=OneWay}" IsReadOnly="True"
+                                                 FontSize="11"
+                                                 AcceptsReturn="True" TextWrapping="Wrap"
+                                                 HorizontalAlignment="Stretch"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                 BorderThickness="0" Background="{DynamicResource BgBrush}"
+                                                 Margin="0,8,0,0" />
+                                    </Expander>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </DockPanel>
                     </Expander>
                 </Border>
             </Grid>

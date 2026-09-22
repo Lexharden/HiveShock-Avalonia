@@ -114,14 +114,30 @@ public sealed partial class ProfileEditorViewModel : ViewModelBase
     [ObservableProperty] private bool _supportsRescue;
     [ObservableProperty] private LabelRow? _selectedLabel;
     [ObservableProperty] private EffectRow? _selectedEffect;
+    [ObservableProperty] private bool _profileSectionUnlocked;
+    [ObservableProperty] private bool _effectsSectionUnlocked;
 
     public ObservableCollection<LabelRow> Labels { get; } = [];
     public ObservableCollection<EffectRow> Effects { get; } = [];
 
     public bool CanEdit => !_shell.IsRunning;
 
+    /// <summary>Candado de "Datos del perfil" + "Etiquetas" (mismo profile.json). Empieza bloqueado.</summary>
+    public bool CanEditProfile => CanEdit && ProfileSectionUnlocked;
+
+    /// <summary>Candado de "Efectos" (effects.json). Empieza bloqueado.</summary>
+    public bool CanEditEffects => CanEdit && EffectsSectionUnlocked;
+
+    partial void OnProfileSectionUnlockedChanged(bool value) => OnPropertyChanged(nameof(CanEditProfile));
+    partial void OnEffectsSectionUnlockedChanged(bool value) => OnPropertyChanged(nameof(CanEditEffects));
+
     public void Load()
     {
+        // Cada carga (inicial, tras guardar o tras importar) vuelve a bloquear las
+        // secciones: evita que un valor técnico se cambie sin querer.
+        ProfileSectionUnlocked = false;
+        EffectsSectionUnlocked = false;
+
         var profile = _shell.Runtime.Profile;
         _profileEditor = new ProfileInfoEditor(profile.ProfileJsonPath);
         _profileEditor.Load();

@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -43,7 +44,12 @@ public sealed class GoalOverlayWindow : Window
             BorderThickness = new Thickness(1),
         };
         _stack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-        _card.Child = _stack;
+        _card.Child = new ScrollViewer
+        {
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            Content = _stack,
+        };
         Content = _card;
 
         ThemeManager.ThemeChanged += OnThemeChanged;
@@ -144,6 +150,9 @@ public sealed class GoalOverlayWindow : Window
                 FontSize = titleSize,
                 Foreground = titleBrush,
                 HorizontalAlignment = align,
+                TextWrapping = TextWrapping.Wrap,
+                TextAlignment = align == HorizontalAlignment.Center ? TextAlignment.Center : TextAlignment.Left,
+                MaxWidth = 240 * _scale,
                 Margin = new Thickness(0, 0, 0, 6),
             });
             block.Children.Add(new TextBlock

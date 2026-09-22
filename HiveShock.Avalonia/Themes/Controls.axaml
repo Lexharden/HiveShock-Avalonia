@@ -192,6 +192,22 @@
         <Setter Property="Foreground" Value="{DynamicResource StatusOnForegroundBrush}" />
     </Style>
 
+    <!-- Tono de texto de estado: mismo criterio de color que Button.connect.*, reutilizable
+         en cualquier TextBlock que muestre "conectando/en vivo/ok/error" sobre el fondo normal
+         de la página (no sobre una píldora de color, ver el estado del header en MainWindow). -->
+    <Style Selector="TextBlock.tone-connecting">
+        <Setter Property="Foreground" Value="{DynamicResource BrandGoldBrush}" />
+    </Style>
+    <Style Selector="TextBlock.tone-live">
+        <Setter Property="Foreground" Value="{DynamicResource LiveTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.tone-ok">
+        <Setter Property="Foreground" Value="{DynamicResource StatusOkBrush}" />
+    </Style>
+    <Style Selector="TextBlock.tone-error">
+        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+    </Style>
+
     <Style Selector="Button.gamecard">
         <Setter Property="Background" Value="{DynamicResource CardAltBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
@@ -231,5 +247,12 @@
     </Style>
     <Style Selector="GridSplitter:pressed">
         <Setter Property="Background" Value="{DynamicResource BrandGoldBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.mono">
+        <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    </Style>
+    <Style Selector="TextBox.mono">
+        <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
     </Style>
 </Styles>
