@@ -173,6 +173,15 @@
                                 <TextBlock Text="Twitch" IsVisible="{Binding NavExpanded}" />
                             </Panel>
                         </Button>
+                        <Button Classes="nav" Classes.active="{Binding IsSmartTtsNav}"
+                                Classes.compact="{Binding NavCollapsed}"
+                                Command="{Binding NavSmartTtsCommand}" ToolTip.Tip="Voz">
+                            <Panel>
+                                <TextBlock Text="Vz" HorizontalAlignment="Center"
+                                           IsVisible="{Binding NavCollapsed}" />
+                                <TextBlock Text="Voz" IsVisible="{Binding NavExpanded}" />
+                            </Panel>
+                        </Button>
                     </StackPanel>
                 </DockPanel>
             </Border>

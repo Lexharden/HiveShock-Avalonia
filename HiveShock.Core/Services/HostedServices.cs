@@ -3,6 +3,7 @@ using HiveShock.Hosting;
 using HiveShock.Live;
 using HiveShock.Logging;
 using HiveShock.Networking;
+using HiveShock.Voice;
 using Microsoft.Extensions.Hosting;
 using TikTokLive;
 using TikTokLive.Proto;
@@ -141,6 +142,7 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
     private readonly GiftCatalogStore _catalog;
     private readonly LiveEffectRouter _router;
     private readonly LivePortHub _hub;
+    private readonly SmartVoiceManager? _voice;
 #if DEBUG
     private readonly HiveShock.Live.LiveDiagnosticSink? _diagnostics;
 #endif
@@ -149,7 +151,8 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         BridgeOptions options,
         GiftCatalogStore catalog,
         LiveEffectRouter router,
-        LivePortHub hub
+        LivePortHub hub,
+        SmartVoiceManager? voice = null
 #if DEBUG
         , HiveShock.Live.LiveDiagnosticSink? diagnostics = null
 #endif
@@ -159,6 +162,7 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         _catalog = catalog;
         _router = router;
         _hub = hub;
+        _voice = voice;
 #if DEBUG
         _diagnostics = diagnostics;
 #endif
@@ -294,12 +298,13 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
             _router.HandleLike(ViewerName(like.User), like.LikeCount > 0 ? like.LikeCount : 1, ct);
         client.OnFollow += social => _router.HandleFollow(ViewerName(social.User), ct, LivePortIds.TikTok);
         client.OnShare += social => _router.HandleShare(ViewerName(social.User), ct);
-        client.OnChat += chat => _router.HandleChat(
-            ViewerName(chat.User),
-            LiveEffectRouter.TikTokStableId(chat.User),
-            chat.Comment ?? "",
-            ct,
-            LivePortIds.TikTok);
+        client.OnChat += chat =>
+        {
+            var viewer = ViewerName(chat.User);
+            var comment = chat.Comment ?? "";
+            _router.HandleChat(viewer, LiveEffectRouter.TikTokStableId(chat.User), comment, ct, LivePortIds.TikTok);
+            _voice?.Enqueue(new TtsMessage(LivePortIds.TikTok, viewer, comment, DateTime.UtcNow));
+        };
 
 #if DEBUG
         // Catch-all: feed every raw event to the diagnostic sink.

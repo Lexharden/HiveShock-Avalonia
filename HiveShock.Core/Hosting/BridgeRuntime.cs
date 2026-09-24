@@ -4,6 +4,7 @@ using HiveShock.Live;
 using HiveShock.Logging;
 using HiveShock.Networking;
 using HiveShock.Services;
+using HiveShock.Voice;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -40,6 +41,16 @@ public sealed class BridgeRuntime : IAsyncDisposable
     public OverlayNotifier Overlay { get; } = new();
     public GiftGoalBank Goals { get; } = new();
     public LivePortHub Ports { get; } = new();
+
+    /// <summary>
+    /// Smart TTS, de vida larga como Overlay/Goals. Null en plataformas sin implementación
+    /// todavía (Android, o escritorio no-Windows): quien compone la app (HiveShock.Avalonia)
+    /// decide si hay algo que conectar aquí y lo hace con <see cref="AttachVoice"/> — Core no
+    /// conoce las implementaciones concretas (viven en HiveShock.Desktop) para no arrastrar
+    /// sus dependencias nativas a Android.
+    /// </summary>
+    public SmartVoiceManager? Voice { get; private set; }
+
 #if DEBUG
     public Live.LiveDiagnosticSink Diagnostics { get; } = new();
 #endif
@@ -129,6 +140,9 @@ public sealed class BridgeRuntime : IAsyncDisposable
         BridgeLog.Info($"Perfil cambiado: {profile.DisplayName} ({profile.Id}) → {Options.GameHost}:{Options.GamePort}");
         ProfileChanged?.Invoke(this, EventArgs.Empty);
     }
+
+    /// <summary>Conecta Smart TTS ya armado (mic/voz/hotkey concretos elegidos por el host de escritorio).</summary>
+    public void AttachVoice(SmartVoiceManager voice) => Voice = voice;
 
     public IReadOnlyList<LoadedGameProfile> ListProfiles() => ProfileStore.ListProfiles();
 
@@ -437,6 +451,11 @@ public sealed class BridgeRuntime : IAsyncDisposable
         builder.Services.AddSingleton(Overlay);
         builder.Services.AddSingleton(Goals);
         builder.Services.AddSingleton(Ports);
+        if (Voice != null)
+        {
+            builder.Services.AddSingleton(Voice);
+        }
+
         builder.Services.AddSingleton(_gameClient);
         builder.Services.AddSingleton<EffectDispatcher>();
         builder.Services.AddSingleton<LiveEffectRouter>();
@@ -559,6 +578,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         await StopAsync().ConfigureAwait(false);
         _events.EventReceived -= OnGameEvent;
         await _events.DisposeAsync().ConfigureAwait(false);
+        Voice?.Dispose();
     }
 
     private static void ApplyProfileToOptions(BridgeOptions options, LoadedGameProfile profile, bool forcePortsFromProfile)

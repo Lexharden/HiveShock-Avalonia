@@ -6,6 +6,7 @@ using HiveShock.Avalonia.Services;
 using HiveShock.Avalonia.Themes;
 using HiveShock.Hosting;
 using HiveShock.Logging;
+using HiveShock.Voice;
 
 namespace HiveShock.Avalonia.ViewModels;
 
@@ -25,6 +26,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Dialogs = dialogs;
         Overlays = overlays;
         Runtime = BridgeRuntime.Create();
+        AttachVoiceIfSupported();
         Prefs = UiPreferences.Load();
         if (Application.Current != null)
         {
@@ -42,6 +44,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         ProfileEditor = new ProfileEditorViewModel(this);
         TikTok = new TikTokViewModel(this);
         Twitch = new TwitchViewModel(this);
+        SmartTts = new SmartTtsViewModel(this);
         Help = new HelpViewModel();
         About = new AboutViewModel();
         Events.LoadFromEditor(Gifts.Editor);
@@ -97,6 +100,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public ProfileEditorViewModel ProfileEditor { get; }
     public TikTokViewModel TikTok { get; }
     public TwitchViewModel Twitch { get; }
+    public SmartTtsViewModel SmartTts { get; }
     public HelpViewModel Help { get; }
     public AboutViewModel About { get; }
 
@@ -137,6 +141,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public bool IsStudioNav => CurrentPageKey == "studio";
     public bool IsTikTokNav => CurrentPageKey is "tiktok" or "gifts" or "catalog";
     public bool IsTwitchNav => CurrentPageKey == "twitch";
+    public bool IsSmartTtsNav => CurrentPageKey == "voz";
     public bool IsHelpNav => CurrentPageKey == "help";
     public bool IsAboutNav => CurrentPageKey == "about";
     public bool CanInteract => !IsBusy;
@@ -244,6 +249,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         OnPropertyChanged(nameof(IsStudioNav));
         OnPropertyChanged(nameof(IsTikTokNav));
         OnPropertyChanged(nameof(IsTwitchNav));
+        OnPropertyChanged(nameof(IsSmartTtsNav));
         OnPropertyChanged(nameof(IsHelpNav));
         OnPropertyChanged(nameof(IsAboutNav));
     }
@@ -307,6 +313,36 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
             IsBusy = false;
             RefreshStatus();
         }
+    }
+
+    /// <summary>
+    /// Arma Smart TTS con las implementaciones concretas de escritorio (viven en
+    /// HiveShock.Desktop) y lo conecta a Runtime. Solo existe en la compilación
+    /// net10.0-windows10.0.19041.0 (HIVESHOCK_WINDOWS_DESKTOP): es el único TFM que
+    /// referencia HiveShock.Desktop, porque NAudio/SharpHook solo exponen WASAPI/WinMM/
+    /// Media Foundation bajo un TFM Windows-versionado. En la compilación net10.0 normal
+    /// (Mac/Linux, y Windows sin -f) este método es un no-op y Runtime.Voice queda en
+    /// null; la página "Voz" lo muestra como no disponible en vez de intentar algo que
+    /// no existe en ese binario.
+    /// </summary>
+    private void AttachVoiceIfSupported()
+    {
+#if HIVESHOCK_WINDOWS_DESKTOP
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var settings = TtsSettings.Load();
+        var voice = new SmartVoiceManager(
+            new WindowsMicrophoneCapture(),
+            new EdgeTtsSpeechSynthesizer(),
+            new WindowsAudioPlayer(),
+            new SharpHookGlobalHotkeyListener(),
+            new VoiceActivityDetector(),
+            settings);
+        Runtime.AttachVoice(voice);
+#endif
     }
 
     private static string FriendlyStartError(string message)
@@ -384,6 +420,12 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         GoTikTok();
     }
 
+    public void GoSmartTts()
+    {
+        CurrentPage = SmartTts;
+        CurrentPageKey = "voz";
+    }
+
     public void GoHelp()
     {
         CurrentPage = Help;
@@ -404,6 +446,9 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     [RelayCommand]
     private void NavTwitch() => GoTwitch();
+
+    [RelayCommand]
+    private void NavSmartTts() => GoSmartTts();
 
     [RelayCommand]
     private void ToggleNav() => NavExpanded = !NavExpanded;

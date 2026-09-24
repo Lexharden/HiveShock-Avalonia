@@ -1,5 +1,6 @@
 using HiveShock.Configuration;
 using HiveShock.Logging;
+using HiveShock.Voice;
 using Microsoft.Extensions.Hosting;
 
 namespace HiveShock.Live;
@@ -9,12 +10,18 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
     private readonly BridgeOptions _options;
     private readonly LiveEffectRouter _router;
     private readonly LivePortHub _hub;
+    private readonly SmartVoiceManager? _voice;
 
-    public TwitchLiveHostedService(BridgeOptions options, LiveEffectRouter router, LivePortHub hub)
+    public TwitchLiveHostedService(
+        BridgeOptions options,
+        LiveEffectRouter router,
+        LivePortHub hub,
+        SmartVoiceManager? voice = null)
     {
         _options = options;
         _router = router;
         _hub = hub;
+        _voice = voice;
     }
 
     public string Id => LivePortIds.Twitch;
@@ -115,7 +122,11 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
             clientId,
             access,
             userId,
-            (chatter, chatterId, text) => _router.HandleChat(chatter, chatterId, text, ct, LivePortIds.Twitch),
+            (chatter, chatterId, text) =>
+            {
+                _router.HandleChat(chatter, chatterId, text, ct, LivePortIds.Twitch);
+                _voice?.Enqueue(new TtsMessage(LivePortIds.Twitch, chatter, text, DateTime.UtcNow));
+            },
             user => _router.HandleFollow(user, ct, LivePortIds.Twitch),
             (user, bits) => _router.HandleCheer(user, bits, ct),
             () =>

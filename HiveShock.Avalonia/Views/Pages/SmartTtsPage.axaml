@@ -1,0 +1,79 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+             x:Class="HiveShock.Avalonia.Views.Pages.SmartTtsPage"
+             x:DataType="vm:SmartTtsViewModel">
+    <Grid RowDefinitions="Auto,*">
+        <TextBlock Classes="pageTitle" Text="Voz" Margin="0,0,0,4" />
+
+        <StackPanel Grid.Row="1" IsVisible="{Binding !IsAvailable}" Margin="0,24,0,0">
+            <TextBlock Classes="sectionTitle" Text="NO DISPONIBLE EN ESTE SISTEMA" />
+            <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}"
+                       Text="Smart TTS usa micrófono, atajos globales y audio de Windows (WASAPI). Por ahora solo funciona en Windows; en este equipo esta página queda desactivada." />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" IsVisible="{Binding IsAvailable}" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <Border Classes="card" Margin="0,0,0,12">
+                    <StackPanel>
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Left" Content="Activar Smart TTS" IsChecked="{Binding Enabled}" />
+                            <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource MutedBrush}" FontSize="12"
+                                       Text="{Binding IsRunning, StringFormat='En marcha: {0}'}" />
+                        </DockPanel>
+                        <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}"
+                                   Text="Lee el chat en vivo en voz alta y se calla solo mientras hablas por el micrófono." />
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Classes="sectionTitle" Text="VOZ" />
+                        <DockPanel Margin="0,8,0,0">
+                            <Button DockPanel.Dock="Right" Classes="secondary" Content="Actualizar"
+                                    Command="{Binding RefreshVoicesCommand}" Margin="8,0,0,0" />
+                            <ComboBox HorizontalAlignment="Stretch"
+                                      ItemsSource="{Binding Voices}"
+                                      SelectedValue="{Binding VoiceId}"
+                                      SelectedValueBinding="{Binding Id}"
+                                      DisplayMemberBinding="{Binding DisplayName}" />
+                        </DockPanel>
+
+                        <TextBlock Classes="fieldLabel" Text="Volumen" Margin="0,16,0,4" />
+                        <Slider Minimum="0" Maximum="1" Value="{Binding Volume}" />
+
+                        <TextBlock Classes="fieldLabel" Text="Probar" Margin="0,16,0,4" />
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Classes="primary" Content="Probar"
+                                    Command="{Binding TestCommand}" IsEnabled="{Binding !IsTesting}"
+                                    Margin="8,0,0,0" />
+                            <TextBox Text="{Binding TestText}" AcceptsReturn="False" />
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Classes="sectionTitle" Text="ATAJO DE MUTE" />
+                        <TextBlock Margin="0,4,0,8" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}"
+                                   Text="Funciona aunque HiveShock no tenga el foco. Escribe la combinación como Control+Alt+M." />
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Classes="secondary" Content="Guardar"
+                                    Command="{Binding SaveHotkeyCommand}" Margin="8,0,0,0" />
+                            <TextBox Text="{Binding MuteHotkey}" />
+                        </DockPanel>
+                        <DockPanel Margin="0,12,0,0">
+                            <Button DockPanel.Dock="Left" Classes="secondary"
+                                    Content="{Binding IsMuted, StringFormat='Muteado: {0}'}"
+                                    Command="{Binding ToggleMuteCommand}" />
+                            <TextBlock Margin="12,0,0,0" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource MutedBrush}" FontSize="12"
+                                       Text="{Binding IsStreamerSpeaking, StringFormat='Hablando por el mic: {0}'}" />
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

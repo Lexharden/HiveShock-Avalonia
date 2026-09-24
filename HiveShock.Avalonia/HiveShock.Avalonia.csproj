@@ -6,16 +6,29 @@
     <AssemblyTitle>HiveShock</AssemblyTitle>
     <Company>Yafel</Company>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <!--
+      net10.0 sigue siendo el TFM de siempre (Mac/Linux/Windows, `dotnet run` sin -f).
+      net10.0-windows10.0.19041.0 es el que trae Smart TTS de verdad: NAudio (WASAPI/WinMM)
+      y SharpHook solo exponen sus tipos reales bajo un TFM Windows-versionado, así que
+      HiveShock.Desktop (quien los implementa) solo puede vivir ahí — ver su .csproj.
+      Para probar Smart TTS en Windows: build/run/publish con -f net10.0-windows10.0.19041.0.
+    -->
+    <TargetFrameworks>net10.0;net10.0-windows10.0.19041.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <!-- Deja compilar el TFM Windows-only desde Linux/Mac (solo build, no ejecución). -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
   <!-- Windows-only host bits. Do not pin RuntimeIdentifier: `dotnet run` uses the machine OS. -->
   <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('windows'))">
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'">
+    <DefineConstants>$(DefineConstants);HIVESHOCK_WINDOWS_DESKTOP</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
@@ -53,6 +66,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HiveShock.Core\HiveShock.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Solo la pata Windows referencia Desktop: es el único TFM con el que es compatible. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'">
+    <ProjectReference Include="..\HiveShock.Desktop\HiveShock.Desktop.csproj" />
   </ItemGroup>
 
   <ItemGroup>
