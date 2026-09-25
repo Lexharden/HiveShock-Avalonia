@@ -24,6 +24,10 @@ public sealed partial class DiagnosticViewModel : ViewModelBase
     public IReadOnlyList<string> CategoryOptions { get; } =
         ["Todos", "Gift", "Chat", "Like", "Follow", "Share", "Join", "Barrage", "System", "Unknown"];
 
+    public string PauseLabel => IsPaused ? "Reanudar" : "Pausar";
+
+    partial void OnIsPausedChanged(bool value) => OnPropertyChanged(nameof(PauseLabel));
+
     public DiagnosticViewModel(LiveDiagnosticSink sink)
     {
         _sink = sink;
@@ -116,6 +120,7 @@ public sealed partial class DiagnosticViewModel : ViewModelBase
     public string FilterCategory { get; set; } = "Todos";
     public string StatsText { get; set; } = "";
     public bool IsPaused => false;
+    public string PauseLabel => "Pausar";
     public int DroppedCount => 0;
 
     public DiagnosticViewModel(LiveDiagnosticSink sink) { }

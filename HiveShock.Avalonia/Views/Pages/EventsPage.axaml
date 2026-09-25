@@ -26,7 +26,8 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:ChatCommandRowViewModel">
                                 <DockPanel>
-                                    <ComboBox DockPanel.Dock="Right" Width="220" Margin="8,0,0,0"
+                                    <ComboBox DockPanel.Dock="Right" MinWidth="240" MaxWidth="420" Margin="8,0,0,0"
+                                              HorizontalAlignment="Right"
                                               ItemsSource="{Binding $parent[UserControl].((vm:EventsViewModel)DataContext).EffectsWithNone}"
                                               SelectedValue="{Binding Effect}"
                                               SelectedValueBinding="{Binding Id}"

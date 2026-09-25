@@ -23,6 +23,7 @@ public sealed class UiPreferences
     public double OverlayScale { get; set; } = 1.5;
     public bool DetailLogOpen { get; set; }
     public bool NavExpanded { get; set; } = true;
+    public double ActivityPanelHeight { get; set; } = 220;
     /// <summary>El panel de actividad empieza recogido: solo pesa lo justo salvo que el usuario lo abra.</summary>
     public bool ActivityPanelOpen { get; set; }
 
