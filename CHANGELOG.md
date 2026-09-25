@@ -4,6 +4,16 @@ Cambios relevantes de HiveShock. El versionado está en `Directory.Build.props`.
 
 ## [Unreleased]
 
+## [2.1.0-alpha.1] - 2026-09-24
+
+-
+
+
+## [2.0.0-alpha.1] - 2026-09-24
+
+-
+
+
 ## [1.3.0] - 2026-09-21
 
 - TikTok/Twitch: reconexión con espera creciente (8→60s) en vez de cada 8s fijo para siempre mientras el streamer no está en vivo.

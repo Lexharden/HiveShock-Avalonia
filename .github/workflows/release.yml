@@ -147,6 +147,10 @@ jobs:
           if [[ "${GITHUB_REF_TYPE}" != "tag" ]]; then
             extra+=(--draft --target "${GITHUB_SHA}")
           fi
+          # 2.0.0-alpha.1 / -beta.2 / -rc.1: pre-release, no se ofrece como la última estable.
+          if [[ "${VER}" == *-* ]]; then
+            extra+=(--prerelease)
+          fi
           gh release create "v${VER}" "${files[@]}" \
             --title "HiveShock ${VER}" \
             --notes-file release-notes.md \

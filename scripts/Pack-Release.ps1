@@ -170,7 +170,8 @@ function New-MacAppBundle {
     Copy-Item (Join-Path $PublishDir "*") $macos -Recurse -Force
 
     $plist = [System.IO.File]::ReadAllText($PlistTemplate)
-    $plist = $plist.Replace("{VERSION}", $AppVersion)
+    # CFBundleShortVersionString/CFBundleVersion solo admiten números: 2.0.0-beta.1 → 2.0.0.
+    $plist = $plist.Replace("{VERSION}", ($AppVersion -split "-", 2)[0])
 
     [System.IO.File]::WriteAllText(
         (Join-Path $AppPath "Contents\Info.plist"),
