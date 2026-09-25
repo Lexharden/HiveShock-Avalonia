@@ -13,6 +13,8 @@ namespace TikTokLive.Helpers
         public int TotalGiftCount { get; set; }
         public long EventDiamondCount { get; set; }
         public long TotalDiamondCount { get; set; }
+        /// <summary>TikTok reinició el conteo en el mismo GroupId (nuevo envío); lo previo se acumuló.</summary>
+        public bool Restarted { get; set; }
     }
 
     /// <summary>Combo que quedó sin el mensaje de cierre (RepeatEnd=1) de TikTok.</summary>
@@ -57,6 +59,9 @@ namespace TikTokLive.Helpers
             public long DiamondsPerGift;
             public string ViewerName = "";
             public int LastRepeatCount;
+            /// <summary>Regalos de envíos anteriores del mismo GroupId (conteo reiniciado por TikTok).</summary>
+            public int Banked;
+            public long LastMsgId;
             public long LastSeenTicks;
         }
 
@@ -85,11 +90,29 @@ namespace TikTokLive.Helpers
             long nowTicks = DateTime.UtcNow.Ticks;
 
             int total = msg.ComboTotal();
+            long msgId = msg.Common?.MsgId ?? 0;
             int prevCount = 0;
+            int banked = 0;
+            bool restarted = false;
             if (_streaks.TryGetValue(msg.GroupId, out var prev))
+            {
                 prevCount = prev.LastRepeatCount;
+                banked = prev.Banked;
 
-            int delta = Math.Max(total - prevCount, 0);
+                // TikTok a veces reutiliza el GroupId para un segundo envío y vuelve a
+                // contar desde 1 (ej. 2 Mishka Bear seguidos llegan como x1, x1). Un mensaje
+                // nuevo (otro MsgId) que reinicia en 1 es otro regalo, no un duplicado.
+                if (!isFinal && total == 1 && prevCount >= 1 && msgId != 0 && msgId != prev.LastMsgId)
+                {
+                    banked += prevCount;
+                    prevCount = 0;
+                    restarted = true;
+                }
+            }
+
+            int count = Math.Max(total, prevCount);
+            int delta = count - prevCount;
+            int grandTotal = banked + count;
 
             if (isFinal)
             {
@@ -104,7 +127,9 @@ namespace TikTokLive.Helpers
                     DiamondsPerGift = diamondPer,
                     ViewerName = msg.User?.Nickname is { Length: > 0 } nick ? nick
                         : msg.User?.UniqueId is { Length: > 0 } uid ? uid : "",
-                    LastRepeatCount = total,
+                    LastRepeatCount = count,
+                    Banked = banked,
+                    LastMsgId = msgId != 0 ? msgId : prev?.LastMsgId ?? 0,
                     LastSeenTicks = nowTicks,
                 };
             }
@@ -115,9 +140,10 @@ namespace TikTokLive.Helpers
                 IsActive = !isFinal,
                 IsFinal = isFinal,
                 EventGiftCount = delta,
-                TotalGiftCount = total,
+                TotalGiftCount = grandTotal,
                 EventDiamondCount = (long)diamondPer * delta,
-                TotalDiamondCount = (long)diamondPer * total,
+                TotalDiamondCount = (long)diamondPer * grandTotal,
+                Restarted = restarted,
             };
         }
 
@@ -159,8 +185,8 @@ namespace TikTokLive.Helpers
                     GiftName = s.GiftName,
                     DiamondsPerGift = s.DiamondsPerGift,
                     ViewerName = s.ViewerName,
-                    TotalGiftCount = s.LastRepeatCount,
-                    TotalDiamondCount = s.DiamondsPerGift * s.LastRepeatCount,
+                    TotalGiftCount = s.Banked + s.LastRepeatCount,
+                    TotalDiamondCount = s.DiamondsPerGift * (s.Banked + s.LastRepeatCount),
                 });
             }
 

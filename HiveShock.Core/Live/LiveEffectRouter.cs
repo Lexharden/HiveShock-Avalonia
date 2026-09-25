@@ -272,6 +272,13 @@ public sealed class LiveEffectRouter : IDisposable
             streak = _streaks.Process(gift);
         }
 
+        if (streak.Restarted)
+        {
+            BridgeLog.Info(
+                $"Combo reiniciado por TikTok: {ViewerName(gift.User)} {(!string.IsNullOrWhiteSpace(name) ? name : id)} " +
+                $"acumulado x{streak.TotalGiftCount}");
+        }
+
         if (!streak.IsFinal)
         {
             return;
