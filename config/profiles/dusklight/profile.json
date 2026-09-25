@@ -1,7 +1,7 @@
 {
   "id": "dusklight",
   "displayName": "Twilight Princess (Dusklight)",
-  "description": "Abre Dusklight, entra en una partida y activa el puente de TikTok en Mods.",
+  "description": "Dusklight: entra en una partida y activa el puente en Mods.",
   "gameHost": "127.0.0.1",
   "gamePort": 43000,
   "crowdControlPort": 43001,
@@ -12,14 +12,17 @@
   "supportsRescue": false,
   "singletonEffects": [ "delete_save", "wipe_save", "nuke_save" ],
   "enemyEffects": [
-    "keese", "fire_keese", "ice_keese", "guay", "bokoblin", "lizalfos", "chuchu",
+    "keese", "fire_keese", "ice_keese", "guay", "bokoblin", "bulblin", "lizalfos", "chuchu",
     "tektite", "skulltula", "helmasaur", "wolfos", "poe", "gibdo", "keese_twilight",
     "cucco", "random_enemy", "cucco_army", "bokoblin_army", "goat_army", "bee_swarm",
     "shadow_beast", "twilight_insect", "twilight_vermin", "poison_mite", "goat",
-    "spawn_bomb", "spawn_bombchu"
+    "spawn_bomb", "spawn_bombchu", "helmsaurus",
+    "darknut", "puppet_zelda", "freezard", "leever"
   ],
   "labels": {
     "heal": "Curar corazones",
+    "great_fairy": "Gran Hada (cura vida completa)",
+    "recovery_fairy": "Hada de curación (vuela hacia Link)",
     "damage": "Daño",
     "rupees": "Dar / quitar rupias",
     "steal_rupees": "Robar todas las rupias",
@@ -52,12 +55,18 @@
     "dismount_horse": "Bajar de Epona",
     "spawn_bomb": "Bomba a los pies",
     "spawn_bombchu": "Bombling / bombchu",
+    "spawn_rupee": "Rupia",
+    "give_rupee": "Rupia",
+    "spawn_heart": "Corazón",
+    "spawn_fairy": "Hada",
+    "spawn_pot": "Maceta",
     "cucco": "Enemigo — Cucco",
     "keese": "Enemigo — Keese",
     "fire_keese": "Enemigo — Keese de fuego",
     "ice_keese": "Enemigo — Keese de hielo",
     "guay": "Enemigo — Guay",
     "bokoblin": "Enemigo — Bokoblin",
+    "bulblin": "Enemigo — Bulblin",
     "lizalfos": "Enemigo — Lizalfos",
     "chuchu": "Enemigo — Chuchu",
     "tektite": "Enemigo — Tektite",
@@ -71,7 +80,13 @@
     "twilight_insect": "Enemigo — Insecto Twilight",
     "twilight_vermin": "Enemigo — Vermin Twilight",
     "poison_mite": "Enemigo — Ácaros venenosos",
-    "goat": "NPC — Cabra de Ordon"
+    "goat": "NPC — Cabra de Ordon",
+    "reset": "Reset (mandar al menú)",
+    "helmsaurus": "Enemigo — Helmsaurus (el capibara gigante)",
+    "darknut": "Enemigo — Darknut",
+    "puppet_zelda": "Enemigo — Puppet Zelda",
+    "freezard": "Enemigo — Freezard",
+    "leever": "Enemigo — Leever"
   },
-  "helpNotes": "Abre Dusklight, entra en una partida y activa el puente de TikTok en Mods."
+  "helpNotes": "Entra en una partida y activa el puente en Mods."
 }

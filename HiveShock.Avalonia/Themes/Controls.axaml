@@ -1,10 +1,10 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Style Selector="TextBlock.pageTitle">
-        <Setter Property="FontSize" Value="26" />
+        <Setter Property="FontSize" Value="22" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-        <Setter Property="Margin" Value="0,0,0,6" />
+        <Setter Property="Margin" Value="0,0,0,8" />
     </Style>
     <Style Selector="TextBlock.pageLead">
         <Setter Property="FontSize" Value="13" />
@@ -106,6 +106,13 @@
         <Setter Property="Margin" Value="0,4,8,8" />
     </Style>
 
+    <Style Selector="TextBlock.navGroup">
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="LetterSpacing" Value="0.8" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+        <Setter Property="Margin" Value="16,12,16,4" />
+    </Style>
     <Style Selector="Button.nav">
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
@@ -115,6 +122,12 @@
         <Setter Property="Margin" Value="8,2" />
         <Setter Property="CornerRadius" Value="8" />
     </Style>
+    <Style Selector="Button.nav.compact">
+        <Setter Property="Padding" Value="0,10" />
+        <Setter Property="Margin" Value="6,2" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
     <Style Selector="Button.nav.active">
         <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource BrandGoldBrush}" />
@@ -122,6 +135,38 @@
     </Style>
     <Style Selector="Button.nav:pointerover /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource CardAltBrush}" />
+    </Style>
+    <Style Selector="Button.menu">
+        <Setter Property="Width" Value="40" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.menu:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource CardAltBrush}" />
+    </Style>
+    <Style Selector="TabControl">
+        <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="TabItem">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Expander">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Expander /template/ ContentPresenter">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Expander.account">
+        <Setter Property="Margin" Value="0,0,0,8" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
     </Style>
 
     <Style Selector="Button.connect">
@@ -140,11 +185,27 @@
     </Style>
     <Style Selector="Button.connect.live">
         <Setter Property="Background" Value="{DynamicResource LiveBrush}" />
-        <Setter Property="Foreground" Value="{DynamicResource StatusOnForegroundBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource LiveOnForegroundBrush}" />
     </Style>
     <Style Selector="Button.connect.ok">
         <Setter Property="Background" Value="{DynamicResource StatusOkBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource StatusOnForegroundBrush}" />
+    </Style>
+
+    <!-- Tono de texto de estado: mismo criterio de color que Button.connect.*, reutilizable
+         en cualquier TextBlock que muestre "conectando/en vivo/ok/error" sobre el fondo normal
+         de la página (no sobre una píldora de color, ver el estado del header en MainWindow). -->
+    <Style Selector="TextBlock.tone-connecting">
+        <Setter Property="Foreground" Value="{DynamicResource BrandGoldBrush}" />
+    </Style>
+    <Style Selector="TextBlock.tone-live">
+        <Setter Property="Foreground" Value="{DynamicResource LiveTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.tone-ok">
+        <Setter Property="Foreground" Value="{DynamicResource StatusOkBrush}" />
+    </Style>
+    <Style Selector="TextBlock.tone-error">
+        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
     </Style>
 
     <Style Selector="Button.gamecard">
@@ -156,8 +217,8 @@
         <Setter Property="Margin" Value="0,0,10,10" />
         <Setter Property="CornerRadius" Value="12" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="MinWidth" Value="220" />
-        <Setter Property="MaxWidth" Value="280" />
+        <Setter Property="MinWidth" Value="200" />
+        <Setter Property="MaxWidth" Value="340" />
     </Style>
     <Style Selector="Button.gamecard.active">
         <Setter Property="BorderBrush" Value="{DynamicResource BrandGoldBrush}" />
@@ -174,5 +235,38 @@
         <Setter Property="Background" Value="{DynamicResource InputBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="MaxDropDownHeight" Value="260" />
+    </Style>
+    <Style Selector="GridSplitter">
+        <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="MinWidth" Value="6" />
+        <Setter Property="MinHeight" Value="6" />
+    </Style>
+    <Style Selector="GridSplitter:pointerover">
+        <Setter Property="Background" Value="{DynamicResource BrandGoldBrush}" />
+    </Style>
+    <Style Selector="GridSplitter:pressed">
+        <Setter Property="Background" Value="{DynamicResource BrandGoldBrush}" />
+    </Style>
+
+    <!-- Etiqueta "ALPHA" para funciones en prueba (hoy: Voz). -->
+    <Style Selector="Border.alphaBadge">
+        <Setter Property="Background" Value="{DynamicResource BrandGoldBrush}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="5,1" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.alphaBadge > TextBlock">
+        <Setter Property="Foreground" Value="#1A1200" />
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+
+    <!-- Texto monoespaciado (log técnico «Más detalle»). -->
+    <Style Selector="TextBlock.mono">
+        <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    </Style>
+    <Style Selector="TextBox.mono">
+        <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
     </Style>
 </Styles>

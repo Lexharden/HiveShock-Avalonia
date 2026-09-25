@@ -1,0 +1,120 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Android.ViewModels"
+             x:Class="HiveShock.Android.Views.EventsMapView"
+             x:DataType="vm:EventsMapViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="16">
+            <TextBlock Classes="hint"
+                       Text="Eventos de TikTok que no son un regalo. El chat de Twitch y los bits van en Twitch." />
+
+            <Border Classes="card">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="CHAT TIKTOK" />
+                    <CheckBox Content="Permitir palabras" IsChecked="{Binding ChatEnabled}" />
+                    <TextBlock Classes="fieldLabel" Text="Empieza por" Margin="0,10,0,6" />
+                    <TextBox Text="{Binding ChatPrefix}" Width="64" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                    <TextBlock Classes="fieldLabel" Text="Espera viewer (s)" />
+                    <TextBox Text="{Binding ChatCooldownText}" Width="72" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                    <TextBlock Classes="fieldLabel" Text="Espera todos (s)" />
+                    <TextBox Text="{Binding ChatGlobalGapText}" Width="72" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                    <WrapPanel>
+                        <Button Classes="secondary" Content="Añadir" Command="{Binding AddCommandCommand}" />
+                        <Button Classes="secondary" Content="Quitar" Command="{Binding RemoveCommandCommand}" />
+                    </WrapPanel>
+                    <ListBox ItemsSource="{Binding ChatCommands}" SelectedItem="{Binding SelectedCommand}"
+                             MinHeight="80" MaxHeight="200" Margin="0,8,0,0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ChatMapRow">
+                                <StackPanel Spacing="6">
+                                    <TextBox Text="{Binding Word}" PlaceholderText="palabra" />
+                                    <ComboBox ItemsSource="{Binding $parent[UserControl].((vm:EventsMapViewModel)DataContext).EffectsWithNone}"
+                                              SelectedValue="{Binding Effect}"
+                                              SelectedValueBinding="{Binding Id}"
+                                              DisplayMemberBinding="{Binding Display}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="NUEVOS SEGUIDORES (TIKTOK)" />
+                    <ComboBox ItemsSource="{Binding EffectsWithNone}"
+                              SelectedValue="{Binding FollowEffect}"
+                              SelectedValueBinding="{Binding Id}"
+                              DisplayMemberBinding="{Binding Display}" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="LIKES" />
+                    <TextBlock Classes="fieldLabel" Text="Cada cuántos likes" />
+                    <TextBox Text="{Binding LikesEveryText}" Width="80" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                    <TextBlock Classes="fieldLabel" Text="Qué hace" />
+                    <ComboBox ItemsSource="{Binding EffectsWithNone}"
+                              SelectedValue="{Binding LikesEffect}"
+                              SelectedValueBinding="{Binding Id}"
+                              DisplayMemberBinding="{Binding Display}" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="COMPARTIR LIVE" />
+                    <ComboBox ItemsSource="{Binding EffectsWithNone}"
+                              SelectedValue="{Binding ShareEffect}"
+                              SelectedValueBinding="{Binding Id}"
+                              DisplayMemberBinding="{Binding Display}" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="METAS (TOTAL DEL CHAT)" />
+                    <TextBlock Classes="hint"
+                               Text="Cuántos de esos regalos entre todos, no el combo de uno." />
+                    <WrapPanel>
+                        <Button Classes="secondary" Content="Añadir" Command="{Binding AddGoalCommand}" />
+                        <Button Classes="secondary" Content="Quitar" Command="{Binding RemoveGoalCommand}" />
+                        <Button Classes="secondary" Content="Reiniciar" Command="{Binding ResetGoalCommand}" />
+                        <Button Classes="secondary" Content="Simular" Command="{Binding SimulateGoalCommand}" />
+                    </WrapPanel>
+                    <ListBox ItemsSource="{Binding Goals}" SelectedItem="{Binding SelectedGoal}"
+                             MinHeight="80" MaxHeight="160" Margin="0,8,0,8">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:GoalMapRow">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding ProgressText}" FontSize="11" Foreground="#9AA4B2" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <StackPanel IsVisible="{Binding HasGoalSelection}">
+                    <TextBlock Classes="fieldLabel" Text="Nombre" />
+                    <TextBox Text="{Binding SelectedGoal.Label}" Margin="0,0,0,8" />
+                    <TextBlock Classes="fieldLabel" Text="Cuántos hacen falta" />
+                    <TextBox Text="{Binding SelectedGoal.NeedText}" Margin="0,0,0,8" />
+                    <TextBlock Classes="fieldLabel" Text="Regalos que cuentan (nombres, coma)" />
+                    <TextBox Text="{Binding SelectedGoal.GiftsText}" Margin="0,0,0,8" />
+                    <TextBlock Classes="fieldLabel" Text="Qué hace" />
+                    <ComboBox ItemsSource="{Binding EffectsWithNone}"
+                              SelectedValue="{Binding SelectedGoal.Effect}"
+                              SelectedValueBinding="{Binding Id}"
+                              DisplayMemberBinding="{Binding Display}"
+                              Margin="0,0,0,8" />
+                    <CheckBox Content="También el efecto inmediato del regalo" IsChecked="{Binding SelectedGoal.AlsoInstant}" />
+                    <CheckBox Content="Repetir al completar otra vez" IsChecked="{Binding SelectedGoal.Repeat}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Button Classes="primary" Content="Guardar" Command="{Binding SaveCommand}"
+                    HorizontalAlignment="Stretch" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

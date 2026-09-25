@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using TikTokLive.Proto;
 
 namespace TikTokLive.Helpers
@@ -18,17 +17,32 @@ namespace TikTokLive.Helpers
         public bool Restarted { get; set; }
     }
 
+    /// <summary>Combo que quedó sin el mensaje de cierre (RepeatEnd=1) de TikTok.</summary>
+    public sealed class PendingStreak
+    {
+        public ulong GroupId { get; set; }
+        public int GiftId { get; set; }
+        public string GiftName { get; set; } = "";
+        public long DiamondsPerGift { get; set; }
+        public string ViewerName { get; set; } = "";
+        public int TotalGiftCount { get; set; }
+        public long TotalDiamondCount { get; set; }
+    }
+
     /// <summary>
     /// Tracks gift streak deltas from TikTok's running totals.
-    /// Not thread-safe — use from a single event-handling thread.
+    /// Not thread-safe — el llamador debe serializar el acceso (Process/FlushStale).
     /// </summary>
     public class GiftStreakTracker
     {
-        private const long StaleSecs = 60;
+        /// <summary>
+        /// TikTok no siempre manda el mensaje final (RepeatEnd=1) de un combo —
+        /// pasa sobre todo con regalos tipo "battle"/gallery (ej. ballenas, galaxias). Si no
+        /// llega nada nuevo para ese GroupId durante esta ventana, se da el combo por cerrado
+        /// y se procesa con el total visto hasta el momento.
+        /// </summary>
+        public static readonly TimeSpan ComboIdleTimeout = TimeSpan.FromSeconds(6);
 
-<<<<<<< Updated upstream
-        private readonly Dictionary<ulong, (int lastRepeatCount, long lastSeenTicks)> _streaks = new();
-=======
         /// <summary>
         /// Ventana mucho más corta para regalos caros (por diamante), que casi nunca se
         /// mandan en combos rápidos reales — así el fallback de arriba no los hace esperar.
@@ -52,7 +66,6 @@ namespace TikTokLive.Helpers
         }
 
         private readonly Dictionary<ulong, StreakState> _streaks = new();
->>>>>>> Stashed changes
 
         public GiftStreakEvent Process(WebcastGiftMessage msg)
         {
@@ -75,22 +88,13 @@ namespace TikTokLive.Helpers
             }
 
             long nowTicks = DateTime.UtcNow.Ticks;
-            EvictStale(nowTicks);
 
-<<<<<<< Updated upstream
-=======
             int total = msg.ComboTotal();
             long msgId = msg.Common?.MsgId ?? 0;
->>>>>>> Stashed changes
             int prevCount = 0;
             int banked = 0;
             bool restarted = false;
             if (_streaks.TryGetValue(msg.GroupId, out var prev))
-<<<<<<< Updated upstream
-                prevCount = prev.lastRepeatCount;
-
-            int delta = Math.Max(msg.RepeatCount - prevCount, 0);
-=======
             {
                 prevCount = prev.LastRepeatCount;
                 banked = prev.Banked;
@@ -109,16 +113,12 @@ namespace TikTokLive.Helpers
             int count = Math.Max(total, prevCount);
             int delta = count - prevCount;
             int grandTotal = banked + count;
->>>>>>> Stashed changes
 
             if (isFinal)
+            {
                 _streaks.Remove(msg.GroupId);
+            }
             else
-<<<<<<< Updated upstream
-                _streaks[msg.GroupId] = (msg.RepeatCount, nowTicks);
-
-            long rc = Math.Max(msg.RepeatCount, 1);
-=======
             {
                 _streaks[msg.GroupId] = new StreakState
                 {
@@ -133,7 +133,6 @@ namespace TikTokLive.Helpers
                     LastSeenTicks = nowTicks,
                 };
             }
->>>>>>> Stashed changes
 
             return new GiftStreakEvent
             {
@@ -141,14 +140,6 @@ namespace TikTokLive.Helpers
                 IsActive = !isFinal,
                 IsFinal = isFinal,
                 EventGiftCount = delta,
-<<<<<<< Updated upstream
-                TotalGiftCount = msg.RepeatCount,
-                EventDiamondCount = (long)diamondPer * delta,
-                TotalDiamondCount = (long)diamondPer * rc,
-            };
-        }
-
-=======
                 TotalGiftCount = grandTotal,
                 EventDiamondCount = (long)diamondPer * delta,
                 TotalDiamondCount = (long)diamondPer * grandTotal,
@@ -202,18 +193,8 @@ namespace TikTokLive.Helpers
             return result;
         }
 
->>>>>>> Stashed changes
         public int ActiveStreaks() => _streaks.Count;
 
         public void Reset() => _streaks.Clear();
-
-        private void EvictStale(long nowTicks)
-        {
-            long cutoff = TimeSpan.FromSeconds(StaleSecs).Ticks;
-            var stale = _streaks.Where(kv => (nowTicks - kv.Value.lastSeenTicks) >= cutoff)
-                .Select(kv => kv.Key).ToList();
-            foreach (ulong id in stale)
-                _streaks.Remove(id);
-        }
     }
 }

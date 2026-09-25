@@ -16,4 +16,7 @@ _stage-*/
 **/logs/
 *.log
 TestResults/
+*.keystore
+*.keystore.pass
+*.jks
 

@@ -1,10 +1,13 @@
 using HiveShock;
 using HiveShock.Configuration;
+using HiveShock.Hosting;
+using HiveShock.Live;
 
 namespace HiveShock.Ui;
 
 public sealed class ConsoleMenu
 {
+    private readonly BridgeRuntime _runtime;
     private readonly BridgeOptions _options;
     private readonly EffectCatalog _effects;
     private readonly GiftConfigStore _gifts;
@@ -12,14 +15,15 @@ public sealed class ConsoleMenu
     private readonly string _giftsPath;
 
     public ConsoleMenu(
-        BridgeOptions options,
+        BridgeRuntime runtime,
         EffectCatalog effects,
         GiftConfigStore gifts,
         GiftCatalogStore catalog,
         string giftsPath,
         string effectsPath)
     {
-        _options = options;
+        _runtime = runtime;
+        _options = runtime.Options;
         _effects = effects;
         _gifts = gifts;
         _catalog = catalog;
@@ -40,7 +44,7 @@ public sealed class ConsoleMenu
             Console.WriteLine("  [2] Capturar catálogo");
             Console.WriteLine("  [3] Gestionar regalos");
             Console.WriteLine("  [4] Catálogo");
-            Console.WriteLine("  [5] Canal");
+            Console.WriteLine("  [5] Canales");
             Console.WriteLine("  [6] Efectos");
             Console.WriteLine($"  [7] Dry-run  ({OnOff(_options.DryRun)})");
             Console.WriteLine("  [8] Modo pruebas");
@@ -52,7 +56,7 @@ public sealed class ConsoleMenu
             {
                 case "1":
                 case "":
-                    if (!RequireChannel())
+                    if (!RequireLivePorts())
                     {
                         continue;
                     }
@@ -63,7 +67,7 @@ public sealed class ConsoleMenu
                     return true;
 
                 case "2":
-                    if (!RequireChannel())
+                    if (!RequireTikTok())
                     {
                         continue;
                     }
@@ -82,7 +86,7 @@ public sealed class ConsoleMenu
                     break;
 
                 case "5":
-                    ChangeChannel();
+                    ChangePorts();
                     break;
 
                 case "6":
@@ -109,15 +113,28 @@ public sealed class ConsoleMenu
         }
     }
 
-    private bool RequireChannel()
+    private bool RequireLivePorts()
     {
-        if (!string.IsNullOrWhiteSpace(_options.TikTokUniqueId))
+        if (_options.HasAnyLivePort)
         {
             return true;
         }
 
         Console.WriteLine();
-        Console.WriteLine("Falta el canal. Usa [5].");
+        Console.WriteLine("Activa TikTok (usuario) o Twitch (cuenta). Usa [5].");
+        Pause();
+        return false;
+    }
+
+    private bool RequireTikTok()
+    {
+        if (_options.TikTokReady)
+        {
+            return true;
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("Anotar regalos necesita TikTok. Usa [5].");
         Pause();
         return false;
     }
@@ -126,18 +143,22 @@ public sealed class ConsoleMenu
     {
         Console.WriteLine("=================================================");
         Console.WriteLine("  HiveShock");
-        Console.WriteLine("  Dev Yafel GH");
+        Console.WriteLine("  Lo que pasa en tu live llega al juego");
         Console.WriteLine("=================================================");
     }
 
     private void PrintStatus()
     {
-        var channel = string.IsNullOrWhiteSpace(_options.TikTokUniqueId)
-            ? "(sin configurar)"
+        var tiktok = string.IsNullOrWhiteSpace(_options.TikTokUniqueId)
+            ? "(sin usuario)"
             : "@" + _options.TikTokUniqueId;
+        var twitch = string.IsNullOrWhiteSpace(_options.TwitchUserLogin)
+            ? "(sin cuenta)"
+            : "@" + _options.TwitchUserLogin;
 
         Console.WriteLine();
-        Console.WriteLine($"  Canal     {channel}");
+        Console.WriteLine($"  TikTok    {( _options.TikTokEnabled ? "sí" : "no" )}  {tiktok}");
+        Console.WriteLine($"  Twitch    {( _options.TwitchEnabled ? "sí" : "no" )}  {twitch}");
         Console.WriteLine($"  Perfil    {_options.ProfileId ?? "(activo)"}");
         Console.WriteLine($"  Juego     {_options.GameHost}:{_options.GamePort}");
         Console.WriteLine($"  Mapeos    {_gifts.Snapshot.Groups.Count}");
@@ -146,7 +167,77 @@ public sealed class ConsoleMenu
 
     private static string OnOff(bool value) => value ? "sí" : "no";
 
-    private void ChangeChannel()
+    private void ChangePorts()
+    {
+        Console.WriteLine();
+        Console.WriteLine("  [1] Usuario TikTok");
+        Console.WriteLine($"  [2] Usar TikTok ({OnOff(_options.TikTokEnabled)})");
+        Console.WriteLine("  [3] Entrar en Twitch");
+        Console.WriteLine("  [4] Salir de Twitch");
+        Console.WriteLine($"  [5] Usar Twitch ({OnOff(_options.TwitchEnabled)})");
+        Console.WriteLine("  [Enter] Volver");
+        Console.Write("> ");
+        switch ((Console.ReadLine() ?? "").Trim())
+        {
+            case "1":
+                ChangeTikTokUser();
+                break;
+            case "2":
+                ToggleFlag("TIKTOK_ENABLED", v => _options.TikTokEnabled = v, _options.TikTokEnabled);
+                break;
+            case "3":
+                LoginTwitch();
+                break;
+            case "4":
+                _runtime.LogoutTwitch();
+                Console.WriteLine("Twitch: sesión cerrada.");
+                Pause();
+                break;
+            case "5":
+                ToggleFlag("TWITCH_ENABLED", v => _options.TwitchEnabled = v, _options.TwitchEnabled);
+                break;
+        }
+    }
+
+    private void ToggleFlag(string key, Action<bool> apply, bool current)
+    {
+        var next = !current;
+        apply(next);
+        try
+        {
+            EnvFileWriter.Upsert(EnvFileWriter.EnsureEnvPath(), key, next ? "1" : "0");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            Pause();
+        }
+    }
+
+    private void LoginTwitch()
+    {
+        Console.WriteLine();
+        Console.WriteLine("Se abre el navegador. Si no, ve a twitch.tv/activate y escribe el código.");
+        var progress = new Progress<TwitchDeviceStart>(start =>
+        {
+            Console.WriteLine();
+            Console.WriteLine($"  Código  {start.UserCode}");
+            Console.WriteLine($"  {start.VerificationUri}");
+        });
+        try
+        {
+            _runtime.LoginTwitchAsync(progress, CancellationToken.None).GetAwaiter().GetResult();
+            Console.WriteLine($"Twitch @{_options.TwitchUserLogin}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+
+        Pause();
+    }
+
+    private void ChangeTikTokUser()
     {
         Console.WriteLine();
         Console.Write($"Usuario TikTok [{_options.TikTokUniqueId}]: ");

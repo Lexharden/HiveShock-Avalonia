@@ -8,12 +8,18 @@ namespace HiveShock.Configuration;
 public static class ProductInfo
 {
     public const string Name = "HiveShock";
-    public const string Tagline = "TikTok Live → efectos en el juego";
+    public const string Tagline = "Lo que pasa en tu live llega al juego";
     public const string Vendor = "Yafel";
     public const string Website = "https://hiveshock.yafel.dev";
 
     public static string ExecutableFileName =>
         OperatingSystem.IsWindows() ? $"{Name}.exe" : Name;
+}
+
+/// <summary>App de Twitch embebida. El Client ID es público; el usuario no lo ve.</summary>
+public static class TwitchApp
+{
+    public const string ClientId = "";
 }
 
 /// <summary>Metadatos de un perfil de juego (efectos + regalos + puertos).</summary>
@@ -34,6 +40,16 @@ public sealed class GameProfileInfo
     public List<string> EnemyEffects { get; set; } = [];
     public List<string> SingletonEffects { get; set; } = [];
     public string HelpNotes { get; set; } = "";
+
+    public string Label(string key, string fallback)
+    {
+        if (Labels.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        return fallback;
+    }
 }
 
 /// <summary>Perfil resuelto con rutas absolutas a effects/gifts.</summary>
@@ -47,6 +63,17 @@ public sealed class LoadedGameProfile
 
     public string Id => Info.Id;
     public string DisplayName => Info.DisplayName;
+
+    /// <summary>Nombre corto sin el motor/mod entre paréntesis.</summary>
+    public string ShortDisplayName
+    {
+        get
+        {
+            var name = DisplayName;
+            var paren = name.IndexOf('(');
+            return paren > 0 ? name[..paren].Trim() : name;
+        }
+    }
 }
 
 public static class ProfileStore
@@ -57,8 +84,7 @@ public static class ProfileStore
     public static string ProfilesRoot =>
         FindProfilesRoot()
         ?? throw new DirectoryNotFoundException(
-            $"No se encontró la carpeta profiles/. Debe estar junto a {ProductInfo.ExecutableFileName} " +
-            $"(carpeta: {AppPaths.AppDirectory}).");
+            $"No se encontró la carpeta profiles/ (carpeta: {AppPaths.AppDirectory}).");
 
     public static IReadOnlyList<LoadedGameProfile> ListProfiles()
     {

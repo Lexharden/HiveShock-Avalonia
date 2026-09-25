@@ -542,8 +542,9 @@ if [[ "$IS_OSX" -eq 1 ]]; then
   # Info.plist
   echo "==> Generando Info.plist..."
 
+  # CFBundleShortVersionString/CFBundleVersion solo admiten números: 2.0.0-beta.1 → 2.0.0.
   sed \
-    "s/{VERSION}/$VERSION/g" \
+    "s/{VERSION}/${VERSION%%-*}/g" \
     "$PLIST_TPL" \
     > "$APP/Contents/Info.plist"
 

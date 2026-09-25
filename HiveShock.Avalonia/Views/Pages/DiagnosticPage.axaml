@@ -1,0 +1,123 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+             xmlns:live="using:HiveShock.Live"
+             x:Class="HiveShock.Avalonia.Views.Pages.DiagnosticPage"
+             x:DataType="vm:DiagnosticViewModel">
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
+        <StackPanel Grid.Row="0" Margin="0,0,0,4">
+            <TextBlock Classes="pageTitle" Text="Debug" />
+            <TextBlock Classes="pageLead"
+                       Text="Eventos crudos de TikTok/Twitch en vivo, solo en builds de depuración." />
+        </StackPanel>
+
+        <!-- Barra de Controles y Filtros -->
+        <Border Grid.Row="1" Classes="card" Margin="0,0,0,8" Padding="12,10">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" RowDefinitions="Auto">
+                <!-- Selector de Categoría -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                    <TextBlock Text="Categoría:" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="12" />
+                    <ComboBox ItemsSource="{Binding CategoryOptions}"
+                              SelectedItem="{Binding FilterCategory}"
+                              Width="130" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Cuadro de Búsqueda -->
+                <TextBox Grid.Column="1" Margin="12,0,12,0"
+                         Text="{Binding FilterText}"
+                         PlaceholderText="Buscar por regalo, usuario, id, tipo..."
+                         VerticalAlignment="Center" />
+
+                <!-- Botón Pausa -->
+                <Button Grid.Column="2" Classes="secondary" Margin="0,0,6,0"
+                        Content="{Binding PauseLabel}"
+                        Command="{Binding TogglePauseCommand}"
+                        VerticalAlignment="Center" ToolTip.Tip="Pausar o reanudar actualización en vivo" />
+
+                <!-- Botón Limpiar -->
+                <Button Grid.Column="3" Classes="secondary" Margin="0,0,6,0"
+                        Content="Limpiar"
+                        Command="{Binding ClearCommand}"
+                        VerticalAlignment="Center" ToolTip.Tip="Borrar eventos acumulados" />
+
+                <!-- Botón Exportar TSV -->
+                <Button Grid.Column="4" Classes="primary"
+                        Content="Exportar TSV"
+                        Command="{Binding ExportCommand}"
+                        VerticalAlignment="Center" ToolTip.Tip="Guardar reporte completo en el Escritorio" />
+            </Grid>
+        </Border>
+
+        <!-- Barra de Estadísticas -->
+        <Border Grid.Row="2" Classes="card" Margin="0,0,0,8" Padding="10,6" CornerRadius="6">
+            <DockPanel LastChildFill="True">
+                <TextBlock DockPanel.Dock="Left" Text="Métricas de sesión: "
+                           FontWeight="SemiBold" FontSize="11"
+                           Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
+                <TextBlock Classes="mono" Text="{Binding StatsText}"
+                           FontSize="11"
+                           Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+        </Border>
+
+        <!-- Lista Virtualizada de Eventos -->
+        <Border Grid.Row="3" Classes="card" Padding="4">
+            <ListBox ItemsSource="{Binding Events}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="live:DiagnosticEvent">
+                        <Border Margin="0,2" Padding="8,6" CornerRadius="6"
+                                Background="{DynamicResource CardAltBrush}">
+                            <Grid ColumnDefinitions="Auto,Auto,Auto,*" RowDefinitions="Auto,Auto">
+                                <!-- Badge Status -->
+                                <Border Grid.Column="0" Width="10" Height="10" CornerRadius="5"
+                                        Margin="0,0,8,0" VerticalAlignment="Center">
+                                    <Border.Styles>
+                                        <Style Selector="Border">
+                                            <Setter Property="Background" Value="{DynamicResource MutedBrush}" />
+                                        </Style>
+                                    </Border.Styles>
+                                </Border>
+
+                                <!-- Hora -->
+                                <TextBlock Grid.Column="1" Classes="mono"
+                                           Text="{Binding Timestamp, StringFormat='{}{0:HH:mm:ss.fff}'}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource MutedBrush}"
+                                           VerticalAlignment="Center" />
+
+                                <!-- Tipo Raw -->
+                                <TextBlock Grid.Column="2" Classes="mono"
+                                           Text="{Binding RawType}"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource BrandGoldBrush}"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                           Margin="0,0,8,0" />
+
+                                <!-- Resumen Humano -->
+                                <TextBlock Grid.Column="3"
+                                           Text="{Binding Summary}"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+
+                                <!-- Detalle Técnico Adicional (si existe) -->
+                                <TextBlock Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Classes="mono"
+                                           IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                           Text="{Binding Detail}"
+                                           FontSize="10"
+                                           Foreground="{DynamicResource MutedBrush}"
+                                           Margin="0,4,0,0" TextWrapping="Wrap" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+    </Grid>
+</UserControl>

@@ -6,6 +6,8 @@ using HiveShock.Avalonia.Services;
 using HiveShock.Avalonia.Themes;
 using HiveShock.Hosting;
 using HiveShock.Logging;
+using HiveShock.Voice;
+using HiveShock.Voice.Piper;
 
 namespace HiveShock.Avalonia.ViewModels;
 
@@ -25,10 +27,11 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Dialogs = dialogs;
         Overlays = overlays;
         Runtime = BridgeRuntime.Create();
+        AttachVoiceIfSupported();
         Prefs = UiPreferences.Load();
         if (Application.Current != null)
         {
-            ThemeManager.Apply(Application.Current, Prefs.ResolveTheme());
+            ThemeManager.Apply(Application.Current, Prefs.ResolveTheme(), Prefs.FollowsSystem);
         }
 
         EffectChoices = [];
@@ -38,13 +41,22 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Gifts = new GiftsViewModel(this);
         Events = new EventsViewModel(this);
         Catalog = new CatalogViewModel(this);
+        Goals = new GoalsViewModel(this);
+        ProfileEditor = new ProfileEditorViewModel(this);
+        TikTok = new TikTokViewModel(this);
+        Twitch = new TwitchViewModel(this);
+        SmartTts = new SmartTtsViewModel(this);
         Help = new HelpViewModel();
         About = new AboutViewModel();
         Events.LoadFromEditor(Gifts.Editor);
+        Goals.LoadFromEditor(Gifts.Editor);
 
         CurrentPage = Studio;
         CurrentPageKey = "studio";
         DetailLogOpen = Prefs.DetailLogOpen;
+        ActivityPanelOpen = Prefs.ActivityPanelOpen;
+        ActivityPanelHeight = Math.Clamp(Prefs.ActivityPanelHeight, MinActivityPanelHeight, MaxActivityPanelHeight);
+        NavExpanded = Prefs.NavExpanded;
         SelectedThemeId = Prefs.Theme is "dark" or "light" ? Prefs.Theme : "system";
 
         Overlays.CounterClosedByUser += () =>
@@ -55,13 +67,22 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         {
             Studio.ShowGiftsOnStream = false;
         };
+        Overlays.GoalsClosedByUser += () =>
+        {
+            Studio.ShowGoalsOnStream = false;
+        };
 
         Runtime.DeathsChanged += (_, _) => Dispatch(() =>
         {
             Studio.PersistDeath();
             Studio.RefreshCounter();
         });
+        Runtime.Goals.Changed += (_, _) => Dispatch(() =>
+        {
+            Overlays.RefreshGoals(Runtime.Goals.Snapshots(), Prefs);
+        });
         Runtime.Overlay.GiftReceived += OnOverlayGift;
+        Runtime.Ports.Changed += OnPortsChanged;
         BridgeLog.Logged += OnLogged;
         BridgeLog.Init();
         BridgeLog.Info($"UI lista · perfil {Runtime.Profile.DisplayName}");
@@ -77,6 +98,11 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public GiftsViewModel Gifts { get; }
     public CatalogViewModel Catalog { get; }
     public EventsViewModel Events { get; }
+    public GoalsViewModel Goals { get; }
+    public ProfileEditorViewModel ProfileEditor { get; }
+    public TikTokViewModel TikTok { get; }
+    public TwitchViewModel Twitch { get; }
+    public SmartTtsViewModel SmartTts { get; }
     public HelpViewModel Help { get; }
     public AboutViewModel About { get; }
 
@@ -108,14 +134,17 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private bool _isRunning;
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private bool _detailLogOpen;
+    [ObservableProperty] private bool _activityPanelOpen;
+    [ObservableProperty] private double _activityPanelHeight = 220;
     [ObservableProperty] private string _activityText = "Nada todavía. Cuando conectes, aquí verás lo que pasa.";
     [ObservableProperty] private string _detailLogText = "";
     [ObservableProperty] private string _selectedThemeId = "system";
+    [ObservableProperty] private bool _navExpanded = true;
 
     public bool IsStudioNav => CurrentPageKey == "studio";
-    public bool IsGiftsNav => CurrentPageKey == "gifts";
-    public bool IsCatalogNav => CurrentPageKey == "catalog";
-    public bool IsEventsNav => CurrentPageKey == "events";
+    public bool IsTikTokNav => CurrentPageKey is "tiktok" or "gifts" or "catalog";
+    public bool IsTwitchNav => CurrentPageKey == "twitch";
+    public bool IsSmartTtsNav => CurrentPageKey == "voz";
     public bool IsHelpNav => CurrentPageKey == "help";
     public bool IsAboutNav => CurrentPageKey == "about";
     public bool CanInteract => !IsBusy;
@@ -125,6 +154,9 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public bool IsToneOk => StatusTone == "ok";
     public bool IsToneLive => StatusTone == "live";
     public bool StatusOn => StatusTone is "connecting" or "ok" or "live";
+    public bool NavCollapsed => !NavExpanded;
+    public double SidebarWidth => NavExpanded ? 208 : 56;
+    public string NavToggleTip => NavExpanded ? "Ocultar menú" : "Mostrar menú";
 
     public void Attach()
     {
@@ -136,6 +168,11 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         if (Prefs.GiftOverlayEnabled)
         {
             Overlays.ShowGifts(Gifts.Models, Prefs);
+        }
+
+        if (Prefs.GoalOverlayEnabled)
+        {
+            Overlays.ShowGoals(Runtime.Goals.Snapshots(), Prefs);
         }
     }
 
@@ -155,8 +192,11 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Gifts.Load();
         Catalog.Load();
         Events.NotifyEffects();
+        Goals.NotifyEffects();
+        ProfileEditor.Load();
         Studio.RefreshStats();
         Overlays.RefreshGifts(Gifts.Models);
+        Overlays.RefreshGoals(Runtime.Goals.Snapshots(), Prefs);
     }
 
     public void RefreshStatus()
@@ -180,7 +220,9 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
             {
                 BridgeRunMode.Capture => ("Anotando", "ok"),
                 BridgeRunMode.Sdk => ("En pruebas", "ok"),
-                _ => ("En vivo", "live"),
+                _ => (string.IsNullOrWhiteSpace(Runtime.Ports.StatusSummary())
+                    ? "En vivo"
+                    : Runtime.Ports.StatusSummary(), "live"),
             };
         }
 
@@ -208,11 +250,16 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     partial void OnCurrentPageKeyChanged(string value)
     {
         OnPropertyChanged(nameof(IsStudioNav));
-        OnPropertyChanged(nameof(IsGiftsNav));
-        OnPropertyChanged(nameof(IsCatalogNav));
-        OnPropertyChanged(nameof(IsEventsNav));
+        OnPropertyChanged(nameof(IsTikTokNav));
+        OnPropertyChanged(nameof(IsTwitchNav));
+        OnPropertyChanged(nameof(IsSmartTtsNav));
         OnPropertyChanged(nameof(IsHelpNav));
         OnPropertyChanged(nameof(IsAboutNav));
+        if (value != "voz")
+        {
+            // La prueba de micrófono solo tiene sentido con el medidor a la vista.
+            SmartTts.StopMicTest();
+        }
     }
 
     public async Task ToggleConnectionAsync()
@@ -249,6 +296,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         _sessionReady = false;
         StatusText = "Conectando…";
         StatusTone = "connecting";
+        ActivityPanelOpen = true;
         Studio.RefreshConnectLabel();
         try
         {
@@ -275,12 +323,55 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Arma Smart TTS con las implementaciones concretas de escritorio (viven en
+    /// HiveShock.Desktop) y lo conecta a Runtime. Solo existe en la compilación
+    /// net10.0-windows10.0.19041.0 (HIVESHOCK_WINDOWS_DESKTOP): es el único TFM que
+    /// referencia HiveShock.Desktop, porque NAudio/SharpHook solo exponen WASAPI/WinMM/
+    /// Media Foundation bajo un TFM Windows-versionado. En la compilación net10.0 normal
+    /// (Mac/Linux, y Windows sin -f) este método es un no-op y Runtime.Voice queda en
+    /// null; la página "Voz" lo muestra como no disponible en vez de intentar algo que
+    /// no existe en ese binario.
+    /// </summary>
+    private void AttachVoiceIfSupported()
+    {
+#if HIVESHOCK_WINDOWS_DESKTOP
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            var settings = TtsSettings.Load();
+            // Orden = preferencia y orden de respaldo: Edge (más natural) → Piper (natural, sin
+            // internet, si está instalado) → Windows (siempre disponible).
+            var engines = new TtsEngineRegistry([new EdgeTtsEngine(), new PiperTtsEngine(), new WindowsTtsEngine()]);
+            var voice = new SmartVoiceManager(
+                new WindowsMicrophoneCapture(),
+                engines,
+                new WindowsAudioPlayer(),
+                new SharpHookGlobalHotkeyListener(),
+                new VoiceActivityDetector(),
+                settings);
+            Runtime.AttachVoice(voice);
+        }
+        catch (Exception ex)
+        {
+            // Sin voz la app sigue siendo útil: la página "Voz" queda como no disponible.
+            BridgeLog.Error($"Smart TTS no se pudo iniciar: {ex.Message}");
+        }
+#endif
+    }
+
     private static string FriendlyStartError(string message)
     {
         if (message.Contains("canal", StringComparison.OrdinalIgnoreCase) ||
-            message.Contains("TikTok", StringComparison.OrdinalIgnoreCase))
+            message.Contains("TikTok", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("Twitch", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("Activa al menos", StringComparison.OrdinalIgnoreCase))
         {
-            return "Escribe tu usuario de TikTok (sin @) para conectar.";
+            return message;
         }
 
         return message;
@@ -315,29 +406,43 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         CurrentPageKey = "studio";
     }
 
+    public void GoTikTok()
+    {
+        Gifts.Load();
+        Catalog.Load();
+        Events.LoadFromEditor(Gifts.Editor);
+        Goals.LoadFromEditor(Gifts.Editor);
+        ProfileEditor.Load();
+        CurrentPage = TikTok;
+        CurrentPageKey = "tiktok";
+    }
+
+    public void GoTwitch()
+    {
+        Events.LoadFromEditor(Gifts.Editor);
+        CurrentPage = Twitch;
+        CurrentPageKey = "twitch";
+    }
+
     public void GoGifts(bool reload = true)
     {
-        if (reload)
-        {
-            Gifts.Load();
-        }
-
-        CurrentPage = Gifts;
-        CurrentPageKey = "gifts";
+        GoTikTok();
     }
 
     public void GoCatalog()
     {
-        Catalog.Load();
-        CurrentPage = Catalog;
-        CurrentPageKey = "catalog";
+        GoTikTok();
     }
 
     public void GoEvents()
     {
-        Events.LoadFromEditor(Gifts.Editor);
-        CurrentPage = Events;
-        CurrentPageKey = "events";
+        GoTikTok();
+    }
+
+    public void GoSmartTts()
+    {
+        CurrentPage = SmartTts;
+        CurrentPageKey = "voz";
     }
 
     public void GoHelp()
@@ -356,13 +461,16 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     private void NavStudio() => GoStudio();
 
     [RelayCommand]
-    private void NavGifts() => GoGifts();
+    private void NavTikTok() => GoTikTok();
 
     [RelayCommand]
-    private void NavCatalog() => GoCatalog();
+    private void NavTwitch() => GoTwitch();
 
     [RelayCommand]
-    private void NavEvents() => GoEvents();
+    private void NavSmartTts() => GoSmartTts();
+
+    [RelayCommand]
+    private void ToggleNav() => NavExpanded = !NavExpanded;
 
     [RelayCommand]
     private void NavHelp() => GoHelp();
@@ -370,9 +478,49 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [RelayCommand]
     private void NavAbout() => GoAbout();
 
+    [RelayCommand]
+    private void ClearActivity()
+    {
+        _activityLines.Clear();
+        _logLines.Clear();
+        ActivityText = "";
+        DetailLogText = "";
+    }
+
+    [RelayCommand]
+    private void ClearLog() => ClearActivity();
+
+    partial void OnNavExpandedChanged(bool value)
+    {
+        Prefs.NavExpanded = value;
+        Prefs.Save();
+        OnPropertyChanged(nameof(NavToggleTip));
+        OnPropertyChanged(nameof(NavCollapsed));
+        OnPropertyChanged(nameof(SidebarWidth));
+    }
+
     partial void OnDetailLogOpenChanged(bool value)
     {
         Prefs.DetailLogOpen = value;
+        Prefs.Save();
+    }
+
+    partial void OnActivityPanelOpenChanged(bool value)
+    {
+        Prefs.ActivityPanelOpen = value;
+        Prefs.Save();
+    }
+
+    public const double MinActivityPanelHeight = 140;
+    public const double MaxActivityPanelHeight = 640;
+
+    /// <summary>Arrastra el separador del panel "Qué está pasando" (ver MainWindow.axaml.cs).</summary>
+    public void ResizeActivityPanel(double deltaY) =>
+        ActivityPanelHeight = Math.Clamp(ActivityPanelHeight - deltaY, MinActivityPanelHeight, MaxActivityPanelHeight);
+
+    partial void OnActivityPanelHeightChanged(double value)
+    {
+        Prefs.ActivityPanelHeight = value;
         Prefs.Save();
     }
 
@@ -383,9 +531,23 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         OnPropertyChanged(nameof(SelectedTheme));
         if (Application.Current != null)
         {
-            ThemeManager.Apply(Application.Current, Prefs.ResolveTheme());
+            ThemeManager.Apply(Application.Current, Prefs.ResolveTheme(), Prefs.FollowsSystem);
         }
     }
+
+    private void OnPortsChanged() => Dispatch(() =>
+    {
+        Studio.RefreshPortCards();
+        if (Runtime.IsRunning)
+        {
+            if (Runtime.Ports.AnyLive())
+            {
+                _sessionReady = true;
+            }
+
+            RefreshStatus();
+        }
+    });
 
     private void OnOverlayGift(object? sender, OverlayGiftHitEventArgs e) =>
         Dispatch(() => Overlays.HighlightGift(e.GiftName, e.GiftId));
@@ -429,6 +591,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     private static bool MarksSessionReady(string message) =>
         message.StartsWith("TikTok conectado", StringComparison.Ordinal) ||
+        message.StartsWith("Twitch conectado", StringComparison.Ordinal) ||
         message.StartsWith("Pruebas escuchando", StringComparison.Ordinal) ||
         message.StartsWith("Captura de regalos", StringComparison.Ordinal) ||
         message.StartsWith("Modo pruebas:", StringComparison.Ordinal);
@@ -456,6 +619,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Studio.PersistDeath();
         Overlays.CloseAll(Prefs);
         Runtime.Overlay.GiftReceived -= OnOverlayGift;
+        Runtime.Ports.Changed -= OnPortsChanged;
         BridgeLog.Logged -= OnLogged;
 
         try

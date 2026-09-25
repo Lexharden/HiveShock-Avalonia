@@ -6,6 +6,11 @@ public static class PlatformShell
 {
     public static void OpenFolder(string path)
     {
+        if (OperatingSystem.IsAndroid())
+        {
+            return;
+        }
+
         if (OperatingSystem.IsWindows())
         {
             Process.Start(new ProcessStartInfo
@@ -36,6 +41,11 @@ public static class PlatformShell
 
     public static void OpenFile(string path)
     {
+        if (OperatingSystem.IsAndroid())
+        {
+            return;
+        }
+
         if (OperatingSystem.IsWindows())
         {
             Process.Start(new ProcessStartInfo
@@ -61,6 +71,28 @@ public static class PlatformShell
         {
             FileName = "xdg-open",
             ArgumentList = { path },
+        })?.Dispose();
+    }
+
+    public static Action<string>? UrlLauncher { get; set; }
+
+    public static void OpenUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return;
+        }
+
+        if (UrlLauncher != null)
+        {
+            UrlLauncher(url);
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = url,
+            UseShellExecute = true,
         })?.Dispose();
     }
 }

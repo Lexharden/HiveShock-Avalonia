@@ -6,10 +6,7 @@
              x:Class="HiveShock.Avalonia.Views.Pages.CatalogPage"
              x:DataType="vm:CatalogViewModel">
     <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
-            <TextBlock Classes="pageTitle" Text="Vistos" />
-            <TextBlock Classes="pageLead"
-                       Text="Regalos que ya salieron en tus lives. Sirve para todos los juegos. Elige uno y pulsa Usar en este juego para ponerle un efecto." />
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
             <WrapPanel>
                 <Button Classes="secondary" Content="Nuevo" Command="{Binding NewItemCommand}" />
                 <Button Classes="secondary" Content="Editar" Command="{Binding EditCommand}" />
@@ -17,7 +14,7 @@
                 <Button Classes="secondary" Content="Abrir carpeta" Command="{Binding OpenFolderCommand}" />
                 <Button Classes="primary" Content="Usar en este juego" Command="{Binding AddToGiftsCommand}" />
             </WrapPanel>
-            <Grid Margin="8,12,8,4" ColumnDefinitions="48,*,110,110">
+            <Grid Margin="8,8,8,4" ColumnDefinitions="48,*,90,90">
                 <TextBlock Grid.Column="1" Classes="fieldLabel" Text="Nombre" Margin="0" />
                 <TextBlock Grid.Column="2" Classes="fieldLabel" Text="Diamantes" Margin="0" />
                 <TextBlock Grid.Column="3" Classes="fieldLabel" Text="Veces visto" Margin="0" />
@@ -26,7 +23,7 @@
         <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="cfg:CatalogGift">
-                    <Grid ColumnDefinitions="48,*,110,110" Margin="0,4">
+                    <Grid ColumnDefinitions="48,*,90,90" Margin="0,4">
                         <Border Width="40" Height="40" CornerRadius="8" ClipToBounds="True"
                                 Background="{DynamicResource CardAltBrush}">
                             <Image Width="36" Height="36" Stretch="Uniform"

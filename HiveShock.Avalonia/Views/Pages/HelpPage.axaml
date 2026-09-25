@@ -4,49 +4,68 @@
              x:Class="HiveShock.Avalonia.Views.Pages.HelpPage"
              x:DataType="vm:HelpViewModel">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+        <StackPanel MaxWidth="640" HorizontalAlignment="Left">
             <TextBlock Classes="pageTitle" Text="Ayuda" />
             <TextBlock Classes="pageLead"
-                       Text="HiveShock toma lo que pasa en tu live de TikTok y lo convierte en efectos dentro del juego. Tú eliges qué hace cada regalo." />
+                       Text="HiveShock lleva lo que pasa en el live al juego. Cada canal se configura por separado." />
 
-            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,8,0,8" Text="Primera vez" />
-            <TextBlock Classes="helpBullet" Text="1. Abre el juego con el puente o el mod encendido, y entra en una partida (no te quedes en el menú)." />
-            <TextBlock Classes="helpBullet" Text="2. En Inicio elige el mismo juego (Majora’s Mask o Twilight Princess)." />
-            <TextBlock Classes="helpBullet" Text="3. Escribe tu usuario de TikTok sin @ y pulsa Guardar." />
-            <TextBlock Classes="helpBullet" Text="4. En Regalos, elige qué hace cada regalo y pulsa Guardar." />
-            <TextBlock Classes="helpBullet" Text="5. Elige En vivo y pulsa Conectar." />
+            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,8,0,8" Text="Arranque" />
+            <TextBlock Classes="helpBullet" Text="1. Abre el juego, entra en una partida y deja el puente o el mod encendido." />
+            <TextBlock Classes="helpBullet" Text="2. En Inicio elige el mismo perfil." />
+            <TextBlock Classes="helpBullet" Text="3. En TikTok y/o Twitch entra con tu cuenta." />
+            <TextBlock Classes="helpBullet" Text="4. En cada canal, asigna efectos y guarda." />
+            <TextBlock Classes="helpBullet" Text="5. Inicio → En vivo → Conectar." />
 
-            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,16,0,8" Text="Qué hace cada modo" />
-            <TextBlock Classes="helpBullet" Text="En vivo — los regalos (y lo demás que hayas puesto) llegan al juego. También se guardan en Vistos." />
-            <TextBlock Classes="helpBullet" Text="Anotar regalos — mira el live y guarda nombres. No manda efectos. Útil la primera vez." />
-            <TextBlock Classes="helpBullet" Text="Probar sin live — no usa TikTok. Sirve para mandar efectos al juego desde HiveShock." />
-            <TextBlock Classes="helpBullet" Text="Solo simular — ves lo que pasaría, pero la partida no cambia." />
-            <TextBlock Classes="helpBullet" Text="Enviar al juego (en Regalos) — prueba un efecto ahora, sin esperar un regalo." />
+            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,16,0,8" Text="Páginas" />
+            <TextBlock Classes="helpBullet" Text="Inicio — juego, conectar y ventanas de OBS." />
+            <TextBlock Classes="helpBullet" Text="TikTok — tu usuario, regalos, vistos, metas y chat de TikTok." />
+            <TextBlock Classes="helpBullet" Text="Twitch — entrar con tu cuenta, chat, follows y bits." />
+            <TextBlock Classes="helpBullet" Text="Voz (Alpha) — lee el chat en voz alta, con filtros y pausa automática cuando hablas." />
+            <TextBlock Classes="helpBullet" Text="Acerca de — versión, comunidad (Discord y YouTube), equipo y cómo apoyar el proyecto." />
+            <TextBlock Classes="helpBullet" Text="Chat: el mismo viewer espera unos segundos entre comandos. 0 = sin espera." />
 
-            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,16,0,8" Text="Regalos y vistos" />
+            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,16,0,8" Text="Cuentas" />
             <TextBlock Classes="helpBody"
-                       Text="Regalos es tu lista de este juego: “este regalo hace esto”. Vistos es la memoria de lo que ya salió en TikTok y se comparte entre juegos. Si un regalo no tiene efecto, no pasa nada en la partida." />
+                       Text="TikTok pide tu usuario (sin @). Twitch abre el navegador: autorizas y listo. Los mapeos de un canal no se mezclan con los del otro. Los bits se configuran solo en Twitch. Si ya habías entrado, Salir y Entrar otra vez para autorizar bits." />
 
-            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,8,0,8" Text="Regalos seguidos" />
+            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,8,0,8" Text="Modos" />
+            <TextBlock Classes="helpBullet" Text="En vivo — canales activos → efectos." />
+            <TextBlock Classes="helpBullet" Text="Anotar regalos — solo TikTok, guarda nombres." />
+            <TextBlock Classes="helpBullet" Text="Probar sin live — sin canales." />
+
+            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,16,0,8" Text="Voz: leer el chat en voz alta (Alpha)" />
             <TextBlock Classes="helpBody"
-                       Text="Mínimo de regalos seguidos: tiene que llegar al menos esas veces. “Repetir el efecto en cada uno” lo hace una vez por cada regalo (como mucho 100)." />
+                       Text="Está en pruebas y solo funciona en Windows. Actívala en Voz → «Leer el chat en voz alta». Lee TikTok y Twitch a la vez, y también puede anunciar regalos, bits y seguidores." />
+            <TextBlock Classes="helpBullet" Text="Tipos de voz: Microsoft Edge (las más naturales, necesitan internet), Voces locales HD (naturales y sin internet) y Windows (sin internet, más robóticas)." />
+            <TextBlock Classes="helpBullet" Text="Voces locales HD: en su tarjeta pulsa «Instalar» una vez y descarga al menos una voz. Después aparecen en «Tipo de voz». Cada voz tiene su licencia: si monetizas, revísala con el botón «Licencia»." />
+            <TextBlock Classes="helpBullet" Text="Voz propia: copia los dos archivos de una voz Piper (nombre.onnx y nombre.onnx.json) con «Abrir carpeta de voces» y pulsa «Buscar voces nuevas». Los pasos están en «Cómo añadir una voz propia»." />
+            <TextBlock Classes="helpBullet" Text="Voz por plataforma: una voz para TikTok y otra para Twitch, para saber de dónde viene cada mensaje." />
+            <TextBlock Classes="helpBullet" Text="Voz aleatoria: cada mensaje con una voz al azar de los idiomas que marques. Con «misma voz por persona», cada viewer suena siempre igual." />
+            <TextBlock Classes="helpBullet" Text="Micrófono: la voz se calla mientras hablas y, al terminar, repite entero el mensaje que se cortó. Usa audífonos; si la voz sale por los altavoces, el micrófono la oye y se corta sola. Ajusta la sensibilidad con «Probar micrófono»." />
+            <TextBlock Classes="helpBullet" Text="Filtros: no lee comandos, enlaces, bots, tus propios mensajes ni spam repetido. Añade palabras prohibidas y usuarios ignorados para proteger tu directo." />
+            <TextBlock Classes="helpBullet" Text="Atajos: Control+Alt+M silencia y Control+Alt+N salta el mensaje actual, aunque estés dentro del juego." />
+            <TextBlock Classes="helpBullet" Text="Respaldo: si el tipo de voz elegido falla (sin internet o bloqueado), el chat se sigue leyendo con otro tipo de voz en vez de quedarse mudo." />
+            <TextBlock Classes="helpBullet" Text="Si aparece el aviso de bloqueo de Microsoft, no es culpa de tu equipo ni de tu cuenta. Usa las voces locales o las de Windows y busca una actualización de HiveShock." />
 
-            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,8,0,8" Text="Contador y ventanas" />
+            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,16,0,8" Text="Tus datos" />
             <TextBlock Classes="helpBody"
-                       Text="Si el juego avisa cuando cae Link, puedes contar muertes o vidas. Las ventanas extra son para OBS: en Inicio actívalas y, en Cómo se ve en pantalla, cambia textos, tamaños, colores, alineación y el fondo (apúntalo si usas chroma). En Mac se capturan igual. Si el juego corre en otro PC, pon su IP en GAME_HOST. Rescatar y borrar partida solo salen si ese juego lo permite." />
-
-            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,8,0,8" Text="Juegos incluidos" />
-            <TextBlock Classes="helpBullet" Text="Majora’s Mask — 2 Ship 2 Harkinian, con el puente TikTok encendido en el juego." />
-            <TextBlock Classes="helpBullet" Text="Twilight Princess — Dusklight, con el mod de TikTok encendido en Mods." />
+                       Text="El contador de muertes, el tema, los overlays y la configuración de voz se guardan solos cada vez que cambian, en tu carpeta de usuario y con una copia junto al programa. Por eso se conservan aunque actualices HiveShock o lo descomprimas en otra carpeta. Las voces locales HD también viven en tu carpeta de usuario." />
 
             <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,16,0,8" Text="Si no pasa nada" />
-            <TextBlock Classes="helpBullet" Text="¿Elegiste el juego correcto?" />
-            <TextBlock Classes="helpBullet" Text="¿La partida está cargada y el puente o el mod encendido?" />
-            <TextBlock Classes="helpBullet" Text="¿HiveShock está conectado y el regalo tiene efecto guardado?" />
-            <TextBlock Classes="helpBullet" Text="¿“Solo simular” está apagado si quieres que el juego reaccione de verdad?" />
+            <TextBlock Classes="helpBullet" Text="¿Perfil correcto y partida cargada?" />
+            <TextBlock Classes="helpBullet" Text="¿El canal está en vivo y HiveShock conectado?" />
+            <TextBlock Classes="helpBullet" Text="¿Ese evento tiene efecto guardado en su canal?" />
+            <TextBlock Classes="helpBullet" Text="Metas: varios viewers suman el mismo regalo (no hace falta combo de uno). Se ven en TikTok → Metas." />
 
-            <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,24,0,0"
-                       Text="Quién hace el programa: Acerca de." />
+            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,16,0,8" Text="Si la voz no lee el chat" />
+            <TextBlock Classes="helpBullet" Text="¿Está activado «Leer el chat en voz alta» y no está silenciado? Mira el estado en la parte de arriba de Voz." />
+            <TextBlock Classes="helpBullet" Text="«Último mensaje no leído» te dice qué filtro lo descartó (comando, enlace, muy seguido…)." />
+            <TextBlock Classes="helpBullet" Text="Si se corta sola: usa audífonos o baja la sensibilidad del micrófono." />
+            <TextBlock Classes="helpBullet" Text="Si no suena nada: pulsa «Probar» y revisa «Dónde se escucha la voz»." />
+            <TextBlock Classes="helpBullet" Text="Voces locales que no arrancan: pulsa «Probar voces locales». Si dice que faltan librerías, instala «Microsoft Visual C++ Redistributable (x64)» (hay un botón para descargarlo de Microsoft) y reinicia HiveShock. Si sigue igual, «Borrar motor y voces» y vuelve a instalarlas." />
+
+            <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,24,0,0" TextWrapping="Wrap"
+                       Text="¿Dudas o ideas? Únete al Discord desde Acerca de. Quién hace el programa, también ahí." />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

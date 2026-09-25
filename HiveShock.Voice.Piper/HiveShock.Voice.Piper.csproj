@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Motor de voces locales Piper (https://github.com/rhasspy/piper). Piper y espeak-ng se
+    ejecutan como PROGRAMA APARTE (piper.exe descargado a la carpeta de datos del usuario),
+    nunca enlazados en este ensamblado: así su licencia (espeak-ng es GPL-3.0) no se extiende
+    a HiveShock. Aquí solo vive la instalación, el catálogo de voces y la comunicación por
+    stdin/stdout con ese proceso. net10.0 a secas: Windows, macOS y Linux.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>HiveShock.Voice.Piper</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HiveShock.Core\HiveShock.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="HiveShock.Tests" />
+  </ItemGroup>
+
+</Project>

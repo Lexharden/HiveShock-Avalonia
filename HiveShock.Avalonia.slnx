@@ -1,6 +1,10 @@
 <Solution>
   <Project Path="HiveShock.Avalonia/HiveShock.Avalonia.csproj" />
   <Project Path="HiveShock.Core/HiveShock.Core.csproj" />
+  <Project Path="HiveShock.Desktop/HiveShock.Desktop.csproj" />
+  <Project Path="HiveShock.Voice.Piper/HiveShock.Voice.Piper.csproj" />
   <Project Path="HiveShock.Cli/HiveShock.Cli.csproj" />
+  <Project Path="HiveShock.Android/HiveShock.Android.csproj" />
+  <Project Path="HiveShock.Tests/HiveShock.Tests.csproj" />
   <Project Path="libs/TikTokLive/TikTokLive.csproj" />
 </Solution>

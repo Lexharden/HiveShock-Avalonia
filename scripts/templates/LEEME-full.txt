@@ -1,19 +1,16 @@
-HiveShock {VERSION} — instalación completa
-==========================================
+HiveShock {VERSION}
+===================
 
 1. Descomprime esta carpeta donde quieras.
-2. Copia .env.example → .env (o configura el canal en la GUI).
-3. Abre {LAUNCH}
+2. Abre {LAUNCH}
+3. Elige el juego en Inicio.
 
-NO uses este zip encima de una instalación existente si ya tienes
-perfiles o catálogo configurados: podrías sobrescribir tus mapeos.
-Para actualizar, usa el zip *-update.zip.
+Tip: en TikTok pon tu usuario (sin @) y pulsa Guardar. Se crea el archivo .env.
+Cierra HiveShock y vuelve a abrirlo; después sigue con Twitch, efectos y conectar.
 
-Windows: abre HiveShock.exe.
+Si ya lo tenías instalado, no descomprimas este zip encima: usa *-update.zip.
+
+Mac (si no usas el DMG): primera vez, clic derecho → Abrir.
+Si no aparece: Ajustes del Sistema → Privacidad y seguridad → Abrir de todos modos.
 
 Linux: chmod +x HiveShock && ./HiveShock
-
-Mac: para pasarlo a otras personas usa el DMG (arrastrar HiveShock
-a Aplicaciones). La primera vez: clic derecho → Abrir.
-Si macOS Tahoe no ofrece Abrir: Ajustes del Sistema → Privacidad
-y seguridad → Abrir de todos modos. No hace falta Terminal.

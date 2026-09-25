@@ -1,5 +1,5 @@
 {
-  "_help": "gift=nombre, id=recomendado, effect=efecto. Combos: minCount=mínimo xN (default 1), each=true → un efecto por unidad (x10→10). diamonds=solo referencia. image=opcional en gifts-images/.",
+  "_help": "gift=nombre, id=recomendado, effect=efecto. Combos: minCount=mínimo xN (default 1), each=true → un efecto por unidad (x10→10). params={ value } override en unidades del juego (4=1 corazón en damage/heal). Para quitar N corazones usa damage, no insta_kill. diamonds=solo referencia. image=opcional en gifts-images/.",
 
   "gifts": [
     {
@@ -13,18 +13,20 @@
       "gift": "Heart Me",
       "id": "7934",
       "effect": "heal",
-      "what": "Cura 1 corazón. El id 7934 del live era este"
+      "what": "Cura 1 corazón",
+      "params": { "value": 4 }
     },
     {
       "gift": "Finger Heart",
       "id": "5827",
       "effect": "cucco",
-      "what": "Un cucco. El id 5827 (combo x5) encaja con este"
+      "what": "Un cucco"
     },
     {
       "gift": "TikTok",
       "effect": "heal",
-      "what": "Cura 1 corazón"
+      "what": "Cura 1 corazón",
+      "params": { "value": 4 }
     },
     {
       "gift": "GG",
@@ -63,32 +65,29 @@
       "gift": "Guardian Wings",
       "id": "15104",
       "effect": "fairy",
-      "what": "1 diamante (combos). Un hada"
+      "what": "Un hada"
     }
   ],
 
   "likes": {
     "every": 0,
     "effect": "impulse",
-    "what": "0 = apagado. Ejemplo: every 50 -> un saltito cada 50 likes"
+    "what": ""
   },
   "follow": {
     "effect": "",
-    "what": "Pon un efecto (heal, rupees...) para activar"
+    "what": ""
   },
   "share": {
     "effect": "",
-    "what": "Pon un efecto para activar"
+    "what": ""
   },
   "chat": {
     "enabled": false,
     "prefix": "!",
-    "commands": {
-      "salto": "impulse",
-      "cura": "heal",
-      "cucco": "cucco",
-      "bomba": "bomb"
-    }
+    "cooldownSec": 30,
+    "globalGapSec": 2,
+    "commands": {}
   },
 
   "unmappedGifts": "ignore",

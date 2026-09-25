@@ -10,12 +10,18 @@
         Background="{DynamicResource BgBrush}"
         Icon="/Assets/app.ico"
         Closing="Window_Closing">
-    <Grid RowDefinitions="56,*,Auto">
+    <Grid RowDefinitions="56,*">
         <Border Grid.Row="0"
                 Background="{DynamicResource CardBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
-            <DockPanel Margin="18,0">
+            <DockPanel Margin="10,0,18,0">
+                <Button DockPanel.Dock="Left" Classes="menu" Margin="0,0,10,0"
+                        VerticalAlignment="Center"
+                        Command="{Binding ToggleNavCommand}"
+                        ToolTip.Tip="{Binding NavToggleTip}">
+                    <TextBlock Text="☰" FontSize="18" HorizontalAlignment="Center" />
+                </Button>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Width="34" Height="34" CornerRadius="8" ClipToBounds="True" Margin="0,0,10,0"
                             Background="{DynamicResource CardAltBrush}"
@@ -25,7 +31,7 @@
                     <TextBlock Text="HiveShock" FontSize="18" FontWeight="SemiBold"
                                Foreground="{DynamicResource BrandGoldBrush}"
                                VerticalAlignment="Center" />
-                    <TextBlock Text="Los regalos del live llegan al juego"
+                    <TextBlock Text="Lo que pasa en tu live se quedá en el live"
                                Foreground="{DynamicResource MutedBrush}" Margin="12,2,0,0"
                                FontSize="12" VerticalAlignment="Center" />
                 </StackPanel>
@@ -57,20 +63,27 @@
                             </Style>
                         </Border.Styles>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-                            <Ellipse Width="8" Height="8" VerticalAlignment="Center"
-                                     Fill="#1A1200"
+                            <Ellipse Width="10" Height="10" VerticalAlignment="Center"
                                      IsVisible="{Binding StatusDotVisible}"
+                                     Classes.on="{Binding StatusOn}"
+                                     Classes.live="{Binding IsToneLive}"
                                      Classes.pulse="{Binding IsToneLive}">
                                 <Ellipse.Styles>
+                                    <Style Selector="Ellipse.on">
+                                        <Setter Property="Fill" Value="{DynamicResource StatusOnForegroundBrush}" />
+                                    </Style>
+                                    <Style Selector="Ellipse.on.live">
+                                        <Setter Property="Fill" Value="{DynamicResource LiveOnForegroundBrush}" />
+                                    </Style>
                                     <Style Selector="Ellipse.pulse">
                                         <Style.Animations>
-                                            <Animation Duration="0:0:1.4" IterationCount="Infinite"
+                                            <Animation Duration="0:0:1.2" IterationCount="Infinite"
                                                        PlaybackDirection="Alternate">
                                                 <KeyFrame Cue="0%">
                                                     <Setter Property="Opacity" Value="1" />
                                                 </KeyFrame>
                                                 <KeyFrame Cue="100%">
-                                                    <Setter Property="Opacity" Value="0.35" />
+                                                    <Setter Property="Opacity" Value="0.55" />
                                                 </KeyFrame>
                                             </Animation>
                                         </Style.Animations>
@@ -80,10 +93,14 @@
                             <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold" FontSize="12"
                                        VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextBrush}"
-                                       Classes.on="{Binding StatusOn}">
+                                       Classes.on="{Binding StatusOn}"
+                                       Classes.live="{Binding IsToneLive}">
                                 <TextBlock.Styles>
                                     <Style Selector="TextBlock.on">
                                         <Setter Property="Foreground" Value="{DynamicResource StatusOnForegroundBrush}" />
+                                    </Style>
+                                    <Style Selector="TextBlock.on.live">
+                                        <Setter Property="Foreground" Value="{DynamicResource LiveOnForegroundBrush}" />
                                     </Style>
                                 </TextBlock.Styles>
                             </TextBlock>
@@ -93,67 +110,150 @@
             </DockPanel>
         </Border>
 
-        <Grid Grid.Row="1" ColumnDefinitions="188,*">
-            <Border Background="{DynamicResource CardBrush}"
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
+            <Border Width="{Binding SidebarWidth}"
+                    MinWidth="{Binding SidebarWidth}"
+                    MaxWidth="{Binding SidebarWidth}"
+                    ClipToBounds="True"
+                    Background="{DynamicResource CardBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="0,0,1,0">
-                <DockPanel Margin="0,10,0,10">
-                    <Border DockPanel.Dock="Top" Margin="16,4,16,14" Padding="10"
-                            Background="{DynamicResource CardAltBrush}" CornerRadius="10"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Border Width="40" Height="40" CornerRadius="8" ClipToBounds="True"
-                                    Background="{DynamicResource BgBrush}"
-                                    BorderBrush="{DynamicResource BrandGoldBrush}" BorderThickness="1">
-                                <Image Source="{DynamicResource BrandLogo}" Stretch="Uniform" />
-                            </Border>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="HiveShock" FontWeight="SemiBold" FontSize="13"
-                                           Foreground="{DynamicResource BrandGoldBrush}" />
-                                <TextBlock Text="por Yafel" Foreground="{DynamicResource MutedBrush}" FontSize="11" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
+                <!--
+                    Sin bloque de marca aquí a propósito: el header ya muestra logo +
+                    "HiveShock" + tagline arriba de todo, repetirlo en el sidebar solo
+                    empujaba la navegación hacia abajo sin aportar nada nuevo.
+                -->
+                <DockPanel Margin="0,12,0,8">
                     <StackPanel DockPanel.Dock="Bottom">
-                        <Button Content="Acerca de" Classes="nav" Classes.active="{Binding IsAboutNav}"
-                                Command="{Binding NavAboutCommand}" />
-                        <Button Content="Ayuda" Classes="nav" Classes.active="{Binding IsHelpNav}"
-                                Command="{Binding NavHelpCommand}" />
+                        <TextBlock Classes="navGroup" Text="INFO" IsVisible="{Binding NavExpanded}" />
+                        <Button Classes="nav" Classes.active="{Binding IsHelpNav}"
+                                Classes.compact="{Binding NavCollapsed}"
+                                Command="{Binding NavHelpCommand}" ToolTip.Tip="Ayuda">
+                            <Panel>
+                                <TextBlock Text="?" HorizontalAlignment="Center"
+                                           IsVisible="{Binding NavCollapsed}" />
+                                <TextBlock Text="Ayuda" IsVisible="{Binding NavExpanded}" />
+                            </Panel>
+                        </Button>
+                        <Button Classes="nav" Classes.active="{Binding IsAboutNav}"
+                                Classes.compact="{Binding NavCollapsed}"
+                                Command="{Binding NavAboutCommand}" ToolTip.Tip="Acerca de">
+                            <Panel>
+                                <TextBlock Text="i" HorizontalAlignment="Center"
+                                           IsVisible="{Binding NavCollapsed}" />
+                                <TextBlock Text="Acerca de" IsVisible="{Binding NavExpanded}" />
+                            </Panel>
+                        </Button>
                     </StackPanel>
                     <StackPanel>
-                        <Button Content="Inicio" Classes="nav" Classes.active="{Binding IsStudioNav}"
-                                Command="{Binding NavStudioCommand}" />
-                        <Button Content="Regalos" Classes="nav" Classes.active="{Binding IsGiftsNav}"
-                                Command="{Binding NavGiftsCommand}" />
-                        <Button Content="Vistos" Classes="nav" Classes.active="{Binding IsCatalogNav}"
-                                Command="{Binding NavCatalogCommand}" />
-                        <Button Content="Likes y chat" Classes="nav" Classes.active="{Binding IsEventsNav}"
-                                Command="{Binding NavEventsCommand}" />
+                        <Button Classes="nav" Classes.active="{Binding IsStudioNav}"
+                                Classes.compact="{Binding NavCollapsed}"
+                                Command="{Binding NavStudioCommand}" ToolTip.Tip="Inicio">
+                            <Panel>
+                                <TextBlock Text="In" HorizontalAlignment="Center"
+                                           IsVisible="{Binding NavCollapsed}" />
+                                <TextBlock Text="Inicio" IsVisible="{Binding NavExpanded}" />
+                            </Panel>
+                        </Button>
+                        <Button Classes="nav" Classes.active="{Binding IsTikTokNav}"
+                                Classes.compact="{Binding NavCollapsed}"
+                                Command="{Binding NavTikTokCommand}" ToolTip.Tip="TikTok">
+                            <Panel>
+                                <TextBlock Text="Tk" HorizontalAlignment="Center"
+                                           IsVisible="{Binding NavCollapsed}" />
+                                <TextBlock Text="TikTok" IsVisible="{Binding NavExpanded}" />
+                            </Panel>
+                        </Button>
+                        <Button Classes="nav" Classes.active="{Binding IsTwitchNav}"
+                                Classes.compact="{Binding NavCollapsed}"
+                                Command="{Binding NavTwitchCommand}" ToolTip.Tip="Twitch">
+                            <Panel>
+                                <TextBlock Text="Tw" HorizontalAlignment="Center"
+                                           IsVisible="{Binding NavCollapsed}" />
+                                <TextBlock Text="Twitch" IsVisible="{Binding NavExpanded}" />
+                            </Panel>
+                        </Button>
+                        <Button Classes="nav" Classes.active="{Binding IsSmartTtsNav}"
+                                Classes.compact="{Binding NavCollapsed}"
+                                Command="{Binding NavSmartTtsCommand}" ToolTip.Tip="Voz (Alpha: en pruebas)">
+                            <Panel>
+                                <TextBlock Text="Vz" HorizontalAlignment="Center"
+                                           IsVisible="{Binding NavCollapsed}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding NavExpanded}">
+                                    <TextBlock Text="Voz" VerticalAlignment="Center" />
+                                    <Border Classes="alphaBadge">
+                                        <TextBlock Text="ALPHA" />
+                                    </Border>
+                                </StackPanel>
+                            </Panel>
+                        </Button>
                     </StackPanel>
                 </DockPanel>
             </Border>
 
-            <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" Margin="18" />
-        </Grid>
-
-        <Border Grid.Row="2" Background="{DynamicResource CardBrush}"
-                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="14,10">
-            <Grid RowDefinitions="Auto,88,Auto">
-                <TextBlock Text="Qué está pasando" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,6" />
-                <TextBox Grid.Row="1" Text="{Binding ActivityText, Mode=OneWay}" IsReadOnly="True"
-                         TextWrapping="Wrap" AcceptsReturn="True"
-                         ScrollViewer.VerticalScrollBarVisibility="Auto"
-                         BorderThickness="0" Background="{DynamicResource BgBrush}" />
-                <Expander Grid.Row="2" Header="Más detalle" IsExpanded="{Binding DetailLogOpen}" Margin="0,8,0,0">
-                    <TextBox MinHeight="100" MaxHeight="180"
-                             Text="{Binding DetailLogText, Mode=OneWay}" IsReadOnly="True"
-                             FontFamily="Cascadia Mono, Consolas, monospace" FontSize="11"
-                             AcceptsReturn="True" TextWrapping="NoWrap"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto"
-                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                             BorderThickness="0" Background="{DynamicResource BgBrush}" Margin="0,8,0,0" />
-                </Expander>
+            <Grid Grid.Column="1" RowDefinitions="*,Auto">
+                <ContentControl Content="{Binding CurrentPage}" Margin="14,10,14,8"
+                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                <!--
+                    Recogido por defecto (solo el encabezado, ~40px) en vez de reservar
+                    espacio fijo en toda página: antes eso restaba espacio incluso en
+                    Ayuda/Acerca, donde la actividad del live no pinta nada. Se auto-abre
+                    al conectar (ver MainViewModel.ToggleConnectionAsync). Expandido, el
+                    alto lo maneja el usuario arrastrando el separador de arriba (guardado
+                    en ActivityPanelHeight/UiPreferences) y el contenido interno scrollea
+                    si no entra, en vez de cortarse.
+                -->
+                <Border Grid.Row="1"
+                        Background="{DynamicResource CardBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="0,1,0,0" Padding="14,8">
+                    <Expander IsExpanded="{Binding ActivityPanelOpen}"
+                              HorizontalAlignment="Stretch"
+                              HorizontalContentAlignment="Stretch">
+                        <Expander.Header>
+                            <DockPanel LastChildFill="True">
+                                <Button DockPanel.Dock="Right" Classes="secondary" Content="Limpiar"
+                                        Command="{Binding ClearActivityCommand}" Margin="8,0,0,0"
+                                        VerticalAlignment="Center" />
+                                <TextBlock Text="Qué está pasando" VerticalAlignment="Center" />
+                            </DockPanel>
+                        </Expander.Header>
+                        <DockPanel LastChildFill="True" Margin="0,8,0,0">
+                            <Border DockPanel.Dock="Top" Height="6" Margin="0,0,0,8" CornerRadius="3"
+                                    Background="{DynamicResource BorderBrush}" Cursor="SizeNorthSouth"
+                                    ToolTip.Tip="Arrastrá para cambiar el alto"
+                                    PointerPressed="ActivityResizeHandle_PointerPressed"
+                                    PointerMoved="ActivityResizeHandle_PointerMoved"
+                                    PointerReleased="ActivityResizeHandle_PointerReleased" />
+                            <ScrollViewer Height="{Binding ActivityPanelHeight}"
+                                          VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBox Text="{Binding ActivityText, Mode=OneWay}" IsReadOnly="True"
+                                             TextWrapping="Wrap" AcceptsReturn="True"
+                                             MinHeight="70"
+                                             HorizontalAlignment="Stretch"
+                                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                             BorderThickness="0" Background="{DynamicResource BgBrush}" />
+                                    <Expander Header="Más detalle" IsExpanded="{Binding DetailLogOpen}"
+                                              Margin="0,8,0,0"
+                                              HorizontalAlignment="Stretch"
+                                              HorizontalContentAlignment="Stretch">
+                                        <TextBox MinHeight="70" Classes="mono"
+                                                 Text="{Binding DetailLogText, Mode=OneWay}" IsReadOnly="True"
+                                                 FontSize="11"
+                                                 AcceptsReturn="True" TextWrapping="Wrap"
+                                                 HorizontalAlignment="Stretch"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                 BorderThickness="0" Background="{DynamicResource BgBrush}"
+                                                 Margin="0,8,0,0" />
+                                    </Expander>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Expander>
+                </Border>
             </Grid>
-        </Border>
+        </Grid>
     </Grid>
 </Window>

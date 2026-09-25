@@ -49,6 +49,7 @@ public sealed partial class GiftsViewModel : ViewModelBase
 
             Selected = Rows.FirstOrDefault();
             _shell.Events?.LoadFromEditor(_editor);
+            _shell.Goals?.LoadFromEditor(_editor);
             _shell.Overlays.RefreshGifts(Models);
         }
         catch (Exception ex)
@@ -61,6 +62,7 @@ public sealed partial class GiftsViewModel : ViewModelBase
     {
         SyncEditorFromRows();
         _shell.Events?.ApplyToEditor(_editor);
+        _shell.Goals?.ApplyToEditor(_editor);
         _editor.Save();
         _shell.Runtime.ReloadGifts();
         GiftImageLoader.ClearCache();
@@ -71,6 +73,7 @@ public sealed partial class GiftsViewModel : ViewModelBase
 
         _shell.Studio.RefreshStats();
         _shell.Overlays.RefreshGifts(Models);
+        _shell.Overlays.RefreshGoals(_shell.Runtime.Goals.Snapshots(), _shell.Prefs);
         BridgeLog.Info("Regalos guardados.");
     }
 
@@ -99,7 +102,7 @@ public sealed partial class GiftsViewModel : ViewModelBase
 
     private GiftRowViewModel Wrap(EditableGift gift)
     {
-        var row = new GiftRowViewModel(gift);
+        var row = new GiftRowViewModel(gift, _shell.Runtime.Effects);
         row.EffectLabel = LabelFor(gift.Effect);
         return row;
     }

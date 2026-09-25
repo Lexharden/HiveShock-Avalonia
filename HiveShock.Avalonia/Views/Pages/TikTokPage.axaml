@@ -1,0 +1,375 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+             xmlns:conv="using:HiveShock.Avalonia.Converters"
+             x:Class="HiveShock.Avalonia.Views.Pages.TikTokPage"
+             x:DataType="vm:TikTokViewModel">
+    <Grid RowDefinitions="Auto,Auto,*">
+        <DockPanel Margin="0,0,0,4">
+            <TextBlock Classes="pageTitle" Text="TikTok" Margin="0" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Studio.TikTokPortStatus}"
+                       FontSize="12" FontWeight="SemiBold"
+                       VerticalAlignment="Center" HorizontalAlignment="Right"
+                       Foreground="{DynamicResource MutedBrush}"
+                       Classes.tone-live="{Binding Studio.TikTokLive}"
+                       Classes.tone-connecting="{Binding Studio.TikTokConnecting}"
+                       Classes.tone-error="{Binding Studio.TikTokError}" />
+        </DockPanel>
+
+        <Expander Grid.Row="1" Classes="account" Header="Usuario de TikTok"
+                  IsExpanded="{Binding AccountOpen}"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Stretch">
+            <Border Classes="card" Margin="0,8,0,4">
+                <StackPanel>
+                    <CheckBox Content="Usar en este directo" IsChecked="{Binding Studio.TikTokEnabled}"
+                              IsEnabled="{Binding Studio.CanEditSetup}" Margin="0,0,0,10" />
+                    <TextBlock Classes="fieldLabel" Text="Usuario" />
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Classes="secondary" Content="Guardar"
+                                Command="{Binding Studio.SaveChannelCommand}" Margin="8,0,0,0"
+                                IsEnabled="{Binding Studio.CanEditSetup}" />
+                        <TextBox Text="{Binding Studio.Channel}" IsEnabled="{Binding Studio.CanEditSetup}"
+                                 PlaceholderText="tu usuario, sin @" />
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+        </Expander>
+
+        <TabControl Grid.Row="2">
+            <TabItem Header="Regalos">
+                <ContentControl Content="{Binding Gifts}" Margin="0,8,0,0" />
+            </TabItem>
+            <TabItem Header="Vistos">
+                <ContentControl Content="{Binding Catalog}" Margin="0,8,0,0" />
+            </TabItem>
+            <TabItem Header="Metas">
+                <Grid RowDefinitions="Auto,*,Auto" Margin="0,8,0,0">
+                    <StackPanel>
+                        <TextBlock Classes="sectionTitle" Text="ENTRE TODOS" />
+                        <WrapPanel>
+                            <Button Classes="secondary" Content="Añadir" Command="{Binding Goals.AddCommand}" />
+                            <Button Classes="secondary" Content="Quitar" Command="{Binding Goals.RemoveCommand}" />
+                            <Button Classes="secondary" Content="Poner a 0" Command="{Binding Goals.ResetSelectedCommand}" />
+                            <Button Classes="secondary" Content="Simular +1" Command="{Binding Goals.SimulateCommand}" />
+                        </WrapPanel>
+                    </StackPanel>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Goals.Rows}"
+                             SelectedItem="{Binding Goals.Selected}"
+                             MinHeight="96" Margin="0,8,0,0"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:GoalRowViewModel">
+                                <StackPanel Margin="0,4">
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold"
+                                                   VerticalAlignment="Center" Margin="8,0,0,0"
+                                                   Text="{Binding ProgressText}" />
+                                        <TextBox Text="{Binding Label}" PlaceholderText="nombre de la meta" />
+                                    </DockPanel>
+                                    <DockPanel Margin="0,6,0,0">
+                                        <TextBlock Classes="fieldLabel" Text="Hace falta" Width="90"
+                                                   VerticalAlignment="Center" />
+                                        <TextBox Text="{Binding NeedText}" Width="64"
+                                                 HorizontalAlignment="Left" />
+                                    </DockPanel>
+                                    <TextBlock Classes="fieldLabel" Text="Regalos que cuentan (nombres o IDs, coma)"
+                                               Margin="0,8,0,4" />
+                                    <TextBox Text="{Binding GiftsText}" />
+                                    <ComboBox Margin="0,8,0,0"
+                                              ItemsSource="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).Goals.EffectsWithNone}"
+                                              SelectedValue="{Binding Effect}"
+                                              SelectedValueBinding="{Binding Id}"
+                                              DisplayMemberBinding="{Binding Display}" />
+                                    <CheckBox Content="También dispara el efecto del regalo"
+                                              IsChecked="{Binding AlsoInstant}" Margin="0,8,0,0" />
+                                    <CheckBox Content="Se puede volver a llenar en este directo"
+                                              IsChecked="{Binding Repeat}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Button Grid.Row="2" Classes="primary" Content="Guardar" Command="{Binding Goals.SaveCommand}"
+                            HorizontalAlignment="Left" MinWidth="140" Margin="0,8,0,0" />
+                </Grid>
+            </TabItem>
+            <TabItem Header="Perfil">
+                <ScrollViewer Margin="0,8,0,0" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,0,0,8"
+                                   Text="profile.json y effects.json del perfil activo. Detén el bridge para poder guardar." />
+
+                        <Border Margin="0,0,0,12" Padding="12,10" CornerRadius="10"
+                                Background="{DynamicResource CardAltBrush}"
+                                BorderBrush="{DynamicResource BrandGoldBrush}" BorderThickness="1">
+                            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextBrush}">
+                                <Run FontWeight="Bold" Foreground="{DynamicResource BrandGoldBrush}" Text="Atención: " />
+                                <Run Text="estos son los valores técnicos que conectan HiveShock con el juego (puertos, ids de efecto, qué cuenta como enemigo, etc.). Cambiarlos sin saber para qué sirven puede hacer que el puente deje de funcionar con este juego. Cada sección empieza bloqueada: marcá &quot;Desbloquear para editar&quot; antes de tocar algo." />
+                            </TextBlock>
+                        </Border>
+
+                        <Border Classes="card" Margin="0,0,0,12">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,4">
+                                    <CheckBox DockPanel.Dock="Right" Content="Desbloquear para editar"
+                                              IsChecked="{Binding ProfileEditor.ProfileSectionUnlocked}"
+                                              IsEnabled="{Binding ProfileEditor.CanEdit}" />
+                                    <TextBlock Classes="sectionTitle" Text="DATOS DEL PERFIL" Margin="0" VerticalAlignment="Center" />
+                                </DockPanel>
+                                <TextBlock Classes="fieldLabel" Text="Nombre" Margin="0,8,0,0" />
+                                <TextBox Text="{Binding ProfileEditor.DisplayName}"
+                                         IsEnabled="{Binding ProfileEditor.CanEditProfile}" />
+                                <TextBlock Classes="fieldLabel" Text="Descripción" Margin="0,8,0,0" />
+                                <TextBox Text="{Binding ProfileEditor.Description}" AcceptsReturn="True"
+                                         TextWrapping="Wrap" MinHeight="48"
+                                         IsEnabled="{Binding ProfileEditor.CanEditProfile}" />
+                                <TextBlock Classes="fieldLabel" Text="Notas de ayuda" Margin="0,8,0,0" />
+                                <TextBox Text="{Binding ProfileEditor.HelpNotes}" AcceptsReturn="True"
+                                         TextWrapping="Wrap" MinHeight="48"
+                                         IsEnabled="{Binding ProfileEditor.CanEditProfile}" />
+                                <WrapPanel Margin="0,10,0,0">
+                                    <DockPanel Margin="0,0,16,8" Width="180">
+                                        <TextBlock Classes="fieldLabel" Text="Puerto juego" Width="110"
+                                                   VerticalAlignment="Center" Margin="0" />
+                                        <TextBox Text="{Binding ProfileEditor.GamePortText}"
+                                                 IsEnabled="{Binding ProfileEditor.CanEditProfile}" />
+                                    </DockPanel>
+                                    <DockPanel Margin="0,0,16,8" Width="180">
+                                        <TextBlock Classes="fieldLabel" Text="Puerto pruebas" Width="110"
+                                                   VerticalAlignment="Center" Margin="0" />
+                                        <TextBox Text="{Binding ProfileEditor.CcPortText}"
+                                                 IsEnabled="{Binding ProfileEditor.CanEditProfile}" />
+                                    </DockPanel>
+                                    <DockPanel Margin="0,0,0,8" Width="180">
+                                        <TextBlock Classes="fieldLabel" Text="Puerto eventos" Width="110"
+                                                   VerticalAlignment="Center" Margin="0" />
+                                        <TextBox Text="{Binding ProfileEditor.EventPortText}"
+                                                 IsEnabled="{Binding ProfileEditor.CanEditProfile}" />
+                                    </DockPanel>
+                                </WrapPanel>
+                                <WrapPanel Margin="0,4,0,0">
+                                    <CheckBox Content="Contador de muertes" IsChecked="{Binding ProfileEditor.SupportsDeathEvents}"
+                                              IsEnabled="{Binding ProfileEditor.CanEditProfile}" />
+                                    <CheckBox Content="Borrar partida" IsChecked="{Binding ProfileEditor.SupportsDeleteSave}"
+                                              IsEnabled="{Binding ProfileEditor.CanEditProfile}" />
+                                    <CheckBox Content="Rescatar" IsChecked="{Binding ProfileEditor.SupportsRescue}"
+                                              IsEnabled="{Binding ProfileEditor.CanEditProfile}" />
+                                </WrapPanel>
+
+                                <TextBlock Classes="sectionTitle" Text="ETIQUETAS (nombre para mostrar de cada efecto)" Margin="0,16,0,0" />
+                                <WrapPanel Margin="0,4,0,4">
+                                    <Button Classes="secondary" Content="Añadir" Command="{Binding ProfileEditor.AddLabelCommand}"
+                                            IsEnabled="{Binding ProfileEditor.CanEditProfile}" />
+                                    <Button Classes="secondary" Content="Quitar" Command="{Binding ProfileEditor.RemoveLabelCommand}"
+                                            IsEnabled="{Binding ProfileEditor.CanEditProfile}" />
+                                </WrapPanel>
+                                <ListBox ItemsSource="{Binding ProfileEditor.Labels}"
+                                         SelectedItem="{Binding ProfileEditor.SelectedLabel}"
+                                         MaxHeight="180" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:LabelRow">
+                                            <DockPanel>
+                                                <TextBox DockPanel.Dock="Left" Width="200" Margin="0,0,8,0"
+                                                         Text="{Binding Key}" PlaceholderText="id del efecto"
+                                                         IsEnabled="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).ProfileEditor.CanEditProfile}" />
+                                                <TextBox Text="{Binding Value}" PlaceholderText="nombre para mostrar"
+                                                         IsEnabled="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).ProfileEditor.CanEditProfile}" />
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+
+                                <Button Classes="primary" Content="Guardar profile.json" Margin="0,12,0,0"
+                                        HorizontalAlignment="Left" Command="{Binding ProfileEditor.SaveProfileCommand}"
+                                        IsEnabled="{Binding ProfileEditor.CanEditProfile}" />
+                                <WrapPanel Margin="0,8,0,0">
+                                    <Button Classes="secondary" Content="Importar profile.json…"
+                                            Command="{Binding ProfileEditor.ImportProfileCommand}"
+                                            IsEnabled="{Binding ProfileEditor.CanEditProfile}" />
+                                    <Button Classes="secondary" Content="Exportar profile.json…"
+                                            Command="{Binding ProfileEditor.ExportProfileCommand}" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="card">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,4">
+                                    <CheckBox DockPanel.Dock="Right" Content="Desbloquear para editar"
+                                              IsChecked="{Binding ProfileEditor.EffectsSectionUnlocked}"
+                                              IsEnabled="{Binding ProfileEditor.CanEdit}" />
+                                    <TextBlock Classes="sectionTitle" Text="EFECTOS (comandos que se mandan al juego)"
+                                               Margin="0" VerticalAlignment="Center" />
+                                </DockPanel>
+                                <Grid ColumnDefinitions="1.1*,8,*" Margin="0,8,0,0">
+                                    <StackPanel Grid.Column="0">
+                                        <WrapPanel>
+                                            <Button Classes="secondary" Content="Nuevo" Command="{Binding ProfileEditor.AddEffectCommand}"
+                                                    IsEnabled="{Binding ProfileEditor.CanEditEffects}" />
+                                            <Button Classes="secondary" Content="Quitar" Command="{Binding ProfileEditor.RemoveEffectCommand}"
+                                                    IsEnabled="{Binding ProfileEditor.CanEditEffects}" />
+                                        </WrapPanel>
+                                        <ListBox ItemsSource="{Binding ProfileEditor.Effects}"
+                                                 SelectedItem="{Binding ProfileEditor.SelectedEffect}"
+                                                 MinHeight="220" MaxHeight="360" Margin="0,4,0,0"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:EffectRow">
+                                                    <DockPanel
+                                                        IsEnabled="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).ProfileEditor.CanEditEffects}">
+                                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10"
+                                                                    VerticalAlignment="Center">
+                                                            <CheckBox Content="Enemigo" IsChecked="{Binding IsEnemy}" />
+                                                            <CheckBox Content="Singleton" IsChecked="{Binding IsSingleton}" />
+                                                        </StackPanel>
+                                                        <TextBox Text="{Binding Id}" />
+                                                    </DockPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </StackPanel>
+                                    <Border Grid.Column="2">
+                                        <StackPanel DataContext="{Binding ProfileEditor.SelectedEffect}">
+                                            <TextBlock Classes="fieldLabel" Text="Propiedades del comando" />
+                                            <WrapPanel Margin="0,4,0,4">
+                                                <Button Classes="secondary" Content="Añadir" Command="{Binding AddPropertyCommand}"
+                                                        IsEnabled="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).ProfileEditor.CanEditEffects}" />
+                                                <Button Classes="secondary" Content="Quitar" Command="{Binding RemovePropertyCommand}"
+                                                        IsEnabled="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).ProfileEditor.CanEditEffects}" />
+                                            </WrapPanel>
+                                            <ListBox ItemsSource="{Binding Properties}"
+                                                     SelectedItem="{Binding SelectedProperty}"
+                                                     MinHeight="220" MaxHeight="320"
+                                                     ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:EffectPropertyRow">
+                                                        <DockPanel Margin="0,2"
+                                                            IsEnabled="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).ProfileEditor.CanEditEffects}">
+                                                            <ComboBox DockPanel.Dock="Right" Width="100" Margin="8,0,0,0"
+                                                                      ItemsSource="{x:Static vm:EffectPropertyRow.KindOptions}"
+                                                                      SelectedItem="{Binding Kind}">
+                                                                <ComboBox.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <TextBlock Text="{Binding Converter={x:Static conv:EditableValueKindLabelConverter.Instance}}" />
+                                                                    </DataTemplate>
+                                                                </ComboBox.ItemTemplate>
+                                                            </ComboBox>
+                                                            <TextBox DockPanel.Dock="Left" Width="130" Margin="0,0,8,0"
+                                                                     Text="{Binding Key}" PlaceholderText="clave" />
+                                                            <TextBox Text="{Binding Value}" PlaceholderText="valor" />
+                                                        </DockPanel>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                                <Button Classes="primary" Content="Guardar effects.json" Margin="0,12,0,0"
+                                        HorizontalAlignment="Left" Command="{Binding ProfileEditor.SaveEffectsCommand}"
+                                        IsEnabled="{Binding ProfileEditor.CanEditEffects}" />
+                                <WrapPanel Margin="0,8,0,0">
+                                    <Button Classes="secondary" Content="Importar effects.json…"
+                                            Command="{Binding ProfileEditor.ImportEffectsCommand}"
+                                            IsEnabled="{Binding ProfileEditor.CanEditEffects}" />
+                                    <Button Classes="secondary" Content="Exportar effects.json…"
+                                            Command="{Binding ProfileEditor.ExportEffectsCommand}" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Chat">
+                <Grid RowDefinitions="Auto,*,Auto,*" Margin="0,8,0,0">
+                    <StackPanel>
+                        <TextBlock Classes="sectionTitle" Text="PALABRAS DEL CHAT" />
+                        <CheckBox Content="Activar" IsChecked="{Binding Events.ChatEnabled}" />
+                        <WrapPanel Margin="0,8,0,0">
+                            <DockPanel Margin="0,0,16,8" Width="280">
+                                <TextBlock Classes="fieldLabel" Text="Prefijo" Width="90" VerticalAlignment="Center" Margin="0" />
+                                <TextBox Text="{Binding Events.ChatPrefix}" Width="64" HorizontalAlignment="Left" />
+                            </DockPanel>
+                            <DockPanel Margin="0,0,16,8" Width="320">
+                                <TextBlock Classes="fieldLabel" Text="Espera viewer (s)" Width="130"
+                                           VerticalAlignment="Center" Margin="0" />
+                                <TextBox Text="{Binding Events.ChatCooldownText}" Width="64" HorizontalAlignment="Left" />
+                            </DockPanel>
+                            <DockPanel Margin="0,0,0,8" Width="320">
+                                <TextBlock Classes="fieldLabel" Text="Espera todos (s)" Width="130"
+                                           VerticalAlignment="Center" Margin="0" />
+                                <TextBox Text="{Binding Events.ChatGlobalGapText}" Width="64" HorizontalAlignment="Left" />
+                            </DockPanel>
+                        </WrapPanel>
+                        <WrapPanel>
+                            <Button Classes="secondary" Content="Añadir" Command="{Binding Events.AddCommandCommand}" />
+                            <Button Classes="secondary" Content="Quitar" Command="{Binding Events.RemoveCommandCommand}" />
+                        </WrapPanel>
+                    </StackPanel>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Events.ChatCommands}"
+                             SelectedItem="{Binding Events.SelectedCommand}"
+                             MinHeight="96" Margin="0,8,0,0"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ChatCommandRowViewModel">
+                                <DockPanel>
+                                    <ComboBox DockPanel.Dock="Right" MinWidth="240" MaxWidth="420" Margin="8,0,0,0"
+                                              HorizontalAlignment="Right"
+                                              ItemsSource="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).Events.EffectsWithNone}"
+                                              SelectedValue="{Binding Effect}"
+                                              SelectedValueBinding="{Binding Id}"
+                                              DisplayMemberBinding="{Binding Display}" />
+                                    <TextBox Text="{Binding Word}" PlaceholderText="palabra" />
+                                </DockPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <GridSplitter Grid.Row="2" Height="8" HorizontalAlignment="Stretch"
+                                  ResizeDirection="Rows" />
+                    <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" MinHeight="120">
+                        <StackPanel>
+                            <Grid ColumnDefinitions="*,*" Margin="0,8,0,12">
+                                <Border Classes="card" Margin="0,0,8,0">
+                                    <StackPanel>
+                                        <TextBlock Classes="sectionTitle" Text="NUEVOS SEGUIDORES" />
+                                        <ComboBox ItemsSource="{Binding Events.EffectsWithNone}"
+                                                  SelectedValue="{Binding Events.FollowEffect}"
+                                                  SelectedValueBinding="{Binding Id}"
+                                                  DisplayMemberBinding="{Binding Display}" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Classes="card" Grid.Column="1" Margin="8,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Classes="sectionTitle" Text="LIKES" />
+                                        <DockPanel Margin="0,0,0,8">
+                                            <TextBlock Classes="fieldLabel" Text="Cada" Width="48" VerticalAlignment="Center" Margin="0" />
+                                            <TextBox Text="{Binding Events.LikesEveryText}" Width="80" HorizontalAlignment="Left" />
+                                        </DockPanel>
+                                        <ComboBox ItemsSource="{Binding Events.EffectsWithNone}"
+                                                  SelectedValue="{Binding Events.LikesEffect}"
+                                                  SelectedValueBinding="{Binding Id}"
+                                                  DisplayMemberBinding="{Binding Display}" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <Border Classes="card" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Classes="sectionTitle" Text="COMPARTIR" />
+                                    <ComboBox ItemsSource="{Binding Events.EffectsWithNone}"
+                                              SelectedValue="{Binding Events.ShareEffect}"
+                                              SelectedValueBinding="{Binding Id}"
+                                              DisplayMemberBinding="{Binding Display}"
+                                              HorizontalAlignment="Left" MinWidth="280" />
+                                </StackPanel>
+                            </Border>
+                            <Button Classes="primary" Content="Guardar" Command="{Binding Events.SaveCommand}"
+                                    HorizontalAlignment="Left" MinWidth="140" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Debug" IsVisible="{Binding IsDebugBuild}">
+                <ContentControl Content="{Binding Diagnostics}" Margin="0,8,0,0" />
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

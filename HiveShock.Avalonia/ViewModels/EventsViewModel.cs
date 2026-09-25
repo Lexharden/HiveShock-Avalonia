@@ -17,12 +17,23 @@ public sealed partial class EventsViewModel : ViewModelBase
     [ObservableProperty] private string _shareEffect = "";
     [ObservableProperty] private bool _chatEnabled;
     [ObservableProperty] private string _chatPrefix = "!";
+    [ObservableProperty] private string _chatCooldownText = "30";
+    [ObservableProperty] private string _chatGlobalGapText = "2";
     [ObservableProperty] private ChatCommandRowViewModel? _selectedCommand;
+    [ObservableProperty] private bool _twitchChatEnabled;
+    [ObservableProperty] private string _twitchChatPrefix = "!";
+    [ObservableProperty] private string _twitchChatCooldownText = "30";
+    [ObservableProperty] private string _twitchChatGlobalGapText = "2";
+    [ObservableProperty] private string _twitchFollowEffect = "";
+    [ObservableProperty] private ChatCommandRowViewModel? _selectedTwitchCommand;
+    [ObservableProperty] private BitsRowViewModel? _selectedBitsRule;
 
     public IEnumerable<EffectChoice> EffectsWithNone =>
-        new EffectChoice[] { new("", "No hacer nada") }.Concat(_shell.EffectChoices);
+        new EffectChoice[] { new("", "Ninguno") }.Concat(_shell.EffectChoices);
 
     public ObservableCollection<ChatCommandRowViewModel> ChatCommands { get; } = [];
+    public ObservableCollection<ChatCommandRowViewModel> TwitchChatCommands { get; } = [];
+    public ObservableCollection<BitsRowViewModel> TwitchBits { get; } = [];
 
     public void NotifyEffects() => OnPropertyChanged(nameof(EffectsWithNone));
 
@@ -34,6 +45,8 @@ public sealed partial class EventsViewModel : ViewModelBase
         ShareEffect = editor.ShareEffect;
         ChatEnabled = editor.ChatEnabled;
         ChatPrefix = editor.ChatPrefix;
+        ChatCooldownText = editor.ChatCooldownSec.ToString();
+        ChatGlobalGapText = editor.ChatGlobalGapSec.ToString();
         ChatCommands.Clear();
         foreach (var cmd in editor.ChatCommands)
         {
@@ -41,6 +54,31 @@ public sealed partial class EventsViewModel : ViewModelBase
         }
 
         SelectedCommand = ChatCommands.FirstOrDefault();
+
+        TwitchFollowEffect = editor.TwitchFollowEffect;
+        TwitchChatEnabled = editor.TwitchChatEnabled;
+        TwitchChatPrefix = editor.TwitchChatPrefix;
+        TwitchChatCooldownText = editor.TwitchChatCooldownSec.ToString();
+        TwitchChatGlobalGapText = editor.TwitchChatGlobalGapSec.ToString();
+        TwitchChatCommands.Clear();
+        foreach (var cmd in editor.TwitchChatCommands)
+        {
+            TwitchChatCommands.Add(new ChatCommandRowViewModel { Word = cmd.Word, Effect = cmd.Effect });
+        }
+
+        SelectedTwitchCommand = TwitchChatCommands.FirstOrDefault();
+
+        TwitchBits.Clear();
+        foreach (var bit in editor.TwitchBits)
+        {
+            TwitchBits.Add(new BitsRowViewModel
+            {
+                MinText = Math.Max(1, bit.Min).ToString(),
+                Effect = bit.Effect,
+            });
+        }
+
+        SelectedBitsRule = TwitchBits.FirstOrDefault();
     }
 
     public void ApplyToEditor(GiftFileEditor editor)
@@ -51,35 +89,109 @@ public sealed partial class EventsViewModel : ViewModelBase
         editor.ShareEffect = ShareEffect ?? "";
         editor.ChatEnabled = ChatEnabled;
         editor.ChatPrefix = string.IsNullOrWhiteSpace(ChatPrefix) ? "!" : ChatPrefix.Trim();
+        editor.ChatCooldownSec = ParseWaitSec(ChatCooldownText, 30);
+        editor.ChatGlobalGapSec = ParseWaitSec(ChatGlobalGapText, 2);
         editor.ChatCommands.Clear();
         foreach (var cmd in ChatCommands)
         {
             editor.ChatCommands.Add(new EditableChatCommand { Word = cmd.Word, Effect = cmd.Effect });
         }
+
+        editor.TwitchFollowEffect = TwitchFollowEffect ?? "";
+        editor.TwitchChatEnabled = TwitchChatEnabled;
+        editor.TwitchChatPrefix = string.IsNullOrWhiteSpace(TwitchChatPrefix) ? "!" : TwitchChatPrefix.Trim();
+        editor.TwitchChatCooldownSec = ParseWaitSec(TwitchChatCooldownText, 30);
+        editor.TwitchChatGlobalGapSec = ParseWaitSec(TwitchChatGlobalGapText, 2);
+        editor.TwitchChatCommands.Clear();
+        foreach (var cmd in TwitchChatCommands)
+        {
+            editor.TwitchChatCommands.Add(new EditableChatCommand { Word = cmd.Word, Effect = cmd.Effect });
+        }
+
+        editor.TwitchBits.Clear();
+        foreach (var bit in TwitchBits)
+        {
+            if (!int.TryParse(bit.MinText.Trim(), out var min) || min < 1)
+            {
+                continue;
+            }
+
+            editor.TwitchBits.Add(new EditableBitsRule { Min = min, Effect = bit.Effect ?? "" });
+        }
     }
 
     [RelayCommand]
-    private void AddCommand()
+    private void AddCommand() => AddTo(ChatCommands, cmd => SelectedCommand = cmd);
+
+    [RelayCommand]
+    private void RemoveCommand() => RemoveFrom(ChatCommands, SelectedCommand, v => SelectedCommand = v);
+
+    [RelayCommand]
+    private void AddTwitchCommand() => AddTo(TwitchChatCommands, cmd => SelectedTwitchCommand = cmd);
+
+    [RelayCommand]
+    private void RemoveTwitchCommand() =>
+        RemoveFrom(TwitchChatCommands, SelectedTwitchCommand, v => SelectedTwitchCommand = v);
+
+    [RelayCommand]
+    private void AddBitsRule()
+    {
+        var effect = _shell.EffectChoices.FirstOrDefault(e =>
+                         string.Equals(e.Id, "impulse", StringComparison.OrdinalIgnoreCase))?.Id
+                     ?? _shell.EffectChoices.FirstOrDefault()?.Id
+                     ?? "";
+        var row = new BitsRowViewModel { MinText = "1", Effect = effect };
+        TwitchBits.Add(row);
+        SelectedBitsRule = row;
+    }
+
+    [RelayCommand]
+    private void RemoveBitsRule()
+    {
+        if (SelectedBitsRule == null)
+        {
+            return;
+        }
+
+        TwitchBits.Remove(SelectedBitsRule);
+        SelectedBitsRule = TwitchBits.FirstOrDefault();
+    }
+
+    private static int ParseWaitSec(string text, int fallback)
+    {
+        if (!int.TryParse((text ?? "").Trim(), out var n))
+        {
+            return fallback;
+        }
+
+        return Math.Clamp(n, 0, 3600);
+    }
+
+    private void AddTo(
+        ObservableCollection<ChatCommandRowViewModel> list,
+        Action<ChatCommandRowViewModel> select)
     {
         var effect = _shell.EffectChoices.FirstOrDefault(e =>
                          string.Equals(e.Id, "impulse", StringComparison.OrdinalIgnoreCase))?.Id
                      ?? _shell.EffectChoices.FirstOrDefault()?.Id
                      ?? "";
         var row = new ChatCommandRowViewModel { Word = "salto", Effect = effect };
-        ChatCommands.Add(row);
-        SelectedCommand = row;
+        list.Add(row);
+        select(row);
     }
 
-    [RelayCommand]
-    private void RemoveCommand()
+    private static void RemoveFrom(
+        ObservableCollection<ChatCommandRowViewModel> list,
+        ChatCommandRowViewModel? selected,
+        Action<ChatCommandRowViewModel?> assign)
     {
-        if (SelectedCommand == null)
+        if (selected == null)
         {
             return;
         }
 
-        ChatCommands.Remove(SelectedCommand);
-        SelectedCommand = ChatCommands.FirstOrDefault();
+        list.Remove(selected);
+        assign(list.FirstOrDefault());
     }
 
     [RelayCommand]
@@ -91,7 +203,7 @@ public sealed partial class EventsViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            _shell.Dialogs.Error("Likes y chat", ex.Message);
+            _shell.Dialogs.Error("Eventos", ex.Message);
         }
     }
 }

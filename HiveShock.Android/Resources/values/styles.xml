@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<resources>
+  <!-- AvaloniaMainActivity hereda de AppCompatActivity: el padre tiene que ser Theme.AppCompat. -->
+  <style name="MyTheme.NoActionBar" parent="Theme.AppCompat.NoActionBar">
+    <item name="android:windowActionBar">false</item>
+    <item name="android:windowNoTitle">true</item>
+    <item name="android:statusBarColor">#075BAA</item>
+    <item name="android:navigationBarColor">#0E1520</item>
+  </style>
+</resources>

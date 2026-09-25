@@ -22,6 +22,8 @@ public sealed class EditableGift
     public bool Overlay { get; set; }
     /// <summary>Texto en el overlay. Vacío = nombre del gift.</summary>
     public string OverlayText { get; set; } = "";
+    /// <summary>Overrides numéricos en unidades wire (p.ej. value=4 = 1 corazón). Vacío = default del efecto.</summary>
+    public Dictionary<string, double> Params { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     public string OverlayLabel =>
         string.IsNullOrWhiteSpace(OverlayText) ? Gift : OverlayText;
@@ -58,6 +60,23 @@ public sealed class EditableChatCommand
     public string Effect { get; set; } = "";
 }
 
+public sealed class EditableBitsRule
+{
+    public int Min { get; set; } = 1;
+    public string Effect { get; set; } = "";
+}
+
+public sealed class EditableGiftGoal
+{
+    public string Id { get; set; } = "";
+    public string Label { get; set; } = "";
+    public int Need { get; set; } = 2;
+    public string Effect { get; set; } = "";
+    public string GiftsText { get; set; } = "";
+    public bool AlsoInstant { get; set; } = true;
+    public bool Repeat { get; set; } = true;
+}
+
 public sealed class GiftFileEditor
 {
     private readonly string _path;
@@ -74,7 +93,17 @@ public sealed class GiftFileEditor
     public string ShareEffect { get; set; } = "";
     public bool ChatEnabled { get; set; }
     public string ChatPrefix { get; set; } = "!";
+    public int ChatCooldownSec { get; set; } = 30;
+    public int ChatGlobalGapSec { get; set; } = 2;
     public List<EditableChatCommand> ChatCommands { get; } = [];
+    public bool TwitchChatEnabled { get; set; }
+    public string TwitchChatPrefix { get; set; } = "!";
+    public int TwitchChatCooldownSec { get; set; } = 30;
+    public int TwitchChatGlobalGapSec { get; set; } = 2;
+    public List<EditableChatCommand> TwitchChatCommands { get; } = [];
+    public string TwitchFollowEffect { get; set; } = "";
+    public List<EditableBitsRule> TwitchBits { get; } = [];
+    public List<EditableGiftGoal> Goals { get; } = [];
 
     public void Load()
     {
@@ -123,7 +152,17 @@ public sealed class GiftFileEditor
         ShareEffect = "";
         ChatEnabled = false;
         ChatPrefix = "!";
+        ChatCooldownSec = 30;
+        ChatGlobalGapSec = 2;
         ChatCommands.Clear();
+        TwitchChatEnabled = false;
+        TwitchChatPrefix = "!";
+        TwitchChatCooldownSec = 30;
+        TwitchChatGlobalGapSec = 2;
+        TwitchChatCommands.Clear();
+        TwitchFollowEffect = "";
+        TwitchBits.Clear();
+        Goals.Clear();
 
         if (_root["likes"] is JsonObject likes)
         {
@@ -145,6 +184,8 @@ public sealed class GiftFileEditor
         {
             ChatEnabled = ReadBool(chat, "enabled");
             ChatPrefix = chat["prefix"]?.GetValue<string>() ?? "!";
+            ChatCooldownSec = ClampWaitSec(ReadInt(chat, "cooldownSec") ?? 30);
+            ChatGlobalGapSec = ClampWaitSec(ReadInt(chat, "globalGapSec") ?? 2);
             if (chat["commands"] is JsonObject cmds)
             {
                 foreach (var kv in cmds)
@@ -152,6 +193,87 @@ public sealed class GiftFileEditor
                     var effect = kv.Value?.GetValue<string>() ?? "";
                     ChatCommands.Add(new EditableChatCommand { Word = kv.Key, Effect = effect });
                 }
+            }
+        }
+
+        if (_root["twitch"] is JsonObject twitch)
+        {
+            if (twitch["follow"] is JsonObject twFollow)
+            {
+                TwitchFollowEffect = twFollow["effect"]?.GetValue<string>() ?? "";
+            }
+
+            if (twitch["chat"] is JsonObject twChat)
+            {
+                TwitchChatEnabled = ReadBool(twChat, "enabled");
+                TwitchChatPrefix = twChat["prefix"]?.GetValue<string>() ?? "!";
+                TwitchChatCooldownSec = ClampWaitSec(ReadInt(twChat, "cooldownSec") ?? 30);
+                TwitchChatGlobalGapSec = ClampWaitSec(ReadInt(twChat, "globalGapSec") ?? 2);
+                if (twChat["commands"] is JsonObject twCmds)
+                {
+                    foreach (var kv in twCmds)
+                    {
+                        TwitchChatCommands.Add(new EditableChatCommand
+                        {
+                            Word = kv.Key,
+                            Effect = kv.Value?.GetValue<string>() ?? "",
+                        });
+                    }
+                }
+            }
+
+            if (twitch["bits"] is JsonArray twBits)
+            {
+                foreach (var node in twBits)
+                {
+                    if (node is not JsonObject bit)
+                    {
+                        continue;
+                    }
+
+                    TwitchBits.Add(new EditableBitsRule
+                    {
+                        Min = Math.Max(1, ReadInt(bit, "min") ?? 1),
+                        Effect = bit["effect"]?.GetValue<string>() ?? "",
+                    });
+                }
+            }
+        }
+        else
+        {
+            TwitchFollowEffect = FollowEffect;
+            TwitchChatEnabled = ChatEnabled;
+            TwitchChatPrefix = ChatPrefix;
+            TwitchChatCooldownSec = ChatCooldownSec;
+            TwitchChatGlobalGapSec = ChatGlobalGapSec;
+            foreach (var cmd in ChatCommands)
+            {
+                TwitchChatCommands.Add(new EditableChatCommand { Word = cmd.Word, Effect = cmd.Effect });
+            }
+        }
+
+        if (_root["goals"] is JsonArray goals)
+        {
+            foreach (var node in goals)
+            {
+                if (node is not JsonObject g)
+                {
+                    continue;
+                }
+
+                var keys = new List<string>();
+                PushStrings(keys, g, "gifts");
+                PushStrings(keys, g, "ids");
+                Goals.Add(new EditableGiftGoal
+                {
+                    Id = g["id"]?.GetValue<string>() ?? "",
+                    Label = g["label"]?.GetValue<string>() ?? g["name"]?.GetValue<string>() ?? "",
+                    Need = Math.Max(1, ReadInt(g, "need") ?? 2),
+                    Effect = g["effect"]?.GetValue<string>() ?? "",
+                    GiftsText = string.Join(", ", keys),
+                    AlsoInstant = ReadBoolOr(g, "alsoInstant", true),
+                    Repeat = ReadBoolOr(g, "repeat", true),
+                });
             }
         }
     }
@@ -174,6 +296,8 @@ public sealed class GiftFileEditor
         var chat = _root["chat"] as JsonObject ?? new JsonObject();
         chat["enabled"] = ChatEnabled;
         chat["prefix"] = string.IsNullOrWhiteSpace(ChatPrefix) ? "!" : ChatPrefix.Trim();
+        chat["cooldownSec"] = ClampWaitSec(ChatCooldownSec);
+        chat["globalGapSec"] = ClampWaitSec(ChatGlobalGapSec);
         var cmds = new JsonObject();
         foreach (var cmd in ChatCommands)
         {
@@ -187,7 +311,144 @@ public sealed class GiftFileEditor
 
         chat["commands"] = cmds;
         _root["chat"] = chat;
+
+        var twitch = _root["twitch"] as JsonObject ?? new JsonObject();
+        var twFollow = twitch["follow"] as JsonObject ?? new JsonObject();
+        twFollow["effect"] = TwitchFollowEffect ?? "";
+        twitch["follow"] = twFollow;
+        var twChat = twitch["chat"] as JsonObject ?? new JsonObject();
+        twChat["enabled"] = TwitchChatEnabled;
+        twChat["prefix"] = string.IsNullOrWhiteSpace(TwitchChatPrefix) ? "!" : TwitchChatPrefix.Trim();
+        twChat["cooldownSec"] = ClampWaitSec(TwitchChatCooldownSec);
+        twChat["globalGapSec"] = ClampWaitSec(TwitchChatGlobalGapSec);
+        var twCmds = new JsonObject();
+        foreach (var cmd in TwitchChatCommands)
+        {
+            if (string.IsNullOrWhiteSpace(cmd.Word) || string.IsNullOrWhiteSpace(cmd.Effect))
+            {
+                continue;
+            }
+
+            twCmds[cmd.Word.Trim()] = cmd.Effect.Trim();
+        }
+
+        twChat["commands"] = twCmds;
+        twitch["chat"] = twChat;
+        var bitsArr = new JsonArray();
+        foreach (var bit in TwitchBits.OrderBy(b => b.Min))
+        {
+            if (string.IsNullOrWhiteSpace(bit.Effect) || bit.Min < 1)
+            {
+                continue;
+            }
+
+            bitsArr.Add(new JsonObject
+            {
+                ["min"] = bit.Min,
+                ["effect"] = bit.Effect.Trim(),
+            });
+        }
+
+        twitch["bits"] = bitsArr;
+        _root["twitch"] = twitch;
+
+        var goalsArr = new JsonArray();
+        var usedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var index = 0;
+        foreach (var goal in Goals)
+        {
+            index++;
+            if (string.IsNullOrWhiteSpace(goal.Effect) || goal.Need < 1)
+            {
+                continue;
+            }
+
+            var keys = SplitKeys(goal.GiftsText);
+            if (keys.Count == 0)
+            {
+                continue;
+            }
+
+            var label = string.IsNullOrWhiteSpace(goal.Label) ? keys[0] : goal.Label.Trim();
+            var id = GiftKeyNormalizer.Normalize(goal.Id);
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                id = GiftKeyNormalizer.Normalize(label);
+            }
+
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                id = $"meta-{index}";
+            }
+
+            var baseId = id;
+            var n = 2;
+            while (!usedIds.Add(id))
+            {
+                id = $"{baseId}-{n}";
+                n++;
+            }
+
+            goalsArr.Add(new JsonObject
+            {
+                ["id"] = id,
+                ["label"] = label,
+                ["need"] = goal.Need,
+                ["effect"] = goal.Effect.Trim(),
+                ["gifts"] = ToJsonArray(keys),
+                ["alsoInstant"] = goal.AlsoInstant,
+                ["repeat"] = goal.Repeat,
+            });
+        }
+
+        _root["goals"] = goalsArr;
     }
+
+    private static List<string> SplitKeys(string? text) =>
+        (text ?? "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Where(s => s.Length > 0)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    private static JsonArray ToJsonArray(IEnumerable<string> keys)
+    {
+        var arr = new JsonArray();
+        foreach (var key in keys)
+        {
+            arr.Add(key);
+        }
+
+        return arr;
+    }
+
+    private static void PushStrings(List<string> target, JsonObject obj, string key)
+    {
+        if (obj[key] is JsonValue scalar && scalar.TryGetValue<string>(out var one) &&
+            !string.IsNullOrWhiteSpace(one))
+        {
+            target.Add(one.Trim());
+            return;
+        }
+
+        if (obj[key] is not JsonArray arr)
+        {
+            return;
+        }
+
+        foreach (var node in arr)
+        {
+            if (node is JsonValue v && v.TryGetValue<string>(out var s) && !string.IsNullOrWhiteSpace(s))
+            {
+                target.Add(s.Trim());
+            }
+        }
+    }
+
+    private static int ClampWaitSec(int value) => Math.Clamp(value, 0, 3600);
+
+    private static bool ReadBoolOr(JsonObject obj, string key, bool fallback) =>
+        obj[key] is null ? fallback : ReadBool(obj, key);
 
     private static int? ReadInt(JsonObject obj, string key)
     {
@@ -258,7 +519,55 @@ public sealed class GiftFileEditor
             Image = obj["image"]?.GetValue<string>() ?? obj["img"]?.GetValue<string>() ?? "",
             Overlay = ReadBool(obj, "overlay"),
             OverlayText = obj["overlayText"]?.GetValue<string>() ?? obj["overlay_text"]?.GetValue<string>() ?? "",
+            Params = ReadParams(obj),
         };
+    }
+
+    private static Dictionary<string, double> ReadParams(JsonObject obj)
+    {
+        var dict = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        if (obj["params"] is not JsonObject paramsObj)
+        {
+            return dict;
+        }
+
+        foreach (var kv in paramsObj)
+        {
+            if (string.IsNullOrWhiteSpace(kv.Key) || kv.Key.StartsWith('_'))
+            {
+                continue;
+            }
+
+            if (kv.Value is JsonValue v && TryReadDouble(v, out var n))
+            {
+                dict[kv.Key] = n;
+            }
+        }
+
+        return dict;
+    }
+
+    private static bool TryReadDouble(JsonValue v, out double value)
+    {
+        if (v.TryGetValue<double>(out value))
+        {
+            return true;
+        }
+
+        if (v.TryGetValue<int>(out var i))
+        {
+            value = i;
+            return true;
+        }
+
+        if (v.TryGetValue<long>(out var l))
+        {
+            value = l;
+            return true;
+        }
+
+        value = 0;
+        return false;
     }
 
     private static bool ReadBool(JsonObject obj, string key)
@@ -345,6 +654,27 @@ public sealed class GiftFileEditor
             obj["overlayText"] = gift.OverlayText.Trim();
         }
 
+        if (gift.Params.Count > 0)
+        {
+            var paramsObj = new JsonObject();
+            foreach (var (key, value) in gift.Params)
+            {
+                if (string.IsNullOrWhiteSpace(key) || key.StartsWith('_'))
+                {
+                    continue;
+                }
+
+                paramsObj[key] = Math.Abs(value - Math.Round(value)) < 0.0000001
+                    ? JsonValue.Create((long)Math.Round(value))
+                    : JsonValue.Create(value);
+            }
+
+            if (paramsObj.Count > 0)
+            {
+                obj["params"] = paramsObj;
+            }
+        }
+
         return obj;
     }
 }
@@ -408,7 +738,8 @@ public static class EnvFileWriter
         var example = AppPaths.Find(".env.example");
         if (example != null)
         {
-            File.Copy(example, path);
+            // File.Copy usa ioctl FICLONE; Android lo deniega en app data (avc 0x9409).
+            File.WriteAllBytes(path, File.ReadAllBytes(example));
         }
         else
         {

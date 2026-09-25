@@ -1,0 +1,134 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+             x:Class="HiveShock.Avalonia.Views.Pages.TwitchPage"
+             x:DataType="vm:TwitchViewModel">
+    <Grid RowDefinitions="Auto,Auto,*">
+        <DockPanel Margin="0,0,0,4">
+            <TextBlock Classes="pageTitle" Text="Twitch" Margin="0" VerticalAlignment="Center" />
+            <TextBlock FontSize="12" FontWeight="SemiBold"
+                       VerticalAlignment="Center" HorizontalAlignment="Right"
+                       Text="{Binding Studio.TwitchPortStatus}"
+                       Foreground="{DynamicResource MutedBrush}" />
+        </DockPanel>
+
+        <Expander Grid.Row="1" Classes="account" Header="Cuenta de Twitch"
+                  IsExpanded="{Binding AccountOpen}"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Stretch">
+            <Border Classes="card" Margin="0,8,0,4">
+                <StackPanel>
+                    <CheckBox Content="Usar en este directo" IsChecked="{Binding Studio.TwitchEnabled}"
+                              IsEnabled="{Binding Studio.CanEditSetup}" Margin="0,0,0,12" />
+                    <TextBlock FontSize="15" FontWeight="SemiBold" Margin="0,0,0,8"
+                               Text="{Binding Studio.TwitchLogin, StringFormat=@{0}}"
+                               IsVisible="{Binding Studio.TwitchHasAccount}" />
+                    <WrapPanel>
+                        <Button Classes="primary" Content="Entrar con Twitch"
+                                Command="{Binding Studio.ConnectTwitchCommand}"
+                                IsEnabled="{Binding Studio.CanTwitchConnect}"
+                                IsVisible="{Binding !Studio.TwitchHasAccount}" />
+                        <Button Classes="secondary" Content="Salir"
+                                Command="{Binding Studio.DisconnectTwitchCommand}"
+                                IsEnabled="{Binding Studio.CanEditSetup}"
+                                IsVisible="{Binding Studio.TwitchHasAccount}" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+        </Expander>
+
+        <Grid Grid.Row="2" RowDefinitions="Auto,*,Auto,*" Margin="0,4,0,0">
+            <StackPanel>
+                <TextBlock Classes="sectionTitle" Text="PALABRAS DEL CHAT" />
+                <CheckBox Content="Activar" IsChecked="{Binding Events.TwitchChatEnabled}" />
+                <WrapPanel Margin="0,8,0,0">
+                    <DockPanel Margin="0,0,16,8" Width="280">
+                        <TextBlock Classes="fieldLabel" Text="Prefijo" Width="90" VerticalAlignment="Center" Margin="0" />
+                        <TextBox Text="{Binding Events.TwitchChatPrefix}" Width="64" HorizontalAlignment="Left" />
+                    </DockPanel>
+                    <DockPanel Margin="0,0,16,8" Width="320">
+                        <TextBlock Classes="fieldLabel" Text="Espera viewer (s)" Width="130"
+                                   VerticalAlignment="Center" Margin="0" />
+                        <TextBox Text="{Binding Events.TwitchChatCooldownText}" Width="64" HorizontalAlignment="Left" />
+                    </DockPanel>
+                    <DockPanel Margin="0,0,0,8" Width="320">
+                        <TextBlock Classes="fieldLabel" Text="Espera todos (s)" Width="130"
+                                   VerticalAlignment="Center" Margin="0" />
+                        <TextBox Text="{Binding Events.TwitchChatGlobalGapText}" Width="64" HorizontalAlignment="Left" />
+                    </DockPanel>
+                </WrapPanel>
+                <WrapPanel>
+                    <Button Classes="secondary" Content="Añadir" Command="{Binding Events.AddTwitchCommandCommand}" />
+                    <Button Classes="secondary" Content="Quitar" Command="{Binding Events.RemoveTwitchCommandCommand}" />
+                </WrapPanel>
+            </StackPanel>
+
+            <ListBox Grid.Row="1" ItemsSource="{Binding Events.TwitchChatCommands}"
+                     SelectedItem="{Binding Events.SelectedTwitchCommand}"
+                     MinHeight="96" Margin="0,8,0,0"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ChatCommandRowViewModel">
+                        <DockPanel>
+                            <ComboBox DockPanel.Dock="Right" MinWidth="240" MaxWidth="420" Margin="8,0,0,0"
+                                      HorizontalAlignment="Right"
+                                      ItemsSource="{Binding $parent[UserControl].((vm:TwitchViewModel)DataContext).Events.EffectsWithNone}"
+                                      SelectedValue="{Binding Effect}"
+                                      SelectedValueBinding="{Binding Id}"
+                                      DisplayMemberBinding="{Binding Display}" />
+                            <TextBox Text="{Binding Word}" PlaceholderText="palabra" />
+                        </DockPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <GridSplitter Grid.Row="2" Height="8" HorizontalAlignment="Stretch"
+                          ResizeDirection="Rows" />
+
+            <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" MinHeight="120">
+                <StackPanel>
+                    <Grid ColumnDefinitions="*,*" Margin="0,8,0,12">
+                        <Border Classes="card" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Classes="sectionTitle" Text="NUEVOS SEGUIDORES" />
+                                <ComboBox ItemsSource="{Binding Events.EffectsWithNone}"
+                                          SelectedValue="{Binding Events.TwitchFollowEffect}"
+                                          SelectedValueBinding="{Binding Id}"
+                                          DisplayMemberBinding="{Binding Display}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="card" Grid.Column="1" Margin="8,0,0,0">
+                            <StackPanel>
+                                <TextBlock Classes="sectionTitle" Text="BITS" />
+                                <WrapPanel>
+                                    <Button Classes="secondary" Content="Añadir" Command="{Binding Events.AddBitsRuleCommand}" />
+                                    <Button Classes="secondary" Content="Quitar" Command="{Binding Events.RemoveBitsRuleCommand}" />
+                                </WrapPanel>
+                                <ListBox ItemsSource="{Binding Events.TwitchBits}"
+                                         SelectedItem="{Binding Events.SelectedBitsRule}"
+                                         MinHeight="96" MaxHeight="280" Margin="0,8,0,0"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:BitsRowViewModel">
+                                            <DockPanel>
+                                                <ComboBox DockPanel.Dock="Right" MinWidth="200" MaxWidth="360" Margin="8,0,0,0"
+                                                          ItemsSource="{Binding $parent[UserControl].((vm:TwitchViewModel)DataContext).Events.EffectsWithNone}"
+                                                          SelectedValue="{Binding Effect}"
+                                                          SelectedValueBinding="{Binding Id}"
+                                                          DisplayMemberBinding="{Binding Display}" />
+                                                <TextBox Text="{Binding MinText}" PlaceholderText="mín. bits" Width="88"
+                                                         HorizontalAlignment="Left" />
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                    <Button Classes="primary" Content="Guardar" Command="{Binding Events.SaveCommand}"
+                            HorizontalAlignment="Left" MinWidth="140" />
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

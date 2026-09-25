@@ -1,0 +1,57 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Android.ViewModels"
+             xmlns:views="using:HiveShock.Android.Views"
+             x:Class="HiveShock.Android.Views.MainView"
+             x:DataType="vm:MainViewModel">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Padding="16,12" Background="#075BAA">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="HiveShock" FontSize="20" FontWeight="SemiBold" Foreground="#EBA00A" />
+                    <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="White" Margin="0,4,0,0" />
+                </StackPanel>
+                <Border Grid.Column="1" Background="#1F8A4C" CornerRadius="12" Padding="10,6"
+                        VerticalAlignment="Center" IsVisible="{Binding IsRunning}">
+                    <TextBlock Text="● EN VIVO" FontSize="12" FontWeight="SemiBold" Foreground="White" />
+                </Border>
+            </Grid>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Background="#12202E" Padding="4,6">
+            <UniformGrid Columns="6">
+                <Button Classes="navTab" Classes.active="{Binding IsHomeNav}"
+                        Content="Inicio" Command="{Binding NavHomeCommand}" />
+                <Button Classes="navTab" Classes.active="{Binding IsGiftsNav}"
+                        Content="Regalos" Command="{Binding NavGiftsCommand}" />
+                <Button Classes="navTab" Classes.active="{Binding IsEventsNav}"
+                        Content="Eventos" Command="{Binding NavEventsCommand}" />
+                <Button Classes="navTab" Classes.active="{Binding IsProfileNav}"
+                        Content="Perfil" Command="{Binding NavProfileCommand}" />
+                <Button Classes="navTab" Classes.active="{Binding IsTwitchNav}"
+                        Content="Twitch" Command="{Binding NavTwitchCommand}" />
+                <Button Classes="navTab" Classes.active="{Binding IsAboutNav}"
+                        Content="Acerca" Command="{Binding NavAboutCommand}" />
+            </UniformGrid>
+        </Border>
+
+        <Panel>
+            <views:HomeView IsVisible="{Binding IsHomeNav}" />
+            <Panel IsVisible="{Binding IsGiftsNav}">
+                <views:GiftsMapView DataContext="{Binding Gifts}" />
+            </Panel>
+            <Panel IsVisible="{Binding IsEventsNav}">
+                <views:EventsMapView DataContext="{Binding Events}" />
+            </Panel>
+            <Panel IsVisible="{Binding IsProfileNav}">
+                <views:ProfileEditorView DataContext="{Binding Profile}" />
+            </Panel>
+            <Panel IsVisible="{Binding IsTwitchNav}">
+                <views:TwitchMapView DataContext="{Binding Events}" />
+            </Panel>
+            <Panel IsVisible="{Binding IsAboutNav}">
+                <views:AboutView DataContext="{Binding About}" />
+            </Panel>
+        </Panel>
+    </DockPanel>
+</UserControl>

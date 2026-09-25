@@ -1,5 +1,3 @@
-using System.IO;
-using System.Text.Json;
 using HiveShock.Avalonia.Themes;
 using HiveShock.Configuration;
 using HiveShock.Hosting;
@@ -14,13 +12,20 @@ public sealed class UiPreferences
     public int? DeathCounterValue { get; set; }
     public bool DeathOverlayEnabled { get; set; }
     public bool GiftOverlayEnabled { get; set; }
+    public bool GoalOverlayEnabled { get; set; }
     public string OverlayTitle { get; set; } = "";
     public double OverlayLeft { get; set; } = double.NaN;
     public double OverlayTop { get; set; } = double.NaN;
     public double GiftOverlayLeft { get; set; } = double.NaN;
     public double GiftOverlayTop { get; set; } = double.NaN;
+    public double GoalOverlayLeft { get; set; } = double.NaN;
+    public double GoalOverlayTop { get; set; } = double.NaN;
     public double OverlayScale { get; set; } = 1.5;
     public bool DetailLogOpen { get; set; }
+    public bool NavExpanded { get; set; } = true;
+    public double ActivityPanelHeight { get; set; } = 220;
+    /// <summary>El panel de actividad empieza recogido: solo pesa lo justo salvo que el usuario lo abra.</summary>
+    public bool ActivityPanelOpen { get; set; }
 
     public string GiftsOverlayTitle { get; set; } = "Regalos";
     public bool ShowGiftsOverlayTitle { get; set; } = true;
@@ -35,40 +40,19 @@ public sealed class UiPreferences
     public string OverlayBackgroundColor { get; set; } = "";
     public string OverlayAlign { get; set; } = "center";
 
-    private static string Path => System.IO.Path.Combine(AppPaths.AppDirectory, ".hiveshock-ui.json");
-    private static string LegacyPath => System.IO.Path.Combine(AppPaths.AppDirectory, ".bridge-ui.json");
+    private const string FileName = ".hiveshock-ui.json";
+    private const string LegacyFileName = ".bridge-ui.json";
 
-    public static UiPreferences Load()
-    {
-        try
-        {
-            var path = File.Exists(Path) ? Path : LegacyPath;
-            if (!File.Exists(path))
-            {
-                return new UiPreferences();
-            }
+    /// <summary>Copia válida más reciente (carpeta del usuario o junto al .exe); ver <see cref="UserDataStore"/>.</summary>
+    public static UiPreferences Load() =>
+        UserDataStore.Load<UiPreferences>(FileName, LegacyFileName) ?? new UiPreferences();
 
-            var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<UiPreferences>(json) ?? new UiPreferences();
-        }
-        catch
-        {
-            return new UiPreferences();
-        }
-    }
+    /// <summary>Guarda en las dos ubicaciones con respaldo .bak. Nunca lanza.</summary>
+    public void Save() => UserDataStore.Save(FileName, this);
 
-    public void Save()
-    {
-        try
-        {
-            var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(Path, json + Environment.NewLine);
-        }
-        catch
-        {
-            // ignore
-        }
-    }
+    public bool FollowsSystem =>
+        !string.Equals(Theme, "dark", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(Theme, "light", StringComparison.OrdinalIgnoreCase);
 
     public AppTheme ResolveTheme() => Theme switch
     {

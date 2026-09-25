@@ -26,7 +26,38 @@ jobs:
           global-json-file: global.json
 
       - name: Restore
-        run: dotnet restore HiveShock.Avalonia.slnx
+        run: |
+          dotnet restore HiveShock.Avalonia/HiveShock.Avalonia.csproj
+          dotnet restore HiveShock.Cli/HiveShock.Cli.csproj
 
       - name: Build
-        run: dotnet build HiveShock.Avalonia.slnx -c Release --no-restore
+        run: |
+          dotnet build HiveShock.Avalonia/HiveShock.Avalonia.csproj -c Release --no-restore
+          dotnet build HiveShock.Cli/HiveShock.Cli.csproj -c Release --no-restore
+
+      - name: Test
+        run: dotnet test HiveShock.Tests/HiveShock.Tests.csproj -c Release
+
+  android:
+    name: Build (Android)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Workload Android
+        run: dotnet workload install android
+
+      - name: Build APK (unsigned debug)
+        run: dotnet build HiveShock.Android/HiveShock.Android.csproj -c Release

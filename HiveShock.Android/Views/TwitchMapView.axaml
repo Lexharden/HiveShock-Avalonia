@@ -1,0 +1,81 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Android.ViewModels"
+             x:Class="HiveShock.Android.Views.TwitchMapView"
+             x:DataType="vm:EventsMapViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="16">
+            <TextBlock Classes="hint"
+                       Text="Chat, follows y bits de Twitch. Los regalos de TikTok no se mezclan aquí. La cuenta se entra en Inicio." />
+
+            <Border Classes="card">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="CHAT TWITCH" />
+                    <CheckBox Content="Activar" IsChecked="{Binding TwitchChatEnabled}" />
+                    <TextBlock Classes="fieldLabel" Text="Prefijo" Margin="0,10,0,6" />
+                    <TextBox Text="{Binding TwitchChatPrefix}" Width="64" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                    <TextBlock Classes="fieldLabel" Text="Espera viewer (s)" />
+                    <TextBox Text="{Binding TwitchChatCooldownText}" Width="72" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                    <TextBlock Classes="fieldLabel" Text="Espera todos (s)" />
+                    <TextBox Text="{Binding TwitchChatGlobalGapText}" Width="72" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                    <WrapPanel>
+                        <Button Classes="secondary" Content="Añadir" Command="{Binding AddTwitchCommandCommand}" />
+                        <Button Classes="secondary" Content="Quitar" Command="{Binding RemoveTwitchCommandCommand}" />
+                    </WrapPanel>
+                    <ListBox ItemsSource="{Binding TwitchChatCommands}" SelectedItem="{Binding SelectedTwitchCommand}"
+                             MinHeight="80" MaxHeight="200" Margin="0,8,0,0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ChatMapRow">
+                                <StackPanel Spacing="6">
+                                    <TextBox Text="{Binding Word}" PlaceholderText="palabra" />
+                                    <ComboBox ItemsSource="{Binding $parent[UserControl].((vm:EventsMapViewModel)DataContext).EffectsWithNone}"
+                                              SelectedValue="{Binding Effect}"
+                                              SelectedValueBinding="{Binding Id}"
+                                              DisplayMemberBinding="{Binding Display}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="NUEVOS SEGUIDORES" />
+                    <ComboBox ItemsSource="{Binding EffectsWithNone}"
+                              SelectedValue="{Binding TwitchFollowEffect}"
+                              SelectedValueBinding="{Binding Id}"
+                              DisplayMemberBinding="{Binding Display}" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="BITS" />
+                    <TextBlock Classes="hint" Text="Mínimo de bits de un cheer. No es un regalo de TikTok." />
+                    <WrapPanel>
+                        <Button Classes="secondary" Content="Añadir" Command="{Binding AddBitsRuleCommand}" />
+                        <Button Classes="secondary" Content="Quitar" Command="{Binding RemoveBitsRuleCommand}" />
+                    </WrapPanel>
+                    <ListBox ItemsSource="{Binding TwitchBits}" SelectedItem="{Binding SelectedBitsRule}"
+                             MinHeight="80" MaxHeight="200" Margin="0,8,0,0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:BitsMapRow">
+                                <StackPanel Spacing="6">
+                                    <TextBox Text="{Binding MinText}" PlaceholderText="mín. bits" />
+                                    <ComboBox ItemsSource="{Binding $parent[UserControl].((vm:EventsMapViewModel)DataContext).EffectsWithNone}"
+                                              SelectedValue="{Binding Effect}"
+                                              SelectedValueBinding="{Binding Id}"
+                                              DisplayMemberBinding="{Binding Display}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+            <Button Classes="primary" Content="Guardar" Command="{Binding SaveCommand}"
+                    HorizontalAlignment="Stretch" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-android</TargetFramework>
+    <SupportedOSPlatformVersion>23</SupportedOSPlatformVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>HiveShock.Android</RootNamespace>
+    <AssemblyName>HiveShock.Android</AssemblyName>
+    <ApplicationId>dev.yafel.hiveshock</ApplicationId>
+    <ApplicationTitle>HiveShock</ApplicationTitle>
+    <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
+    <!-- major*10000 + minor*100 + patch; alinear con Directory.Build.props -->
+    <ApplicationVersion>20100</ApplicationVersion>
+    <AndroidPackageFormat>apk</AndroidPackageFormat>
+    <AndroidManifest>AndroidManifest.xml</AndroidManifest>
+    <PublishTrimmed>false</PublishTrimmed>
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <AndroidEnableMarshalMethods>false</AndroidEnableMarshalMethods>
+    <RuntimeIdentifiers>android-arm64;android-arm;android-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Android" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.1" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HiveShock.Core\HiveShock.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AndroidResource Include="..\HiveShock.Avalonia\Assets\app.png">
+      <Link>Resources\drawable\icon.png</Link>
+    </AndroidResource>
+    <AvaloniaResource Include="..\HiveShock.Avalonia\Assets\app.png">
+      <Link>Assets\app.png</Link>
+    </AvaloniaResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <AndroidAsset Include="..\config\profiles\**\*">
+      <Link>profiles\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </AndroidAsset>
+    <AndroidAsset Include="..\config\gift-catalog.json" Link="gift-catalog.json" />
+    <AndroidAsset Include="..\config\active-profile.txt" Link="active-profile.txt" />
+    <AndroidAsset Include="..\config\.env.example" Link="env.example" />
+  </ItemGroup>
+</Project>

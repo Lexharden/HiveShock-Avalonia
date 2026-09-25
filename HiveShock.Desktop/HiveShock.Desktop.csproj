@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Implementaciones de escritorio (Windows/macOS/Linux) para las interfaces de
+    HiveShock.Core.Voice que dependen de librerías nativas (NAudio, SharpHook,
+    WebRtcVadSharp). Separado de HiveShock.Core a propósito: HiveShock.Android
+    también referencia Core, y ninguna de estas librerías aplica a un teléfono
+    (no hay WASAPI ni atajos globales de teclado en Android) — mezclarlas en Core
+    solo infla el APK y genera warnings de binarios nativos que no se usan.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <RootNamespace>HiveShock</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Deja compilar este TFM Windows-only desde Linux/Mac (solo build, no ejecución). -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HiveShock.Core\HiveShock.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="3.1.0" />
+    <PackageReference Include="SharpHook" Version="8.0.0" />
+    <!--
+      ExcludeAssets="build": el .targets del paquete solo copia WebRtcVad.dll en este proyecto
+      (y avisa si la plataforma no es x86/x64). La copia la hace el item de abajo, que sí
+      llega a la app y al publish; así no hay aviso ni copia duplicada.
+    -->
+    <PackageReference Include="WebRtcVadSharp" Version="1.3.2" GeneratePathProperty="true" ExcludeAssets="build" />
+  </ItemGroup>
+
+  <!--
+    WebRtcVadSharp copia WebRtcVad.dll con un .targets propio (build/) que solo corre en
+    el proyecto que lo referencia directo: ni llega a HiveShock.Avalonia/bin ni al publish,
+    y el VAD cae a solo noise gate. Como item con CopyToOutput/PublishDirectory sí viaja por
+    ProjectReference (y entra al single-file con IncludeNativeLibrariesForSelfExtract).
+    El paquete solo trae x64/x86; win-arm64 corre con noise gate (ver VoiceActivityDetector).
+  -->
+  <PropertyGroup>
+    <WebRtcVadArch>x64</WebRtcVadArch>
+    <WebRtcVadArch Condition="'$(RuntimeIdentifier)' == 'win-x86' or '$(PlatformTarget)' == 'x86'">x86</WebRtcVadArch>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(PkgWebRtcVadSharp)\build\win-$(WebRtcVadArch)\native\WebRtcVad.dll" Link="WebRtcVad.dll" Visible="false">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

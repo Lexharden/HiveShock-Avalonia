@@ -6,16 +6,32 @@
     <AssemblyTitle>HiveShock</AssemblyTitle>
     <Company>Yafel</Company>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <!--
+      net10.0-windows10.0.19041.0 es el que trae Smart TTS de verdad: NAudio (WASAPI/WinMM)
+      y SharpHook solo exponen sus tipos reales bajo un TFM Windows-versionado, así que
+      HiveShock.Desktop (quien los implementa) solo puede vivir ahí — ver su .csproj.
+      Un solo TFM según el host/RID: en Windows (sin -r, o -r win-*) se usa el de Windows,
+      así `dotnet run`, el IDE y Pack-Release.ps1 llevan TTS sin pasar -f. En Mac/Linux, o
+      publicando para osx-*/linux-*, queda net10.0 (la página "Voz" sale como no disponible).
+      Forzar otro: -p:TargetFramework=net10.0 (o el de Windows desde Mac/Linux).
+    -->
+    <TargetFramework Condition="'$(TargetFramework)' == '' and $([MSBuild]::IsOSPlatform('windows')) and ('$(RuntimeIdentifier)' == '' or $(RuntimeIdentifier.StartsWith('win')))">net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework Condition="'$(TargetFramework)' == ''">net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <!-- Deja compilar el TFM Windows-only desde Linux/Mac (solo build, no ejecución). -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
   <!-- Windows-only host bits. Do not pin RuntimeIdentifier: `dotnet run` uses the machine OS. -->
   <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('windows'))">
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'">
+    <DefineConstants>$(DefineConstants);HIVESHOCK_WINDOWS_DESKTOP</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
@@ -53,6 +69,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HiveShock.Core\HiveShock.Core.csproj" />
+    <!-- Voces locales Piper: multiplataforma (el motor se descarga aparte, ver su .csproj). -->
+    <ProjectReference Include="..\HiveShock.Voice.Piper\HiveShock.Voice.Piper.csproj" />
+  </ItemGroup>
+
+  <!-- Solo la pata Windows referencia Desktop: es el único TFM con el que es compatible. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'">
+    <ProjectReference Include="..\HiveShock.Desktop\HiveShock.Desktop.csproj" />
   </ItemGroup>
 
   <ItemGroup>

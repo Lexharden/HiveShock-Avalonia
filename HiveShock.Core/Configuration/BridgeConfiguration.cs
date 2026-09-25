@@ -20,14 +20,23 @@ public sealed class BridgeOptions
     public bool DisableCrowdControl { get; set; }
     public bool ListEffectsOnly { get; set; }
     public bool SkipMenu { get; set; }
-    /// <summary>Solo pruebas / SDK → juego. No conecta a TikTok Live.</summary>
+    /// <summary>Solo pruebas / SDK → juego. No conecta a ningún canal.</summary>
     public bool DevMode { get; set; }
     /// <summary>Conecta a TikTok solo para capturar regalos al catálogo (sin efectos ni CC).</summary>
     public bool CaptureOnly { get; set; }
+    public bool TikTokEnabled { get; set; } = true;
+    public bool TwitchEnabled { get; set; } = true;
+    public string TwitchClientId { get; set; } = "";
+    public string? TwitchAccessToken { get; set; }
+    public string? TwitchRefreshToken { get; set; }
+    public string TwitchUserLogin { get; set; } = "";
+    public string TwitchUserId { get; set; } = "";
     public TimeSpan LiveRetryInterval { get; set; } = TimeSpan.FromSeconds(30);
     public TimeSpan GameConnectTimeout { get; set; } = TimeSpan.FromSeconds(3);
     /// <summary>Id de perfil preferido (--profile / CROWDBRIDGE_PROFILE). Vacío = active-profile.txt.</summary>
     public string? ProfileId { get; set; }
+    /// <summary>Pausa mínima entre envíos TCP al juego (ms). 0 = sin pacing.</summary>
+    public int EffectGapMs { get; set; } = 300;
 
     public static BridgeOptions FromEnvironmentAndArgs(string[] args)
     {
@@ -48,6 +57,13 @@ public sealed class BridgeOptions
             TikTokUniqueId = tiktok,
             TikTokTtwid = Env("TIKTOK_TTWID"),
             TikTokCookies = Env("TIKTOK_COOKIES"),
+            TikTokEnabled = EnvFlag("TIKTOK_ENABLED", defaultValue: true),
+            TwitchEnabled = EnvFlag("TWITCH_ENABLED", defaultValue: true),
+            TwitchClientId = Env("TWITCH_CLIENT_ID") ?? TwitchApp.ClientId,
+            TwitchAccessToken = Env("TWITCH_ACCESS_TOKEN"),
+            TwitchRefreshToken = Env("TWITCH_REFRESH_TOKEN"),
+            TwitchUserLogin = Env("TWITCH_USER_LOGIN") ?? "",
+            TwitchUserId = Env("TWITCH_USER_ID") ?? "",
             GameHost = Env("GAME_HOST") ?? "127.0.0.1",
             GamePort = EnvInt("GAME_PORT", 43000),
             CrowdControlPort = EnvInt("CC_PORT", 43001),
@@ -58,13 +74,21 @@ public sealed class BridgeOptions
             SkipMenu = skipMenu,
             DevMode = dev,
             ProfileId = string.IsNullOrWhiteSpace(profile) ? null : profile.Trim(),
+            EffectGapMs = Math.Clamp(EnvInt("EFFECT_GAP_MS", 300), 0, 5000),
         };
     }
+
+    public bool GameHostLooksLocal =>
+        string.IsNullOrWhiteSpace(GameHost) ||
+        GameHost.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase) ||
+        GameHost.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+        GameHost.Equals("::1", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Aplica host/puertos del perfil (sin pisar overrides explícitos de .env si ya diferían del default del perfil anterior).</summary>
     public void ApplyProfileEndpoints(GameProfileInfo profile, bool force = true)
     {
-        if (force || string.IsNullOrWhiteSpace(GameHost))
+        // En Android no pises un host que el usuario ya puso (este teléfono o IP del PC).
+        if (!OperatingSystem.IsAndroid() && (force || string.IsNullOrWhiteSpace(GameHost)))
         {
             GameHost = string.IsNullOrWhiteSpace(profile.GameHost) ? "127.0.0.1" : profile.GameHost;
         }
@@ -97,6 +121,26 @@ public sealed class BridgeOptions
         return text.Trim();
     }
 
+    public bool TikTokReady =>
+        TikTokEnabled && !string.IsNullOrWhiteSpace(TikTokUniqueId);
+
+    public bool TwitchReady =>
+        TwitchEnabled &&
+        !string.IsNullOrWhiteSpace(TwitchClientId) &&
+        !string.IsNullOrWhiteSpace(TwitchAccessToken);
+
+    public bool HasAnyLivePort => TikTokReady || TwitchReady;
+
+    public string ResolvedTwitchClientId()
+    {
+        if (!string.IsNullOrWhiteSpace(TwitchClientId))
+        {
+            return TwitchClientId.Trim();
+        }
+
+        return TwitchApp.ClientId;
+    }
+
     private static bool HasFlag(string[] args, string flag) =>
         args.Any(a => string.Equals(a, flag, StringComparison.OrdinalIgnoreCase));
 
@@ -122,6 +166,17 @@ public sealed class BridgeOptions
     private static int EnvInt(string key, int fallback) =>
         int.TryParse(Env(key), out var n) ? n : fallback;
 
+    private static bool EnvFlag(string key, bool defaultValue)
+    {
+        var value = Env(key);
+        if (value is null)
+        {
+            return defaultValue;
+        }
+
+        return value is "1" or "true" or "TRUE" or "yes" or "YES";
+    }
+
     private static bool EnvBool(string key)
     {
         var value = Env(key);
@@ -131,11 +186,26 @@ public sealed class BridgeOptions
 
 public static class AppPaths
 {
-    /// <summary>Directory that holds the published exe (not the single-file extract folder).</summary>
+    /// <summary>Directory that holds the published exe (not the single-file extract folder). On Android: app data.</summary>
     public static string AppDirectory
     {
         get
         {
+            if (OperatingSystem.IsAndroid())
+            {
+                var data = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                if (string.IsNullOrWhiteSpace(data))
+                {
+                    data = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                }
+
+                if (!string.IsNullOrWhiteSpace(data))
+                {
+                    Directory.CreateDirectory(data);
+                    return data.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                }
+            }
+
             var processPath = Environment.ProcessPath;
             if (!string.IsNullOrWhiteSpace(processPath))
             {
@@ -166,7 +236,7 @@ public static class AppPaths
 
     public static string Require(string fileName) =>
         Find(fileName) ?? throw new FileNotFoundException(
-            $"No se encontró {fileName}. Debe estar junto a {ProductInfo.ExecutableFileName} (carpeta: {AppDirectory}).");
+            $"No se encontró {fileName} (carpeta: {AppDirectory}).");
 
     public static IEnumerable<string> CandidateRootsPublic() => CandidateRoots();
 
@@ -318,7 +388,8 @@ public sealed record GiftRule(
     string EffectId,
     string What,
     int MinCount = 1,
-    bool Each = false);
+    bool Each = false,
+    IReadOnlyDictionary<string, double>? Params = null);
 
 public sealed record GiftGroup(IReadOnlyList<string> Names, string EffectId, string What);
 
@@ -330,12 +401,43 @@ public sealed class GiftMatch
     public int MinCount { get; init; } = 1;
     /// <summary>Si true, encola el efecto una vez por unidad (x10 → 10). Si false, una sola vez al cerrar el combo.</summary>
     public bool Each { get; init; }
+    /// <summary>Overrides de parámetros del efecto (valores wire).</summary>
+    public IReadOnlyDictionary<string, double>? Params { get; init; }
+}
+
+/// <summary>Esquema UI/override de un parámetro numérico declarado en effects.json (_params).</summary>
+public sealed class EffectParamDef
+{
+    public string Key { get; init; } = "";
+    public string Label { get; init; } = "";
+    /// <summary>hearts = UI en corazones (wire = UI × Scale); raw = misma unidad que el juego.</summary>
+    public string Unit { get; init; } = "raw";
+    public double Scale { get; init; } = 1;
+    public double Min { get; init; }
+    public double Max { get; init; } = 100;
+    public double Step { get; init; } = 1;
+
+    public double EffectiveScale => Scale > 0 ? Scale : 1;
+
+    public double ClampUi(double uiValue) => Math.Clamp(uiValue, Min, Max);
+
+    public double ToWire(double uiValue) => ClampUi(uiValue) * EffectiveScale;
+
+    public double ToUi(double wireValue) => wireValue / EffectiveScale;
+
+    public double ClampWire(double wireValue) => ToWire(ToUi(wireValue));
 }
 
 public sealed class DiamondBracket
 {
     public int Min { get; init; }
     public int? Max { get; init; }
+    public string Effect { get; init; } = "";
+}
+
+public sealed class BitsBracket
+{
+    public int Min { get; init; }
     public string Effect { get; init; } = "";
 }
 
@@ -354,6 +456,8 @@ public sealed class ChatConfig
 {
     public bool Enabled { get; init; }
     public string Prefix { get; init; } = "!";
+    public int CooldownSec { get; init; } = 30;
+    public int GlobalGapSec { get; init; } = 2;
     public Dictionary<string, string> Commands { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
@@ -367,6 +471,22 @@ public sealed class GiftRuntimeConfig
     public SimpleEffectConfig Follow { get; init; } = new();
     public SimpleEffectConfig Share { get; init; } = new();
     public ChatConfig Chat { get; init; } = new();
+    public SimpleEffectConfig TwitchFollow { get; init; } = new();
+    public ChatConfig TwitchChat { get; init; } = new();
+    public IReadOnlyList<BitsBracket> TwitchBits { get; init; } = [];
+    public IReadOnlyList<GiftGoalConfig> Goals { get; init; } = [];
+}
+
+/// <summary>Meta del live: varios viewers suman el mismo regalo (no es un combo de uno).</summary>
+public sealed class GiftGoalConfig
+{
+    public string Id { get; init; } = "";
+    public string Label { get; init; } = "";
+    public int Need { get; init; } = 2;
+    public string Effect { get; init; } = "";
+    public IReadOnlyList<string> Keys { get; init; } = [];
+    public bool AlsoInstant { get; init; } = true;
+    public bool Repeat { get; init; } = true;
 }
 
 public sealed class EffectCatalog
@@ -480,7 +600,23 @@ public sealed class EffectCatalog
     public bool IsEnemyEffect(string effectId) =>
         _enemyEffectIds.Contains(effectId);
 
-    public Dictionary<string, object?>? Resolve(string effectId, string? user)
+    public IReadOnlyList<EffectParamDef> GetParamSchema(string effectId)
+    {
+        if (string.IsNullOrWhiteSpace(effectId) || !_effects.TryGetValue(effectId, out var template))
+        {
+            return [];
+        }
+
+        return ParseParamSchema(template);
+    }
+
+    public Dictionary<string, object?>? Resolve(string effectId, string? user) =>
+        Resolve(effectId, user, null);
+
+    public Dictionary<string, object?>? Resolve(
+        string effectId,
+        string? user,
+        IReadOnlyDictionary<string, double>? overrides)
     {
         if (string.IsNullOrWhiteSpace(effectId) || effectId.StartsWith('_'))
         {
@@ -496,7 +632,33 @@ public sealed class EffectCatalog
         var cmd = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         foreach (var (key, value) in template)
         {
+            if (key.StartsWith('_'))
+            {
+                continue;
+            }
+
             cmd[key] = JsonElementToObject(value);
+        }
+
+        if (overrides is { Count: > 0 })
+        {
+            var schema = ParseParamSchema(template);
+            foreach (var (key, wireValue) in overrides)
+            {
+                if (string.IsNullOrWhiteSpace(key) || key.StartsWith('_'))
+                {
+                    continue;
+                }
+
+                var def = schema.FirstOrDefault(p =>
+                    string.Equals(p.Key, key, StringComparison.OrdinalIgnoreCase));
+                if (def == null)
+                {
+                    continue;
+                }
+
+                cmd[def.Key] = ToJsonNumber(def.ClampWire(wireValue));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(user))
@@ -505,6 +667,68 @@ public sealed class EffectCatalog
         }
 
         return cmd;
+    }
+
+    private static IReadOnlyList<EffectParamDef> ParseParamSchema(Dictionary<string, JsonElement> template)
+    {
+        if (!template.TryGetValue("_params", out var paramsEl) || paramsEl.ValueKind != JsonValueKind.Object)
+        {
+            return [];
+        }
+
+        var list = new List<EffectParamDef>();
+        foreach (var prop in paramsEl.EnumerateObject())
+        {
+            if (prop.Value.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            var o = prop.Value;
+            list.Add(new EffectParamDef
+            {
+                Key = prop.Name,
+                Label = ReadParamString(o, "label") ?? prop.Name,
+                Unit = ReadParamString(o, "unit") ?? "raw",
+                Scale = ReadParamDouble(o, "scale") ?? 1,
+                Min = ReadParamDouble(o, "min") ?? 0,
+                Max = ReadParamDouble(o, "max") ?? 100,
+                Step = ReadParamDouble(o, "step") ?? 1,
+            });
+        }
+
+        return list;
+    }
+
+    private static string? ReadParamString(JsonElement obj, string name) =>
+        obj.TryGetProperty(name, out var el) && el.ValueKind == JsonValueKind.String
+            ? el.GetString()
+            : null;
+
+    private static double? ReadParamDouble(JsonElement obj, string name)
+    {
+        if (!obj.TryGetProperty(name, out var el) || el.ValueKind != JsonValueKind.Number)
+        {
+            return null;
+        }
+
+        return el.TryGetDouble(out var d) ? d : null;
+    }
+
+    private static object ToJsonNumber(double value)
+    {
+        if (double.IsNaN(value) || double.IsInfinity(value))
+        {
+            return 0L;
+        }
+
+        var rounded = Math.Round(value, 6);
+        if (Math.Abs(rounded - Math.Round(rounded)) < 0.0000001)
+        {
+            return (long)Math.Round(rounded);
+        }
+
+        return rounded;
     }
 
     private static object? JsonElementToObject(JsonElement el) => el.ValueKind switch
@@ -523,7 +747,8 @@ public sealed class GiftConfigStore
 {
     private static readonly HashSet<string> MetaKeys = new(StringComparer.OrdinalIgnoreCase)
     {
-        "_help", "_comment", "gifts", "likes", "follow", "share", "chat", "unmappedGifts", "giftsByDiamonds",
+        "_help", "_comment", "gifts", "likes", "follow", "share", "chat", "twitch", "tiktok",
+        "unmappedGifts", "giftsByDiamonds",
     };
 
     private readonly object _gate = new();
@@ -600,6 +825,7 @@ public sealed class GiftConfigStore
             EffectId = rule.EffectId,
             MinCount = Math.Max(1, rule.MinCount),
             Each = rule.Each,
+            Params = rule.Params,
         };
 
     public void PrintRules()
@@ -635,11 +861,12 @@ public sealed class GiftConfigStore
                 var what = GetString(row, "what") ?? GetString(row, "note") ?? "";
                 var minCount = ParsePositiveInt(row, "minCount") ?? ParsePositiveInt(row, "min") ?? 1;
                 var each = ParseBool(row, "each") || ParseBool(row, "perGift");
+                var paramOverrides = ParseParamOverrides(row);
                 var names = CollectNames(row);
                 var groupNames = new List<string>();
                 foreach (var name in names)
                 {
-                    if (TryAddRule(rules, name, effectId, what, minCount, each))
+                    if (TryAddRule(rules, name, effectId, what, minCount, each, paramOverrides))
                     {
                         groupNames.Add(name);
                     }
@@ -673,11 +900,26 @@ public sealed class GiftConfigStore
                     : 1;
                 var each = prop.Value.ValueKind == JsonValueKind.Object &&
                            (ParseBool(prop.Value, "each") || ParseBool(prop.Value, "perGift"));
-                if (TryAddRule(rules, prop.Name, effectId, what, minCount, each))
+                var paramOverrides = prop.Value.ValueKind == JsonValueKind.Object
+                    ? ParseParamOverrides(prop.Value)
+                    : null;
+                if (TryAddRule(rules, prop.Name, effectId, what, minCount, each, paramOverrides))
                 {
                     groups.Add(new GiftGroup([prop.Name], effectId, what));
                 }
             }
+        }
+
+        var chat = ParseChat(root);
+        var follow = ParseSimple(root, "follow");
+        var twitchChat = chat;
+        var twitchFollow = follow;
+        var twitchBits = (IReadOnlyList<BitsBracket>)[];
+        if (root.TryGetProperty("twitch", out var twitch) && twitch.ValueKind == JsonValueKind.Object)
+        {
+            twitchChat = ParseChat(twitch);
+            twitchFollow = ParseSimple(twitch, "follow");
+            twitchBits = ParseBitsBrackets(twitch);
         }
 
         return new GiftRuntimeConfig
@@ -687,9 +929,13 @@ public sealed class GiftConfigStore
             UnmappedGifts = GetString(root, "unmappedGifts") ?? "ignore",
             GiftsByDiamonds = ParseDiamondBrackets(root),
             Likes = ParseLikes(root),
-            Follow = ParseSimple(root, "follow"),
+            Follow = follow,
             Share = ParseSimple(root, "share"),
-            Chat = ParseChat(root),
+            Chat = chat,
+            TwitchFollow = twitchFollow,
+            TwitchChat = twitchChat,
+            TwitchBits = twitchBits,
+            Goals = ParseGoals(root),
         };
     }
 
@@ -699,7 +945,8 @@ public sealed class GiftConfigStore
         string effectId,
         string what,
         int minCount = 1,
-        bool each = false)
+        bool each = false,
+        IReadOnlyDictionary<string, double>? paramOverrides = null)
     {
         if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(effectId))
         {
@@ -718,8 +965,35 @@ public sealed class GiftConfigStore
             effectId,
             what.Trim(),
             Math.Max(1, minCount),
-            each));
+            each,
+            paramOverrides));
         return true;
+    }
+
+    private static IReadOnlyDictionary<string, double>? ParseParamOverrides(JsonElement row)
+    {
+        if (!row.TryGetProperty("params", out var paramsEl) || paramsEl.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var dict = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        foreach (var prop in paramsEl.EnumerateObject())
+        {
+            if (prop.Value.ValueKind != JsonValueKind.Number || !prop.Value.TryGetDouble(out var value))
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(prop.Name) || prop.Name.StartsWith('_'))
+            {
+                continue;
+            }
+
+            dict[prop.Name] = value;
+        }
+
+        return dict.Count > 0 ? dict : null;
     }
 
     private static int? ParsePositiveInt(JsonElement row, string prop)
@@ -842,6 +1116,151 @@ public sealed class GiftConfigStore
         return list;
     }
 
+    private static List<BitsBracket> ParseBitsBrackets(JsonElement container)
+    {
+        var list = new List<BitsBracket>();
+        if (!container.TryGetProperty("bits", out var arr) || arr.ValueKind != JsonValueKind.Array)
+        {
+            return list;
+        }
+
+        foreach (var row in arr.EnumerateArray())
+        {
+            if (row.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            var effect = GetString(row, "effect") ?? "";
+            if (string.IsNullOrWhiteSpace(effect))
+            {
+                continue;
+            }
+
+            var min = row.TryGetProperty("min", out var minEl) && minEl.TryGetInt32(out var minV)
+                ? Math.Max(1, minV)
+                : 1;
+            list.Add(new BitsBracket { Min = min, Effect = effect });
+        }
+
+        return list;
+    }
+
+    private static List<GiftGoalConfig> ParseGoals(JsonElement root)
+    {
+        var list = new List<GiftGoalConfig>();
+        if (!root.TryGetProperty("goals", out var arr) || arr.ValueKind != JsonValueKind.Array)
+        {
+            return list;
+        }
+
+        var usedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var index = 0;
+        foreach (var row in arr.EnumerateArray())
+        {
+            index++;
+            if (row.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            var effect = GetString(row, "effect") ?? "";
+            var keys = new List<string>();
+            PushStrings(keys, row, "gifts");
+            PushStrings(keys, row, "ids");
+            var uniqueKeys = keys
+                .Select(GiftKeyNormalizer.Normalize)
+                .Where(k => k.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (uniqueKeys.Count == 0 || string.IsNullOrWhiteSpace(effect))
+            {
+                continue;
+            }
+
+            var label = GetString(row, "label") ?? GetString(row, "name") ?? uniqueKeys[0];
+            var id = GiftKeyNormalizer.Normalize(GetString(row, "id"));
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                id = GiftKeyNormalizer.Normalize(label);
+            }
+
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                id = $"meta-{index}";
+            }
+
+            var baseId = id;
+            var n = 2;
+            while (!usedIds.Add(id))
+            {
+                id = $"{baseId}-{n}";
+                n++;
+            }
+
+            var need = row.TryGetProperty("need", out var needEl) && needEl.TryGetInt32(out var needV)
+                ? Math.Max(1, needV)
+                : 2;
+            var alsoInstant = !row.TryGetProperty("alsoInstant", out var ai) || ParseBool(ai);
+            var repeat = !row.TryGetProperty("repeat", out var rp) || ParseBool(rp);
+
+            list.Add(new GiftGoalConfig
+            {
+                Id = id,
+                Label = string.IsNullOrWhiteSpace(label) ? id : label.Trim(),
+                Need = need,
+                Effect = effect.Trim(),
+                Keys = uniqueKeys,
+                AlsoInstant = alsoInstant,
+                Repeat = repeat,
+            });
+        }
+
+        return list;
+    }
+
+    private static void PushStrings(List<string> target, JsonElement row, string prop)
+    {
+        if (!row.TryGetProperty(prop, out var el))
+        {
+            return;
+        }
+
+        if (el.ValueKind == JsonValueKind.String)
+        {
+            var s = el.GetString();
+            if (!string.IsNullOrWhiteSpace(s))
+            {
+                target.Add(s);
+            }
+
+            return;
+        }
+
+        if (el.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        foreach (var item in el.EnumerateArray())
+        {
+            if (item.ValueKind == JsonValueKind.String)
+            {
+                var s = item.GetString();
+                if (!string.IsNullOrWhiteSpace(s))
+                {
+                    target.Add(s);
+                }
+            }
+        }
+    }
+
+    private static bool ParseBool(JsonElement el) =>
+        el.ValueKind == JsonValueKind.True ||
+        (el.ValueKind == JsonValueKind.String &&
+         (string.Equals(el.GetString(), "true", StringComparison.OrdinalIgnoreCase) ||
+          el.GetString() == "1"));
+
     private static LikesConfig ParseLikes(JsonElement root)
     {
         if (!root.TryGetProperty("likes", out var likes) || likes.ValueKind != JsonValueKind.Object)
@@ -889,8 +1308,26 @@ public sealed class GiftConfigStore
         {
             Enabled = chat.TryGetProperty("enabled", out var en) && en.ValueKind == JsonValueKind.True,
             Prefix = GetString(chat, "prefix") ?? "!",
+            CooldownSec = ReadWaitSec(chat, "cooldownSec", 30),
+            GlobalGapSec = ReadWaitSec(chat, "globalGapSec", 2),
             Commands = commands,
         };
+    }
+
+    private static int ReadWaitSec(JsonElement obj, string name, int fallback)
+    {
+        if (!obj.TryGetProperty(name, out var el))
+        {
+            return fallback;
+        }
+
+        var n = el.ValueKind switch
+        {
+            JsonValueKind.Number when el.TryGetInt32(out var i) => i,
+            JsonValueKind.String when int.TryParse(el.GetString(), out var s) => s,
+            _ => fallback,
+        };
+        return Math.Clamp(n, 0, 3600);
     }
 
     private static string? GetString(JsonElement el, string name)

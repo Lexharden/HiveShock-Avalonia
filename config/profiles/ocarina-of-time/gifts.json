@@ -1,0 +1,101 @@
+{
+  "_help": "Perfil Ocarina of Time / Ship of Harkinian. Combos: minCount, each. overlay=true muestra chip OBS.",
+
+  "gifts": [
+    {
+      "gift": "Rose",
+      "also": ["Rosa"],
+      "id": "5655",
+      "effect": "impulse",
+      "what": "1 diamante. Saltito"
+    },
+    {
+      "gift": "Heart Me",
+      "id": "7934",
+      "effect": "heal",
+      "what": "Cura 1 corazón",
+      "params": { "value": 4 }
+    },
+    {
+      "gift": "Finger Heart",
+      "id": "5827",
+      "effect": "cucco",
+      "what": "Un cucco"
+    },
+    {
+      "gift": "TikTok",
+      "effect": "heal",
+      "what": "Cura 1 corazón",
+      "params": { "value": 4 }
+    },
+    {
+      "gift": "GG",
+      "effect": "random_enemy",
+      "what": "Enemigo aleatorio"
+    },
+    {
+      "gift": "Doughnut",
+      "effect": "dark_link",
+      "what": "Dark Link"
+    },
+    {
+      "gift": "Rosa para ti",
+      "effect": "hearts",
+      "what": "5 corazones"
+    },
+    {
+      "gift": "Super Popular",
+      "id": "16690",
+      "effect": "rupees",
+      "what": "9 diamantes. +10 rupias"
+    },
+    {
+      "gift": "Capybara",
+      "id": "14488",
+      "effect": "invert",
+      "what": "30 diamantes. Stick invertido 20 s"
+    },
+    {
+      "gift": "Popular Vote",
+      "id": "13651",
+      "effect": "insta_kill",
+      "what": "Instakill"
+    },
+    {
+      "gift": "Guardian Wings",
+      "id": "15104",
+      "effect": "fairy",
+      "what": "Un hada"
+    }
+  ],
+
+  "likes": {
+    "every": 0,
+    "effect": "impulse",
+    "what": ""
+  },
+  "follow": {
+    "effect": "",
+    "what": ""
+  },
+  "share": {
+    "effect": "",
+    "what": ""
+  },
+  "chat": {
+    "enabled": false,
+    "prefix": "!",
+    "cooldownSec": 30,
+    "globalGapSec": 2,
+    "commands": {}
+  },
+
+  "unmappedGifts": "ignore",
+  "giftsByDiamonds": [
+    { "min": 1, "max": 9, "effect": "impulse" },
+    { "min": 10, "max": 49, "effect": "cucco" },
+    { "min": 50, "max": 99, "effect": "random_enemy" },
+    { "min": 100, "max": 299, "effect": "blast" },
+    { "min": 300, "effect": "cucco_army" }
+  ]
+}
