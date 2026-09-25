@@ -227,7 +227,7 @@ elif [[ "$GUI_NAME" == *.exe ]]; then
 else
 
   LAUNCH="./HiveShock"
-  REPLACE="HiveShock"
+  REPLACE="los archivos de tu carpeta de HiveShock por los de este zip (no trae perfiles ni catálogo: no se pisan)."
 
 fi
 
@@ -617,11 +617,28 @@ if [[ "$IS_OSX" -eq 1 ]]; then
     "$STAGE_FULL/HiveShock.app" \
     "$STAGE_UPDATE/HiveShock.app"
 
-else
+elif [[ "$GUI_NAME" == *.exe ]]; then
 
   cp \
     "$PUBLISH_GUI/$GUI_NAME" \
     "$STAGE_UPDATE/"
+
+else
+
+  # Linux no publica en un solo archivo: el ejecutable necesita sus librerías.
+  # Se copia todo el programa menos los datos del usuario, que no se deben pisar.
+  cp -R \
+    "$PUBLISH_GUI"/. \
+    "$STAGE_UPDATE/"
+
+  rm -rf \
+    "$STAGE_UPDATE/profiles" \
+    "$STAGE_UPDATE/gifts-images" \
+    "$STAGE_UPDATE/gift-catalog.json" \
+    "$STAGE_UPDATE/active-profile.txt" \
+    "$STAGE_UPDATE/.env.example"
+
+  chmod +x "$STAGE_UPDATE/HiveShock" || true
 
   if [[ "$INCLUDE_CLI" -eq 1 ]]; then
 
