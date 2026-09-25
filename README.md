@@ -10,8 +10,11 @@ La app WPF original sigue en el repo CrowdBridge (solo Windows) hasta confirmar 
 
 - `HiveShock.Avalonia` — GUI (`HiveShock` / `HiveShock.exe`)
 - `HiveShock.Android` — compañero en el teléfono (misma lógica, sin overlays OBS)
-- `HiveShock.Core` — runtime, perfiles, canales (TikTok/Twitch), TCP al juego
+- `HiveShock.Core` — runtime, perfiles, canales (TikTok/Twitch), TCP al juego, voz (cola, filtros, motores)
+- `HiveShock.Desktop` — voz en Windows: micrófono y salida (WASAPI), voces de Windows, detector de voz, atajos globales
+- `HiveShock.Voice.Piper` — voces locales HD con [Piper](https://github.com/rhasspy/piper) (instalador, catálogo, procesos)
 - `HiveShock.Cli` — misma lógica en consola
+- `HiveShock.Tests` — pruebas xUnit (Core + Piper con dobles; corren en Windows, macOS y Linux)
 - `libs/TikTokLive` — cliente TikTok Live
 - `config/` — perfiles, catálogo, imágenes, `.env.example`
 
@@ -38,7 +41,51 @@ dotnet run --project HiveShock.Avalonia/HiveShock.Avalonia.csproj
 
 No hay RID fijo en el `.csproj`: `dotnet run` usa el sistema donde compilas.
 
+El framework se elige solo según el sistema: en Windows (o `-r win-*`) se compila `net10.0-windows10.0.19041.0`, que incluye la **Voz** (`HiveShock.Desktop`); en macOS/Linux, `net10.0`, donde la página Voz sale como no disponible. Para forzar otro: `-p:TargetFramework=net10.0`.
+
 Abre Inicio, elige el juego y conecta. Las cuentas se enlazan en **TikTok** y **Twitch**.
+
+## Voz (Smart TTS, alpha)
+
+Lee el chat de TikTok y Twitch en voz alta (y opcionalmente regalos, bits y follows). Solo Windows por ahora. Piezas:
+
+- **`SmartVoiceManager`** (Core): cola acotada con precarga (sintetiza el siguiente mientras suena el actual), pausa cuando el streamer habla (micrófono + WebRTC VAD), silenciar/saltar/vaciar, atajos globales y estado para la UI.
+- **`TtsMessageFilter`**: comandos, enlaces, emojis, letras repetidas, spam copiado, bots, mensajes propios, roles (subs/mods), palabras prohibidas (sin mayúsculas ni acentos), cooldown por usuario, longitud máxima y frase final («Juan dice: …»).
+- **Motores** (`ITtsEngine` + `TtsEngineRegistry`). El orden del registro es la preferencia y el **orden de respaldo** (`TtsSettings.UseFallbackEngines`): si el elegido falla, ese mensaje se lee con el siguiente disponible.
+
+  | Id | Motor | Internet | Dónde |
+  | --- | --- | --- | --- |
+  | `edge` | Voces neurales de Microsoft Edge | Sí | `EdgeTtsSpeechSynthesizer` (Core) |
+  | `piper` | Voces locales HD (Piper) | No | `HiveShock.Voice.Piper` |
+  | `windows` | Voces de Windows (OneCore) | No | `WindowsSpeechSynthesizer` (Desktop) |
+
+  Añadir un motor = implementar `ITtsEngine` (o heredar de `TtsEngineBase`) y registrarlo en `MainViewModel.AttachVoiceIfSupported`.
+- **Voz por motor, por plataforma y aleatoria**: `TtsSettings.VoiceIds` (una voz por motor), `PlatformVoiceIds` (`"motor:plataforma"`) y el sorteo por idiomas con hash estable por usuario.
+
+### Edge TTS (endpoint no oficial)
+
+Usa el mismo endpoint que el proyecto `edge-tts`; no hay API oficial. `Sec-MS-GEC` y `Sec-MS-GEC-Version` van **en la URL**. Si Microsoft responde **403**, se corrige el desfase de reloj y se reintenta una vez; si sigue, la página Voz se bloquea con un aviso para el streamer (y, con respaldo activo, el chat se sigue leyendo con otro motor). Ante un 403 nuevo, lo primero es subir `ChromiumVersion` en `EdgeTtsSpeechSynthesizer` a la versión estable de Edge que use `edge-tts`.
+
+### Piper (voces locales HD)
+
+- Motor: último binario autónomo de `rhasspy/piper` (**2023.11.14-2**, MIT, repositorio archivado). El proyecto activo (`OHF-Voice/piper1-gpl`, GPL-3.0) solo publica paquetes de Python. Hashes SHA-256 por sistema fijados en `PiperRuntime.Assets` (GitHub no los publica). macOS Apple Silicon: sin verificar.
+- Voces: catálogo oficial `huggingface.co/rhasspy/piper-voices` (`voices.json`), verificadas por MD5. **Cada voz tiene su licencia** (ficha `MODEL_CARD`, botón «Licencia» en la UI).
+- Piper corre como **proceso aparte** (JSON por stdin, UTF-8 sin BOM, un proceso por voz y velocidad, pool LRU de 3, Job Object en Windows para no dejar huérfanos). Nunca se enlaza: la GPL de espeak-ng no se extiende a HiveShock.
+- Se descarga en la carpeta de datos del usuario (ver abajo), no va en los zips: `…/HiveShock/piper/runtime/` (motor) y `…/HiveShock/piper/voices/` (una carpeta por voz del catálogo, con su `voice.json`).
+- **Voces propias**: cualquier par `nombre.onnx` + `nombre.onnx.json` copiado a `voices/` (o a una subcarpeta) se reconoce como voz; idioma, calidad y hablantes se leen del `.onnx.json`. En la UI: «Abrir carpeta de voces» → copiar → «Buscar voces nuevas».
+- **Librerías faltantes**: si `piper.exe` termina con `0xC0000135`, `0xC000007B` o `0xC0000142` (Windows no pudo cargar una DLL), se lanza `PiperDependencyException` y la UI ofrece descargar el [Visual C++ Redistributable x64](https://aka.ms/vs/17/release/vc_redist.x64.exe) o reinstalar el motor. Ojo al probarlo: Windows 11 trae su propio `onnxruntime.dll` en `System32`, así que quitar ese archivo no reproduce el fallo.
+
+## Datos del usuario
+
+Preferencias (contador de muertes, tema, overlays) y configuración de voz se guardan con `UserDataStore` en **dos sitios**: la carpeta de datos del usuario (`%LOCALAPPDATA%\HiveShock` en Windows, `~/Library/Application Support/HiveShock` en macOS, `~/.local/share/HiveShock` en Linux), que ninguna actualización toca, y una copia junto al ejecutable. Cada guardado es atómico y deja un `.bak`; al abrir se usa la copia válida más reciente. Piper vive en `…/HiveShock/piper/`.
+
+## Pruebas
+
+```bash
+dotnet test HiveShock.Tests/HiveShock.Tests.csproj
+```
+
+La prueba de integración real de Piper (descarga ~40 MB) se salta salvo que definas `HIVESHOCK_PIPER_IT=1`.
 
 ## Android (compañero)
 
@@ -80,7 +127,17 @@ La versión vive en un solo sitio: [`Directory.Build.props`](Directory.Build.pro
 ./scripts/bump-version.sh 1.2.3    # fija X.Y.Z
 ```
 
-En Windows: `.\scripts\Bump-Version.ps1 patch`
+Versiones preliminares (alpha → beta → rc → final):
+
+```bash
+./scripts/bump-version.sh major alpha     # 1.3.0 → 2.0.0-alpha.1 (también patch/minor y beta/rc)
+./scripts/bump-version.sh pre             # 2.0.0-alpha.1 → 2.0.0-alpha.2
+./scripts/bump-version.sh beta            # 2.0.0-alpha.2 → 2.0.0-beta.1 (luego rc)
+./scripts/bump-version.sh release         # 2.0.0-rc.1 → 2.0.0
+./scripts/bump-version.sh 2.0.0-beta.1    # fija una exacta
+```
+
+En Windows: `.\scripts\Bump-Version.ps1 patch` (mismos argumentos). Una versión con `-` se publica en GitHub como **pre-release**, y en el `Info.plist` de macOS se usa solo la parte numérica.
 
 Eso actualiza `Directory.Build.props` y añade una sección en `CHANGELOG.md`. **No hace commit ni tag.** Cuando quieras publicar:
 
@@ -128,7 +185,7 @@ Opcional: `-IncludeCli` / `--cli` añade la consola.
 
 ## GitHub Actions
 
-- [`ci.yml`](.github/workflows/ci.yml) — escritorio en Windows, macOS y Ubuntu; job `android` aparte (workload + SDK).
+- [`ci.yml`](.github/workflows/ci.yml) — escritorio en Windows, macOS y Ubuntu, con `dotnet test`; job `android` aparte (workload + SDK).
 - [`release.yml`](.github/workflows/release.yml) — al pushear `vX.Y.Z` (o *Run workflow*) genera:
 
   - `win-x64`
@@ -146,7 +203,7 @@ Opcional: `-IncludeCli` / `--cli` añade la consola.
 - [ ] Regalos: lista, alta manual / desde Vistos, efecto por perfil, guardar, probar, thumbs
 - [ ] Vistos: listar, editar, usar en este juego, carpeta de imágenes
 - [ ] Likes y chat: likes / follow / share / palabras del chat (se guardan con Guardar)
-- [ ] Ayuda + Acerca de (Yafel, web, Ko-fi, versión)
+- [ ] Ayuda + Acerca de (Yafel, web, Instagram, Discord, YouTube, equipo, Ko-fi, versión)
 - [ ] Tema oscuro / claro / sistema
 - [ ] Publish: zip full + update (Windows, macOS, Linux); DMG ad hoc en Mac
 
@@ -155,3 +212,8 @@ Opcional: `-IncludeCli` / `--cli` añade la consola.
 - Producto: HiveShock · Yafel
 - Web: https://hiveshock.yafel.dev
 - Ko-fi: https://ko-fi.com/yafel
+- Discord: https://discord.gg/QTdQffuZF3
+- YouTube: https://www.youtube.com/@HiveShock
+- Instagram (desarrollador): https://www.instagram.com/yaafel/
+
+El equipo que aparece en **Acerca de** (testers, soporte, administradores…) se edita en [`HiveShock.Avalonia/Assets/credits.json`](HiveShock.Avalonia/Assets/credits.json): categorías con personas (`name` y `tiktok` opcional, sin @). Las categorías vacías no se muestran. Los logos de redes son de [Simple Icons](https://simpleicons.org) (CC0).
