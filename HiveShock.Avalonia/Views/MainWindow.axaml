@@ -31,7 +31,7 @@
                     <TextBlock Text="HiveShock" FontSize="18" FontWeight="SemiBold"
                                Foreground="{DynamicResource BrandGoldBrush}"
                                VerticalAlignment="Center" />
-                    <TextBlock Text="Lo que pasa en tu live se quedá en el live"
+                    <TextBlock Text="Lo que pasa en tu live se queda en el live"
                                Foreground="{DynamicResource MutedBrush}" Margin="12,2,0,0"
                                FontSize="12" VerticalAlignment="Center" />
                 </StackPanel>
