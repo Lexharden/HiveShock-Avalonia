@@ -1,0 +1,27 @@
+{
+  "_comoUsar": "Equipo que aparece en Acerca de. Añade personas en 'members' de cada categoría (o categorías nuevas). 'tiktok' es el usuario sin @ (opcional). Las categorías vacías no se muestran. Recompila para ver los cambios.",
+  "categories": [
+    {
+      "title": "Desarrollo y administración",
+      "icon": "🛠️",
+      "members": [
+        { "name": "Yafel", "tiktok": "" }
+      ]
+    },
+    {
+      "title": "Administradores",
+      "icon": "🛡️",
+      "members": []
+    },
+    {
+      "title": "Soporte",
+      "icon": "💬",
+      "members": []
+    },
+    {
+      "title": "Testers",
+      "icon": "🧪",
+      "members": []
+    }
+  ]
+}

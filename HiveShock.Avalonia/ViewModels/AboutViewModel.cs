@@ -12,6 +12,15 @@ public sealed partial class AboutViewModel : ViewModelBase
     public string WebsiteDisplay => ProductInfo.Website.Replace("https://", "");
     public string WebsiteUrl => ProductInfo.Website;
     public string KoFiUrl => "https://ko-fi.com/yafel";
+    public string DiscordUrl => "https://discord.gg/QTdQffuZF3";
+    public string YouTubeUrl => "https://www.youtube.com/@HiveShock";
+    public string InstagramUrl => "https://www.instagram.com/yaafel/";
+    public string InstagramHandle => "@yaafel";
+
+    /// <summary>Equipo por categorías (Assets/credits.json). Vacío = la tarjeta no se muestra.</summary>
+    public IReadOnlyList<CreditCategory> Team { get; } = Credits.Load();
+
+    public bool HasTeam => Team.Count > 0;
     public string Version { get; } = ReadVersion();
 
     public string VersionLabel => $"Versión {Version}";
@@ -36,6 +45,15 @@ public sealed partial class AboutViewModel : ViewModelBase
 
     [RelayCommand]
     private void OpenKofi() => Open(KoFiUrl);
+
+    [RelayCommand]
+    private void OpenDiscord() => Open(DiscordUrl);
+
+    [RelayCommand]
+    private void OpenYouTube() => Open(YouTubeUrl);
+
+    [RelayCommand]
+    private void OpenInstagram() => Open(InstagramUrl);
 
     private static void Open(string url)
     {
