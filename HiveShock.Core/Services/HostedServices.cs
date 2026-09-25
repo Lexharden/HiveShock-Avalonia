@@ -303,7 +303,11 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
             var viewer = ViewerName(chat.User);
             var comment = chat.Comment ?? "";
             _router.HandleChat(viewer, LiveEffectRouter.TikTokStableId(chat.User), comment, ct, LivePortIds.TikTok);
-            _voice?.Enqueue(new TtsMessage(LivePortIds.TikTok, viewer, comment, DateTime.UtcNow));
+            _voice?.Enqueue(new TtsMessage(LivePortIds.TikTok, viewer, comment, DateTime.UtcNow)
+            {
+                Roles = TikTokRoles(chat),
+                SpeakerKey = LiveEffectRouter.TikTokStableId(chat.User),
+            });
         };
 
 #if DEBUG
@@ -313,6 +317,30 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
 #endif
 
         await client.RunAsync(ct).ConfigureAwait(false);
+    }
+
+    private ChatterRoles TikTokRoles(WebcastChatMessage chat)
+    {
+        var roles = ChatterRoles.None;
+        var context = chat.UserIdentity;
+        var own = (_options.TikTokUniqueId ?? "").Trim().TrimStart('@');
+        if (context?.IsAnchor == true ||
+            (own.Length > 0 && string.Equals(own, chat.User?.UniqueId, StringComparison.OrdinalIgnoreCase)))
+        {
+            roles |= ChatterRoles.Broadcaster;
+        }
+
+        if (context?.IsModeratorOfAnchor == true)
+        {
+            roles |= ChatterRoles.Moderator;
+        }
+
+        if (context?.IsSubscriberOfAnchor == true)
+        {
+            roles |= ChatterRoles.Subscriber;
+        }
+
+        return roles;
     }
 
     private static string ViewerName(UserIdentity? user) =>

@@ -1,51 +1,364 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+             xmlns:voice="using:HiveShock.Voice"
              x:Class="HiveShock.Avalonia.Views.Pages.SmartTtsPage"
              x:DataType="vm:SmartTtsViewModel">
-    <Grid RowDefinitions="Auto,*">
-        <TextBlock Classes="pageTitle" Text="Voz" Margin="0,0,0,4" />
+    <UserControl.Styles>
+        <Style Selector="TextBlock.hint">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+        </Style>
+        <Style Selector="TextBlock.error">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+        </Style>
+        <Style Selector="ToggleSwitch">
+            <Setter Property="OnContent" Value="Sí" />
+            <Setter Property="OffContent" Value="No" />
+            <Setter Property="Margin" Value="0,2,0,2" />
+        </Style>
+        <Style Selector="Border.dot">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="{DynamicResource MutedBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.dot.ok">
+            <Setter Property="Background" Value="{DynamicResource StatusOkBrush}" />
+        </Style>
+        <Style Selector="Border.dot.paused">
+            <Setter Property="Background" Value="{DynamicResource BrandGoldBrush}" />
+        </Style>
+        <Style Selector="Border.notice">
+            <Setter Property="Background" Value="{DynamicResource CardAltBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BrandGoldBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="16" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+        <Style Selector="Border.blocked">
+            <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+        <!-- Desplegable de voces agrupado por idioma (voz general, TikTok y Twitch). -->
+        <Style Selector="ComboBox.voicePicker">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="MaxDropDownHeight" Value="420" />
+            <Setter Property="PlaceholderText" Value="Cargando voces…" />
+            <Setter Property="ItemTemplate">
+                <DataTemplate x:DataType="vm:VoiceOption">
+                    <Panel>
+                        <TextBlock Text="{Binding Text}" FontWeight="Bold" FontSize="12"
+                                   Foreground="{DynamicResource BrandGoldBrush}"
+                                   Margin="0,6,0,0" IsVisible="{Binding IsHeader}" />
+                        <TextBlock Text="{Binding Text}" Margin="12,0,0,0" IsVisible="{Binding !IsHeader}" />
+                    </Panel>
+                </DataTemplate>
+            </Setter>
+            <Setter Property="SelectionBoxItemTemplate">
+                <DataTemplate x:DataType="vm:VoiceOption">
+                    <TextBlock Text="{Binding FullText}" />
+                </DataTemplate>
+            </Setter>
+        </Style>
+        <!-- Cabeceras de idioma: visibles pero no seleccionables. -->
+        <Style Selector="ComboBox.voicePicker ComboBoxItem" x:DataType="vm:VoiceOption">
+            <Setter Property="IsEnabled" Value="{Binding !IsHeader}" />
+        </Style>
+    </UserControl.Styles>
 
+    <Grid RowDefinitions="Auto,*">
+        <DockPanel Margin="0,0,0,4">
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <TextBlock Classes="pageTitle" Text="Voz" Margin="0" VerticalAlignment="Center" />
+                <Border Classes="alphaBadge"
+                        ToolTip.Tip="Función en pruebas: puede cambiar o fallar. Si algo no va bien, cuéntanos.">
+                    <TextBlock Text="ALPHA" />
+                </Border>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Spacing="6" IsVisible="{Binding IsAvailable}">
+                <Border Classes="dot"
+                        Classes.ok="{Binding IsServiceReady}"
+                        Classes.paused="{Binding HasServiceProblem}" />
+                <TextBlock FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
+                           Foreground="{DynamicResource MutedBrush}"
+                           Text="{Binding ServiceStatusText}" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Equipo sin soporte (Mac/Linux o compilación sin la parte de Windows) -->
         <StackPanel Grid.Row="1" IsVisible="{Binding !IsAvailable}" Margin="0,24,0,0">
-            <TextBlock Classes="sectionTitle" Text="NO DISPONIBLE EN ESTE SISTEMA" />
-            <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}"
-                       Text="Smart TTS usa micrófono, atajos globales y audio de Windows (WASAPI). Por ahora solo funciona en Windows; en este equipo esta página queda desactivada." />
+            <TextBlock Classes="sectionTitle" Text="NO DISPONIBLE EN ESTE EQUIPO" />
+            <TextBlock Classes="hint" FontSize="13"
+                       Text="La lectura del chat en voz alta usa el micrófono, atajos de teclado y el audio de Windows. Por ahora solo funciona en Windows." />
         </StackPanel>
 
-        <ScrollViewer Grid.Row="1" IsVisible="{Binding IsAvailable}" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
+        <!-- Bloqueo de Microsoft: la sección entera queda cerrada con el aviso -->
+        <ScrollViewer Grid.Row="1" IsVisible="{Binding IsBlocked}" VerticalScrollBarVisibility="Auto">
+            <Border Classes="notice blocked" Margin="0,12,0,0" MaxWidth="760" HorizontalAlignment="Left">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="⛔" FontSize="32" />
+                    <TextBlock FontSize="18" FontWeight="Bold" TextWrapping="Wrap" Text="{Binding BlockedTitle}" />
+                    <TextBlock TextWrapping="Wrap" FontSize="14" Text="{Binding BlockedMessage}" />
+                    <WrapPanel Margin="0,6,0,0">
+                        <Button Classes="primary" Content="{Binding OfflineFallbackButtonText}"
+                                Command="{Binding UseOfflineVoicesCommand}"
+                                IsVisible="{Binding HasOfflineFallback}" />
+                        <Button Classes="secondary" Content="Volver a comprobar"
+                                Command="{Binding CheckServiceCommand}"
+                                IsEnabled="{Binding !IsCheckingService}" />
+                    </WrapPanel>
+                    <TextBlock Classes="hint" Text="Comprobando…" IsVisible="{Binding IsCheckingService}" />
+                </StackPanel>
+            </Border>
+        </ScrollViewer>
+
+        <ScrollViewer Grid.Row="1" IsVisible="{Binding IsUnlocked}" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,8,0">
+
+                <!-- Sin conexión: aviso suave, no bloquea -->
+                <Border Classes="notice" IsVisible="{Binding HasServiceProblem}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Classes="secondary" Content="Volver a comprobar"
+                                VerticalAlignment="Center" Margin="12,0,0,0"
+                                Command="{Binding CheckServiceCommand}"
+                                IsEnabled="{Binding !IsCheckingService}" />
+                        <StackPanel>
+                            <TextBlock FontWeight="SemiBold" Text="⚠️ La voz no puede conectarse ahora mismo" />
+                            <TextBlock Classes="hint" FontSize="13" Margin="0,4,0,0" Text="{Binding ServiceProblemText}" />
+                            <Button Classes="primary" Content="Descargar Visual C++ (web de Microsoft)" Margin="0,8,8,0"
+                                    HorizontalAlignment="Left" IsVisible="{Binding ServiceNeedsVisualCpp}"
+                                    Command="{Binding OpenVisualCppDownloadCommand}" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <!-- ESTADO Y CONTROLES RÁPIDOS -->
                 <Border Classes="card" Margin="0,0,0,12">
                     <StackPanel>
                         <DockPanel>
-                            <CheckBox DockPanel.Dock="Left" Content="Activar Smart TTS" IsChecked="{Binding Enabled}" />
-                            <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource MutedBrush}" FontSize="12"
-                                       Text="{Binding IsRunning, StringFormat='En marcha: {0}'}" />
+                            <ToggleSwitch DockPanel.Dock="Right" VerticalAlignment="Center"
+                                          OnContent="Activado" OffContent="Desactivado"
+                                          IsChecked="{Binding Enabled}" />
+                            <StackPanel>
+                                <TextBlock FontSize="16" FontWeight="SemiBold" Text="Leer el chat en voz alta" />
+                                <TextBlock Classes="hint" Margin="0,2,0,0"
+                                           Text="Lee los comentarios de TikTok y Twitch, y se calla sola mientras hablas por el micrófono." />
+                            </StackPanel>
                         </DockPanel>
-                        <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}"
-                                   Text="Lee el chat en vivo en voz alta y se calla solo mientras hablas por el micrófono." />
+
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,14,0,0">
+                            <Border Classes="dot"
+                                    Classes.ok="{Binding StatusIsOk}"
+                                    Classes.paused="{Binding StatusIsPaused}" />
+                            <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap"
+                                       Text="{Binding StatusTitle}" />
+                        </StackPanel>
+                        <TextBlock Margin="20,6,0,0" TextWrapping="Wrap" FontStyle="Italic"
+                                   Text="{Binding NowSpeakingText}" IsVisible="{Binding HasNowSpeaking}" />
+                        <TextBlock Classes="hint" Margin="20,4,0,0" Text="{Binding QueueText}" />
+                        <TextBlock Classes="hint" Margin="20,2,0,0" Text="{Binding StatsText}" />
+                        <TextBlock Classes="hint" Margin="20,2,0,0" Text="{Binding LastFilteredText}"
+                                   IsVisible="{Binding LastFilteredText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <TextBlock Margin="20,6,0,0" TextWrapping="Wrap" FontSize="12"
+                                   Foreground="{DynamicResource BrandGoldBrush}"
+                                   Text="{Binding FallbackStatusText}" IsVisible="{Binding HasFallbackStatus}" />
+
+                        <WrapPanel Margin="0,12,0,0">
+                            <Button Classes="primary" Content="{Binding MuteButtonText}"
+                                    Command="{Binding ToggleMuteCommand}" IsEnabled="{Binding IsRunning}"
+                                    ToolTip.Tip="Corta lo que se está leyendo y no lee nada más hasta que quites el silencio." />
+                            <Button Classes="secondary" Content="Saltar mensaje"
+                                    Command="{Binding SkipCommand}" IsEnabled="{Binding IsRunning}"
+                                    ToolTip.Tip="Deja de leer el mensaje actual y pasa al siguiente." />
+                            <Button Classes="secondary" Content="Vaciar mensajes en espera"
+                                    Command="{Binding ClearQueueCommand}" IsEnabled="{Binding IsRunning}"
+                                    ToolTip.Tip="Descarta todos los mensajes que estaban esperando su turno." />
+                        </WrapPanel>
                     </StackPanel>
                 </Border>
 
+                <!-- VOZ -->
                 <Border Classes="card" Margin="0,0,0,12">
                     <StackPanel>
                         <TextBlock Classes="sectionTitle" Text="VOZ" />
-                        <DockPanel Margin="0,8,0,0">
-                            <Button DockPanel.Dock="Right" Classes="secondary" Content="Actualizar"
-                                    Command="{Binding RefreshVoicesCommand}" Margin="8,0,0,0" />
+
+                        <StackPanel IsVisible="{Binding HasEngineChoice}">
+                            <TextBlock Classes="fieldLabel" Text="Tipo de voz" Margin="0,8,0,4" />
                             <ComboBox HorizontalAlignment="Stretch"
-                                      ItemsSource="{Binding Voices}"
-                                      SelectedValue="{Binding VoiceId}"
-                                      SelectedValueBinding="{Binding Id}"
-                                      DisplayMemberBinding="{Binding DisplayName}" />
+                                      ItemsSource="{Binding EngineOptions}"
+                                      SelectedItem="{Binding SelectedEngine}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:EngineChoice">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                                            <TextBlock Classes="hint" Text="{Binding Description}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                        <DockPanel Margin="0,8,0,0">
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding UseFallbackEngines}" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Si este tipo de voz falla, seguir leyendo con otro" />
+                                <TextBlock Classes="hint"
+                                           Text="Por ejemplo, si se cae internet o Microsoft bloquea sus voces, el chat se lee con las voces locales o las de Windows en vez de quedarse mudo." />
+                            </StackPanel>
                         </DockPanel>
 
-                        <TextBlock Classes="fieldLabel" Text="Volumen" Margin="0,16,0,4" />
-                        <Slider Minimum="0" Maximum="1" Value="{Binding Volume}" />
-
-                        <TextBlock Classes="fieldLabel" Text="Probar" Margin="0,16,0,4" />
+                        <TextBlock Classes="fieldLabel" Text="{Binding FixedVoiceLabel}" Margin="0,12,0,4" />
                         <DockPanel>
-                            <Button DockPanel.Dock="Right" Classes="primary" Content="Probar"
+                            <Button DockPanel.Dock="Right" Classes="secondary" Content="Actualizar"
+                                    Command="{Binding RefreshVoicesCommand}" IsEnabled="{Binding !IsRefreshingVoices}"
+                                    Margin="8,0,0,0" ToolTip.Tip="Vuelve a pedir la lista de voces." />
+                            <ComboBox Classes="voicePicker"
+                                      ItemsSource="{Binding VoiceOptions}"
+                                      SelectedItem="{Binding SelectedVoice}" />
+                        </DockPanel>
+                        <TextBlock Classes="error" Margin="0,4,0,0" Text="{Binding VoicesError}"
+                                   IsVisible="{Binding VoicesError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+                        <!-- Voz por plataforma -->
+                        <DockPanel Margin="0,14,0,0">
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding PerPlatformVoice}" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock FontWeight="SemiBold" Text="Una voz distinta para TikTok y para Twitch" />
+                                <TextBlock Classes="hint"
+                                           Text="Así sabes de qué plataforma viene cada mensaje solo por la voz." />
+                            </StackPanel>
+                        </DockPanel>
+                        <Grid IsVisible="{Binding PerPlatformVoice}" Margin="16,6,0,0"
+                              ColumnDefinitions="Auto,12,*,8,Auto" RowDefinitions="Auto,8,Auto">
+                            <TextBlock VerticalAlignment="Center" Text="Voz para TikTok" />
+                            <ComboBox Grid.Column="2" Classes="voicePicker"
+                                      ItemsSource="{Binding VoiceOptions}"
+                                      SelectedItem="{Binding SelectedTikTokVoice}" />
+                            <Button Grid.Column="4" Classes="secondary" Content="▶" Margin="0"
+                                    ToolTip.Tip="Probar la voz de TikTok"
+                                    Command="{Binding TestTikTokVoiceCommand}" IsEnabled="{Binding !IsTesting}" />
+                            <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Voz para Twitch" />
+                            <ComboBox Grid.Row="2" Grid.Column="2" Classes="voicePicker"
+                                      ItemsSource="{Binding VoiceOptions}"
+                                      SelectedItem="{Binding SelectedTwitchVoice}" />
+                            <Button Grid.Row="2" Grid.Column="4" Classes="secondary" Content="▶" Margin="0"
+                                    ToolTip.Tip="Probar la voz de Twitch"
+                                    Command="{Binding TestTwitchVoiceCommand}" IsEnabled="{Binding !IsTesting}" />
+                        </Grid>
+                        <TextBlock Classes="hint" Margin="16,4,0,0"
+                                   IsVisible="{Binding PerPlatformVoice}"
+                                   Text="Si activas la voz aleatoria, el sorteo tiene prioridad sobre estas voces." />
+
+                        <!-- Voz aleatoria -->
+                        <DockPanel Margin="0,14,0,0">
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding RandomVoice}" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock FontWeight="SemiBold" Text="Voz aleatoria" />
+                                <TextBlock Classes="hint"
+                                           Text="Cada mensaje se lee con una voz al azar de los idiomas que marques abajo." />
+                            </StackPanel>
+                        </DockPanel>
+                        <StackPanel IsVisible="{Binding RandomVoice}" Margin="16,4,0,0">
+                            <DockPanel>
+                                <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding RandomVoicePerUser}" />
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Cada persona conserva siempre la misma voz" />
+                                    <TextBlock Classes="hint"
+                                               Text="Así reconoces quién habla. Desactívalo para que cambie en cada mensaje." />
+                                </StackPanel>
+                            </DockPanel>
+
+                            <TextBlock Classes="fieldLabel" Text="Idiomas del sorteo" Margin="0,10,0,4" />
+                            <WrapPanel>
+                                <Button Classes="secondary" Content="Solo español" Command="{Binding RandomOnlySpanishCommand}" />
+                                <Button Classes="secondary" Content="Marcar todos" Command="{Binding RandomAllLanguagesCommand}" />
+                                <Button Classes="secondary" Content="Desmarcar todos" Command="{Binding RandomNoLanguagesCommand}" />
+                            </WrapPanel>
+                            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8"
+                                    Padding="8,4" MaxHeight="300">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding RandomLanguages}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:RandomLanguageItem">
+                                                <Expander HorizontalAlignment="Stretch" Padding="8,2" Margin="0,2">
+                                                    <Expander.Header>
+                                                        <DockPanel>
+                                                            <TextBlock DockPanel.Dock="Right" Classes="hint"
+                                                                       VerticalAlignment="Center" Text="{Binding CountText}" />
+                                                            <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" />
+                                                        </DockPanel>
+                                                    </Expander.Header>
+                                                    <StackPanel IsEnabled="{Binding IsSelected}">
+                                                        <TextBlock Classes="hint" Margin="0,0,0,4"
+                                                                   Text="Desmarca las voces que no quieras que salgan." />
+                                                        <ItemsControl ItemsSource="{Binding Voices}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <WrapPanel />
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate x:DataType="vm:RandomVoiceItem">
+                                                                    <CheckBox Content="{Binding Text}" IsChecked="{Binding IsIncluded}"
+                                                                              MinWidth="220" Margin="0,0,12,0" />
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                </Expander>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Border>
+                            <TextBlock Classes="hint" Margin="0,6,0,0" Text="{Binding RandomPoolText}" />
+                            <TextBlock Classes="hint" Margin="0,2,0,0"
+                                       Text="Ojo: una voz de otro idioma leerá el mensaje con su acento (por ejemplo, una voz inglesa leyendo español)." />
+                        </StackPanel>
+
+                        <TextBlock Classes="fieldLabel" Text="{Binding VolumeText}" Margin="0,14,0,0" />
+                        <Slider Minimum="0" Maximum="100" SmallChange="1" LargeChange="10"
+                                Value="{Binding VolumePercent}" />
+
+                        <TextBlock Classes="fieldLabel" Text="{Binding RateText}" Margin="0,6,0,0" />
+                        <Slider Minimum="-50" Maximum="100" SmallChange="5" LargeChange="10"
+                                TickFrequency="5" IsSnapToTickEnabled="True"
+                                Value="{Binding RatePercent}" />
+
+                        <TextBlock Classes="fieldLabel" Text="{Binding PitchText}" Margin="0,6,0,0" />
+                        <Slider Minimum="-50" Maximum="50" SmallChange="5" LargeChange="10"
+                                TickFrequency="5" IsSnapToTickEnabled="True"
+                                IsEnabled="{Binding IsPitchSupported}"
+                                Value="{Binding PitchPercent}" />
+                        <TextBlock Classes="hint" Margin="0,0,0,6" IsVisible="{Binding !IsPitchSupported}"
+                                   Text="Este tipo de voz no permite cambiar el tono." />
+                        <Button Classes="secondary" Content="Restablecer velocidad y tono"
+                                Command="{Binding ResetVoiceStyleCommand}" HorizontalAlignment="Left" />
+
+                        <TextBlock Classes="fieldLabel" Text="Dónde se escucha la voz" Margin="0,10,0,4" />
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Classes="secondary" Content="Actualizar"
+                                    Command="{Binding RefreshDevicesCommand}" Margin="8,0,0,0"
+                                    ToolTip.Tip="Vuelve a buscar altavoces, audífonos y micrófonos conectados." />
+                            <ComboBox HorizontalAlignment="Stretch"
+                                      ItemsSource="{Binding OutputDevices}"
+                                      SelectedItem="{Binding SelectedOutput}"
+                                      DisplayMemberBinding="{Binding Name, x:DataType=voice:AudioDevice}" />
+                        </DockPanel>
+                        <TextBlock Classes="hint" Margin="0,4,0,0"
+                                   Text="Consejo: si quieres que la voz salga en OBS por separado, elige aquí un cable de audio virtual." />
+                        <TextBlock Classes="error" Margin="0,4,0,0" Text="{Binding OutputError}"
+                                   IsVisible="{Binding OutputError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+                        <TextBlock Classes="fieldLabel" Text="Probar la voz" Margin="0,14,0,4" />
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Classes="primary" Content="▶ Probar"
                                     Command="{Binding TestCommand}" IsEnabled="{Binding !IsTesting}"
                                     Margin="8,0,0,0" />
                             <TextBox Text="{Binding TestText}" AcceptsReturn="False" />
@@ -53,24 +366,342 @@
                     </StackPanel>
                 </Border>
 
+                <!-- VOCES LOCALES HD (PIPER) -->
+                <Border Classes="card" Margin="0,0,0,12" IsVisible="{Binding HasPiper}">
+                    <StackPanel DataContext="{Binding Piper}" x:DataType="vm:PiperManagerViewModel">
+                        <TextBlock Classes="sectionTitle" Text="VOCES LOCALES HD" />
+                        <TextBlock Classes="hint" Margin="0,0,0,8"
+                                   Text="Voces naturales que funcionan sin internet y no dependen de ningún servicio. Se descargan una sola vez; después aparecen en «Tipo de voz» como «Voces locales HD (Piper)»." />
+
+                        <TextBlock Classes="error" IsVisible="{Binding !IsSupported}"
+                                   Text="Este equipo no es compatible con las voces locales HD." />
+
+                        <!-- Paso 1: instalar el motor -->
+                        <StackPanel IsVisible="{Binding ShowInstallRuntime}">
+                            <WrapPanel IsVisible="{Binding !IsInstallingRuntime}">
+                                <Button Classes="primary" Content="{Binding InstallRuntimeText}"
+                                        Command="{Binding InstallRuntimeCommand}" />
+                            </WrapPanel>
+                            <DockPanel IsVisible="{Binding IsInstallingRuntime}">
+                                <Button DockPanel.Dock="Right" Classes="secondary" Content="Cancelar" Margin="8,0,0,0"
+                                        Command="{Binding CancelInstallRuntimeCommand}" />
+                                <ProgressBar Minimum="0" Maximum="100" Height="10" MinHeight="10"
+                                             VerticalAlignment="Center" Value="{Binding RuntimeProgress}" />
+                            </DockPanel>
+                        </StackPanel>
+
+                        <!-- Paso 2: voces -->
+                        <StackPanel IsVisible="{Binding IsRuntimeInstalled}">
+                            <TextBlock FontWeight="SemiBold" Text="{Binding InstalledSummary}" Margin="0,0,0,8" />
+                            <DockPanel Margin="0,0,0,8">
+                                <ToggleSwitch DockPanel.Dock="Right" OnContent="Solo español" OffContent="Todos los idiomas"
+                                              IsChecked="{Binding OnlySpanish}" Margin="8,0,0,0" />
+                                <TextBox Text="{Binding SearchText}" PlaceholderText="Buscar por nombre, idioma o país…" />
+                            </DockPanel>
+                            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8"
+                                    Padding="8,4" MaxHeight="360">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding Rows}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:PiperCatalogRow">
+                                                <Panel>
+                                                    <TextBlock IsVisible="{Binding IsHeader}" Text="{Binding Title}"
+                                                               FontWeight="Bold" FontSize="12" Margin="0,10,0,4"
+                                                               Foreground="{DynamicResource BrandGoldBrush}" />
+                                                    <DockPanel IsVisible="{Binding !IsHeader}" Margin="8,3">
+                                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6"
+                                                                    VerticalAlignment="Center">
+                                                            <TextBlock Classes="hint" VerticalAlignment="Center" Text="✓ Descargada"
+                                                                       Foreground="{DynamicResource StatusOkBrush}"
+                                                                       IsVisible="{Binding IsInstalled}" />
+                                                            <ProgressBar Width="120" Minimum="0" Maximum="100" Height="8" MinHeight="8"
+                                                                         VerticalAlignment="Center" Value="{Binding Progress}"
+                                                                         IsVisible="{Binding IsDownloading}" />
+                                                            <Button Classes="primary" Content="Descargar" Margin="0"
+                                                                    Command="{Binding DownloadCommand}" IsVisible="{Binding CanDownload}" />
+                                                            <Button Classes="secondary" Content="Cancelar" Margin="0"
+                                                                    Command="{Binding CancelDownloadCommand}" IsVisible="{Binding IsDownloading}" />
+                                                            <Button Classes="secondary" Content="Borrar" Margin="0"
+                                                                    Command="{Binding DeleteCommand}" IsVisible="{Binding IsInstalled}" />
+                                                            <Button Classes="secondary" Content="Licencia" Margin="0"
+                                                                    ToolTip.Tip="Ver quién la hizo y cómo se puede usar"
+                                                                    Command="{Binding OpenLicenseCommand}" />
+                                                        </StackPanel>
+                                                        <StackPanel VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Title}" />
+                                                            <TextBlock Classes="hint" Text="{Binding Details}" />
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                </Panel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Border>
+                            <TextBlock Classes="hint" Margin="0,4,0,0" Text="Cargando la lista de voces…"
+                                       IsVisible="{Binding IsLoadingCatalog}" />
+                            <TextBlock Classes="hint" Margin="0,6,0,0"
+                                       Text="Consejo: las de calidad media o alta suenan mucho mejor. Cada voz tiene su propia licencia: si monetizas tu directo, revisa «Licencia» antes de usarla." />
+                            <WrapPanel Margin="0,8,0,0">
+                                <Button Classes="secondary" Content="▶ Probar voces locales" Command="{Binding TestEngineCommand}"
+                                        IsEnabled="{Binding !IsTesting}"
+                                        ToolTip.Tip="Comprueba que el motor y las voces funcionan en este equipo." />
+                                <Button Classes="secondary" Content="Abrir carpeta de voces" Command="{Binding OpenVoicesFolderCommand}"
+                                        ToolTip.Tip="{Binding VoicesFolder}" />
+                                <Button Classes="secondary" Content="Buscar voces nuevas" Command="{Binding RescanVoicesCommand}"
+                                        ToolTip.Tip="Vuelve a mirar la carpeta después de copiar una voz propia." />
+                                <Button Classes="secondary" Content="Actualizar lista" Command="{Binding RefreshCatalogCommand}" />
+                                <Button Classes="danger" Content="Borrar motor y voces" Command="{Binding UninstallAllCommand}" />
+                            </WrapPanel>
+
+                            <!-- Voces propias -->
+                            <StackPanel IsVisible="{Binding HasCustomVoices}" Margin="0,10,0,0">
+                                <TextBlock Classes="fieldLabel" Text="Tus voces propias" Margin="0,0,0,4" />
+                                <ItemsControl ItemsSource="{Binding CustomVoices}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:PiperCustomVoiceRow">
+                                            <DockPanel Margin="8,3">
+                                                <Button DockPanel.Dock="Right" Classes="secondary" Content="Borrar" Margin="0"
+                                                        VerticalAlignment="Center" Command="{Binding DeleteCommand}" />
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Name}" />
+                                                    <TextBlock Classes="hint" Text="{Binding Details}" />
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <Expander Header="Cómo añadir una voz propia" HorizontalAlignment="Stretch" Margin="0,10,0,0">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Classes="hint" FontSize="13"
+                                               Text="Sirve para voces de Piper que no están en la lista (por ejemplo, una entrenada por ti o descargada de otra web)." />
+                                    <TextBlock TextWrapping="Wrap"
+                                               Text="1. Consigue los DOS archivos de la voz, con el mismo nombre: «nombre.onnx» (el modelo) y «nombre.onnx.json» (su configuración). Sin el .json no funciona." />
+                                    <TextBlock TextWrapping="Wrap"
+                                               Text="2. Pulsa «Abrir carpeta de voces» y copia ahí los dos archivos. También puedes meterlos en una subcarpeta para ordenarlos." />
+                                    <TextBlock TextWrapping="Wrap"
+                                               Text="3. Pulsa «Buscar voces nuevas». La voz aparece en «Tus voces propias» y en el desplegable de voces con la etiqueta «voz propia»." />
+                                    <TextBlock TextWrapping="Wrap"
+                                               Text="4. Pulsa «Probar voces locales» para comprobar que funciona." />
+                                    <TextBlock Classes="hint" FontSize="13"
+                                               Text="El nombre del archivo es el nombre que verás. El idioma se lee del .onnx.json, así la voz se agrupa bien y entra en la voz aleatoria. Usa solo voces cuya licencia te permita usarlas en tu directo." />
+                                </StackPanel>
+                            </Expander>
+
+                            <Expander Header="¿Problemas con las voces locales?" HorizontalAlignment="Stretch" Margin="0,6,0,0">
+                                <StackPanel Spacing="4">
+                                    <TextBlock TextWrapping="Wrap"
+                                               Text="• Si al probar dice que faltan librerías: instala «Microsoft Visual C++ Redistributable (x64)», el paquete oficial y gratuito de Microsoft que usan muchos programas, y reinicia HiveShock." />
+                                    <Button Classes="secondary" Content="Descargar Visual C++ (web de Microsoft)"
+                                            Command="{Binding OpenVisualCppDownloadCommand}" HorizontalAlignment="Left" />
+                                    <TextBlock TextWrapping="Wrap"
+                                               Text="• Si sigue fallando: pulsa «Borrar motor y voces» y vuelve a instalarlas. Algún archivo pudo dañarse en la descarga o borrarlo el antivirus." />
+                                    <TextBlock TextWrapping="Wrap"
+                                               Text="• Si el antivirus bloquea «piper.exe»: permítelo. Es el motor de voces locales y está en tu carpeta de datos de HiveShock." />
+                                    <TextBlock TextWrapping="Wrap"
+                                               Text="• Si una voz propia no aparece: revisa que tenga su archivo .onnx.json con el mismo nombre y pulsa «Buscar voces nuevas»." />
+                                </StackPanel>
+                            </Expander>
+                        </StackPanel>
+
+                        <TextBlock Classes="hint" Margin="0,6,0,0" Text="{Binding StatusText}"
+                                   IsVisible="{Binding StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <TextBlock Classes="error" Margin="0,6,0,0" Text="{Binding ErrorText}"
+                                   IsVisible="{Binding ErrorText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <Button Classes="primary" Content="Descargar Visual C++ (web de Microsoft)" Margin="0,6,8,0"
+                                HorizontalAlignment="Left" IsVisible="{Binding ShowDependencyHelp}"
+                                Command="{Binding OpenVisualCppDownloadCommand}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- MICRÓFONO -->
                 <Border Classes="card" Margin="0,0,0,12">
                     <StackPanel>
-                        <TextBlock Classes="sectionTitle" Text="ATAJO DE MUTE" />
-                        <TextBlock Margin="0,4,0,8" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}"
-                                   Text="Funciona aunque HiveShock no tenga el foco. Escribe la combinación como Control+Alt+M." />
+                        <TextBlock Classes="sectionTitle" Text="MICRÓFONO" />
+                        <DockPanel Margin="0,6,0,0">
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding PauseWhenISpeak}" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock FontWeight="SemiBold" Text="Pausar la lectura cuando hablo" />
+                                <TextBlock Classes="hint"
+                                           Text="Si hablas por el micrófono, la voz se calla al instante y sigue cuando terminas." />
+                            </StackPanel>
+                        </DockPanel>
+
+                        <StackPanel IsEnabled="{Binding PauseWhenISpeak}">
+                            <DockPanel Margin="16,8,0,0">
+                                <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding ReplayAfterInterruption}" />
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Repetir el mensaje que se cortó cuando termines de hablar" />
+                                    <TextBlock Classes="hint"
+                                               Text="Si hablas encima de un mensaje, se vuelve a leer entero al callarte (hasta 2 veces). Si lo desactivas, se salta al siguiente." />
+                                </StackPanel>
+                            </DockPanel>
+                            <TextBlock Classes="fieldLabel" Text="Micrófono" Margin="0,12,0,4" />
+                            <ComboBox HorizontalAlignment="Stretch"
+                                      ItemsSource="{Binding Microphones}"
+                                      SelectedItem="{Binding SelectedMicrophone}"
+                                      DisplayMemberBinding="{Binding Name, x:DataType=voice:AudioDevice}" />
+
+                            <TextBlock Classes="fieldLabel" Text="{Binding MicSensitivityText}" Margin="0,14,0,0" />
+                            <Slider Minimum="0" Maximum="100" SmallChange="1" LargeChange="10"
+                                    Value="{Binding MicSensitivity}" />
+
+                            <Grid Height="12" Margin="0,4,0,4">
+                                <ProgressBar Minimum="0" Maximum="100" Height="12" MinHeight="12"
+                                             Value="{Binding MicThresholdPercent}"
+                                             Foreground="{DynamicResource BrandGoldBrush}" Opacity="0.35" />
+                                <ProgressBar Minimum="0" Maximum="100" Height="12" MinHeight="12"
+                                             Background="Transparent"
+                                             Foreground="{DynamicResource StatusOkBrush}"
+                                             Value="{Binding MicLevelPercent}" />
+                            </Grid>
+                            <TextBlock Classes="hint"
+                                       Text="La barra verde es tu voz. La zona dorada es lo que se ignora como ruido: al hablar normal, la barra verde debe pasar la zona dorada; en silencio, debe quedarse dentro." />
+                            <DockPanel Margin="0,10,0,0">
+                                <Button DockPanel.Dock="Left" Classes="secondary"
+                                        Content="{Binding MicTestButtonText}"
+                                        Command="{Binding ToggleMicTestCommand}" />
+                                <TextBlock VerticalAlignment="Center" Margin="4,0,0,8" TextWrapping="Wrap"
+                                           Text="{Binding MicStateText}" />
+                            </DockPanel>
+                            <TextBlock Classes="error" Text="{Binding MicrophoneError}"
+                                       IsVisible="{Binding MicrophoneError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        </StackPanel>
+                        <TextBlock Classes="hint" Margin="0,8,0,0"
+                                   Text="Usa audífonos: si la voz sale por altavoces, el micrófono la escucha y la lectura se corta sola. Si no puedes usar audífonos, desactiva «Pausar la lectura cuando hablo»." />
+                    </StackPanel>
+                </Border>
+
+                <!-- QUÉ SE LEE -->
+                <Border Classes="card" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Classes="sectionTitle" Text="QUÉ SE LEE" />
+                        <DockPanel Margin="0,6,0,0">
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding ReadTikTok}" />
+                            <TextBlock VerticalAlignment="Center" Text="Leer el chat de TikTok" />
+                        </DockPanel>
                         <DockPanel>
-                            <Button DockPanel.Dock="Right" Classes="secondary" Content="Guardar"
-                                    Command="{Binding SaveHotkeyCommand}" Margin="8,0,0,0" />
-                            <TextBox Text="{Binding MuteHotkey}" />
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding ReadTwitch}" />
+                            <TextBlock VerticalAlignment="Center" Text="Leer el chat de Twitch" />
                         </DockPanel>
-                        <DockPanel Margin="0,12,0,0">
-                            <Button DockPanel.Dock="Left" Classes="secondary"
-                                    Content="{Binding IsMuted, StringFormat='Muteado: {0}'}"
-                                    Command="{Binding ToggleMuteCommand}" />
-                            <TextBlock Margin="12,0,0,0" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource MutedBrush}" FontSize="12"
-                                       Text="{Binding IsStreamerSpeaking, StringFormat='Hablando por el mic: {0}'}" />
+                        <DockPanel>
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding SayUserName}" />
+                            <TextBlock VerticalAlignment="Center" Text="Decir quién escribió el mensaje" />
                         </DockPanel>
+                        <DockPanel IsEnabled="{Binding SayUserName}">
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding SayPlatform}" />
+                            <TextBlock VerticalAlignment="Center" Text="Decir si viene de TikTok o de Twitch" />
+                        </DockPanel>
+                        <TextBlock Classes="hint" Margin="0,0,0,8" Text="{Binding ExampleText}" />
+
+                        <TextBlock Classes="fieldLabel" Text="¿A quién se le lee?" Margin="0,6,0,4" />
+                        <ComboBox HorizontalAlignment="Stretch"
+                                  ItemsSource="{Binding AudienceOptions}"
+                                  SelectedItem="{Binding SelectedAudience}"
+                                  DisplayMemberBinding="{Binding Label, x:DataType=vm:AudienceChoice}" />
+
+                        <TextBlock Classes="fieldLabel" Text="Anunciar también" Margin="0,14,0,0" />
+                        <DockPanel>
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding ReadGifts}" />
+                            <TextBlock VerticalAlignment="Center" Text="Regalos de TikTok («Juan envió 5 Rosas»)" />
+                        </DockPanel>
+                        <DockPanel IsEnabled="{Binding ReadGifts}" Margin="16,0,0,4">
+                            <NumericUpDown DockPanel.Dock="Right" Width="150" Minimum="1" Maximum="100000"
+                                           Increment="1" FormatString="0"
+                                           Value="{Binding GiftMinDiamonds}" />
+                            <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                                       Text="Solo regalos que valgan al menos estos diamantes" />
+                        </DockPanel>
+                        <DockPanel>
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding ReadBits}" />
+                            <TextBlock VerticalAlignment="Center" Text="Bits de Twitch" />
+                        </DockPanel>
+                        <DockPanel>
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding ReadFollows}" />
+                            <TextBlock VerticalAlignment="Center" Text="Nuevos seguidores" />
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- FILTROS -->
+                <Border Classes="card" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Classes="sectionTitle" Text="FILTROS DEL CHAT" />
+                        <TextBlock Classes="hint" Margin="0,0,0,6"
+                                   Text="Evitan que la voz lea spam, enlaces o cosas que puedan meter en problemas tu directo." />
+                        <DockPanel>
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding IgnoreOwnMessages}" />
+                            <TextBlock VerticalAlignment="Center" Text="No leer mis propios mensajes" />
+                        </DockPanel>
+                        <DockPanel>
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding SkipCommands}" />
+                            <TextBlock VerticalAlignment="Center" Text="No leer comandos (mensajes que empiezan con ! o /)" />
+                        </DockPanel>
+                        <DockPanel>
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding RemoveLinks}" />
+                            <TextBlock VerticalAlignment="Center" Text="Quitar los enlaces de los mensajes" />
+                        </DockPanel>
+                        <DockPanel>
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding ReadEmojis}" />
+                            <TextBlock VerticalAlignment="Center" Text="Leer los emojis en voz alta" />
+                        </DockPanel>
+
+                        <TextBlock Classes="fieldLabel" Text="{Binding MaxMessageLengthText}" Margin="0,12,0,0" />
+                        <Slider Minimum="20" Maximum="500" SmallChange="10" LargeChange="50"
+                                TickFrequency="10" IsSnapToTickEnabled="True"
+                                Value="{Binding MaxMessageLength}" />
+
+                        <TextBlock Classes="fieldLabel" Text="{Binding PerUserCooldownText}" Margin="0,6,0,0" />
+                        <Slider Minimum="0" Maximum="60" SmallChange="1" LargeChange="5"
+                                TickFrequency="1" IsSnapToTickEnabled="True"
+                                Value="{Binding PerUserCooldownSeconds}" />
+
+                        <TextBlock Classes="fieldLabel" Text="{Binding MaxMessageAgeText}" Margin="0,6,0,0" />
+                        <Slider Minimum="10" Maximum="300" SmallChange="5" LargeChange="30"
+                                TickFrequency="5" IsSnapToTickEnabled="True"
+                                Value="{Binding MaxMessageAgeSeconds}" />
+
+                        <Grid ColumnDefinitions="*,16,*" Margin="0,8,0,0">
+                            <StackPanel>
+                                <TextBlock Classes="fieldLabel" Text="Usuarios que nunca se leen" Margin="0,0,0,4" />
+                                <TextBox Text="{Binding IgnoredUsersText}" AcceptsReturn="True" TextWrapping="Wrap"
+                                         Height="120" PlaceholderText="Un usuario por línea (bots, trolls…)" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Classes="fieldLabel" Text="Palabras prohibidas" Margin="0,0,0,4" />
+                                <TextBox Text="{Binding BlockedWordsText}" AcceptsReturn="True" TextWrapping="Wrap"
+                                         Height="120" PlaceholderText="Una palabra o frase por línea" />
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Classes="hint" Margin="0,4,0,8"
+                                   Text="Si un mensaje o un nombre contiene una palabra prohibida, no se lee completo. No importan mayúsculas ni acentos." />
+                        <Button Classes="secondary" Content="Restablecer filtros recomendados"
+                                Command="{Binding RestoreRecommendedFiltersCommand}" HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Border>
+
+                <!-- ATAJOS -->
+                <Border Classes="card" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Classes="sectionTitle" Text="ATAJOS DE TECLADO" />
+                        <TextBlock Classes="hint" Margin="0,0,0,8"
+                                   Text="Funcionan aunque HiveShock esté minimizado o estés dentro del juego. Escríbelos como Control+Alt+M. Déjalo vacío para no usar ese atajo." />
+                        <Grid ColumnDefinitions="Auto,12,*" RowDefinitions="Auto,8,Auto">
+                            <TextBlock VerticalAlignment="Center" Text="Silenciar / quitar silencio" />
+                            <TextBox Grid.Column="2" Text="{Binding MuteHotkey}" />
+                            <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Saltar mensaje" />
+                            <TextBox Grid.Row="2" Grid.Column="2" Text="{Binding SkipHotkey}" />
+                        </Grid>
+                        <DockPanel Margin="0,10,0,0">
+                            <Button DockPanel.Dock="Left" Classes="primary" Content="Guardar atajos"
+                                    Command="{Binding SaveHotkeysCommand}" />
+                            <TextBlock Classes="hint" VerticalAlignment="Center" Margin="4,0,0,8"
+                                       Text="{Binding HotkeyStatus}" />
+                        </DockPanel>
+                        <TextBlock Classes="error" Text="{Binding HotkeyError}"
+                                   IsVisible="{Binding HotkeyError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                     </StackPanel>
                 </Border>
             </StackPanel>

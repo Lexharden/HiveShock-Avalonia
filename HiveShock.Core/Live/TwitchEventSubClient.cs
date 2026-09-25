@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using HiveShock.Logging;
+using HiveShock.Voice;
 
 namespace HiveShock.Live;
 
@@ -14,7 +15,7 @@ public sealed class TwitchEventSubClient
         string clientId,
         string accessToken,
         string userId,
-        Action<string, string, string> onChat,
+        Action<string, string, string, ChatterRoles> onChat,
         Action<string> onFollow,
         Action<string, int> onCheer,
         Action connected,
@@ -108,7 +109,7 @@ public sealed class TwitchEventSubClient
 
     private static void HandleNotification(
         JsonElement root,
-        Action<string, string, string> onChat,
+        Action<string, string, string, ChatterRoles> onChat,
         Action<string> onFollow,
         Action<string, int> onCheer)
     {
@@ -137,7 +138,7 @@ public sealed class TwitchEventSubClient
                 text = t.GetString() ?? "";
             }
 
-            onChat(user, userId, text);
+            onChat(user, userId, text, ReadChatterRoles(evt));
             return;
         }
 
@@ -175,6 +176,31 @@ public sealed class TwitchEventSubClient
 
             onCheer(user, bits);
         }
+    }
+
+    /// <summary>badges[].set_id de channel.chat.message → roles (founder cuenta como suscriptor).</summary>
+    private static ChatterRoles ReadChatterRoles(JsonElement evt)
+    {
+        var roles = ChatterRoles.None;
+        if (!evt.TryGetProperty("badges", out var badges) || badges.ValueKind != JsonValueKind.Array)
+        {
+            return roles;
+        }
+
+        foreach (var badge in badges.EnumerateArray())
+        {
+            var set = badge.TryGetProperty("set_id", out var s) ? s.GetString() : null;
+            roles |= set switch
+            {
+                "broadcaster" => ChatterRoles.Broadcaster,
+                "moderator" => ChatterRoles.Moderator,
+                "vip" => ChatterRoles.Vip,
+                "subscriber" or "founder" => ChatterRoles.Subscriber,
+                _ => ChatterRoles.None,
+            };
+        }
+
+        return roles;
     }
 
     private static async Task SubscribeAsync(

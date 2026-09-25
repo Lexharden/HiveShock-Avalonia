@@ -122,10 +122,19 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
             clientId,
             access,
             userId,
-            (chatter, chatterId, text) =>
+            (chatter, chatterId, text, roles) =>
             {
                 _router.HandleChat(chatter, chatterId, text, ct, LivePortIds.Twitch);
-                _voice?.Enqueue(new TtsMessage(LivePortIds.Twitch, chatter, text, DateTime.UtcNow));
+                if (chatterId == userId)
+                {
+                    roles |= ChatterRoles.Broadcaster;
+                }
+
+                _voice?.Enqueue(new TtsMessage(LivePortIds.Twitch, chatter, text, DateTime.UtcNow)
+                {
+                    Roles = roles,
+                    SpeakerKey = chatterId,
+                });
             },
             user => _router.HandleFollow(user, ct, LivePortIds.Twitch),
             (user, bits) => _router.HandleCheer(user, bits, ct),

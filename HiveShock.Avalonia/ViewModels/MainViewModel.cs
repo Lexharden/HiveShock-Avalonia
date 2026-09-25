@@ -7,6 +7,7 @@ using HiveShock.Avalonia.Themes;
 using HiveShock.Hosting;
 using HiveShock.Logging;
 using HiveShock.Voice;
+using HiveShock.Voice.Piper;
 
 namespace HiveShock.Avalonia.ViewModels;
 
@@ -252,6 +253,11 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         OnPropertyChanged(nameof(IsSmartTtsNav));
         OnPropertyChanged(nameof(IsHelpNav));
         OnPropertyChanged(nameof(IsAboutNav));
+        if (value != "voz")
+        {
+            // La prueba de micrófono solo tiene sentido con el medidor a la vista.
+            SmartTts.StopMicTest();
+        }
     }
 
     public async Task ToggleConnectionAsync()
@@ -333,15 +339,26 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
             return;
         }
 
-        var settings = TtsSettings.Load();
-        var voice = new SmartVoiceManager(
-            new WindowsMicrophoneCapture(),
-            new EdgeTtsSpeechSynthesizer(),
-            new WindowsAudioPlayer(),
-            new SharpHookGlobalHotkeyListener(),
-            new VoiceActivityDetector(),
-            settings);
-        Runtime.AttachVoice(voice);
+        try
+        {
+            var settings = TtsSettings.Load();
+            // Orden = preferencia y orden de respaldo: Edge (más natural) → Piper (natural, sin
+            // internet, si está instalado) → Windows (siempre disponible).
+            var engines = new TtsEngineRegistry([new EdgeTtsEngine(), new PiperTtsEngine(), new WindowsTtsEngine()]);
+            var voice = new SmartVoiceManager(
+                new WindowsMicrophoneCapture(),
+                engines,
+                new WindowsAudioPlayer(),
+                new SharpHookGlobalHotkeyListener(),
+                new VoiceActivityDetector(),
+                settings);
+            Runtime.AttachVoice(voice);
+        }
+        catch (Exception ex)
+        {
+            // Sin voz la app sigue siendo útil: la página "Voz" queda como no disponible.
+            BridgeLog.Error($"Smart TTS no se pudo iniciar: {ex.Message}");
+        }
 #endif
     }
 

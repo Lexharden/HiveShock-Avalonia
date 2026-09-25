@@ -31,7 +31,7 @@
                     <TextBlock Text="HiveShock" FontSize="18" FontWeight="SemiBold"
                                Foreground="{DynamicResource BrandGoldBrush}"
                                VerticalAlignment="Center" />
-                    <TextBlock Text="Lo que pasa en tu live llega al juego"
+                    <TextBlock Text="Lo que pasa en tu live se quedá en el live"
                                Foreground="{DynamicResource MutedBrush}" Margin="12,2,0,0"
                                FontSize="12" VerticalAlignment="Center" />
                 </StackPanel>
@@ -175,11 +175,16 @@
                         </Button>
                         <Button Classes="nav" Classes.active="{Binding IsSmartTtsNav}"
                                 Classes.compact="{Binding NavCollapsed}"
-                                Command="{Binding NavSmartTtsCommand}" ToolTip.Tip="Voz">
+                                Command="{Binding NavSmartTtsCommand}" ToolTip.Tip="Voz (Alpha: en pruebas)">
                             <Panel>
                                 <TextBlock Text="Vz" HorizontalAlignment="Center"
                                            IsVisible="{Binding NavCollapsed}" />
-                                <TextBlock Text="Voz" IsVisible="{Binding NavExpanded}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding NavExpanded}">
+                                    <TextBlock Text="Voz" VerticalAlignment="Center" />
+                                    <Border Classes="alphaBadge">
+                                        <TextBlock Text="ALPHA" />
+                                    </Border>
+                                </StackPanel>
                             </Panel>
                         </Button>
                     </StackPanel>

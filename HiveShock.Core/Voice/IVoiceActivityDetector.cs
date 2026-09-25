@@ -9,6 +9,12 @@ public interface IVoiceActivityDetector : IDisposable
 {
     bool IsSpeaking { get; }
 
+    /// <summary>Nivel del último fragmento de audio, 0..1 (para el medidor de la UI).</summary>
+    double Level { get; }
+
+    /// <summary>Nivel (misma escala 0..1 que <see cref="Level"/>) a partir del cual se considera voz.</summary>
+    double Threshold { get; set; }
+
     event Action<bool>? SpeakingChanged;
 
     /// <summary>Alimenta PCM 16-bit mono a 16kHz (lo que entrega <see cref="IMicrophoneCapture"/>).</summary>

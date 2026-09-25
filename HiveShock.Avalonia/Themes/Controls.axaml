@@ -232,4 +232,17 @@
     <Style Selector="GridSplitter:pressed">
         <Setter Property="Background" Value="{DynamicResource BrandGoldBrush}" />
     </Style>
+
+    <!-- Etiqueta "ALPHA" para funciones en prueba (hoy: Voz). -->
+    <Style Selector="Border.alphaBadge">
+        <Setter Property="Background" Value="{DynamicResource BrandGoldBrush}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="5,1" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.alphaBadge > TextBlock">
+        <Setter Property="Foreground" Value="#1A1200" />
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="FontWeight" Value="Bold" />
+    </Style>
 </Styles>

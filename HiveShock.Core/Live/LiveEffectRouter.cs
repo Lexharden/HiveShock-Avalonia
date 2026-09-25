@@ -3,6 +3,7 @@ using HiveShock.Configuration;
 using HiveShock.Hosting;
 using HiveShock.Logging;
 using HiveShock.Networking;
+using HiveShock.Voice;
 using TikTokLive.Helpers;
 using TikTokLive.Proto;
 
@@ -18,6 +19,7 @@ public sealed class LiveEffectRouter : IDisposable
     private readonly EffectDispatcher _dispatcher;
     private readonly OverlayNotifier _overlay;
     private readonly GiftGoalBank _goals;
+    private readonly SmartVoiceManager? _voice;
     private readonly GiftStreakTracker _streaks = new();
     private readonly object _streakGate = new();
     private readonly Timer _streakFlushTimer;
@@ -32,7 +34,8 @@ public sealed class LiveEffectRouter : IDisposable
         GiftCatalogStore catalog,
         EffectDispatcher dispatcher,
         OverlayNotifier overlay,
-        GiftGoalBank goals)
+        GiftGoalBank goals,
+        SmartVoiceManager? voice = null)
     {
         _options = options;
         _effects = effects;
@@ -41,6 +44,7 @@ public sealed class LiveEffectRouter : IDisposable
         _dispatcher = dispatcher;
         _overlay = overlay;
         _goals = goals;
+        _voice = voice;
         _streakFlushTimer = new Timer(
             _ => FlushStaleStreaks(),
             null,
@@ -153,6 +157,8 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
+        _voice?.Enqueue(new TtsMessage(portId, Viewer(user), "", DateTime.UtcNow) { Kind = TtsMessageKind.Follow, SpeakerKey = user });
+
         var effect = string.Equals(portId, LivePortIds.Twitch, StringComparison.OrdinalIgnoreCase)
             ? _gifts.Snapshot.TwitchFollow.Effect
             : _gifts.Snapshot.Follow.Effect;
@@ -171,6 +177,13 @@ public sealed class LiveEffectRouter : IDisposable
         {
             return;
         }
+
+        _voice?.Enqueue(new TtsMessage(LivePortIds.Twitch, Viewer(user), "", DateTime.UtcNow)
+        {
+            Kind = TtsMessageKind.Bits,
+            SpeakerKey = user,
+            Count = bits,
+        });
 
         var match = _gifts.Snapshot.TwitchBits
             .Where(b => bits >= b.Min && !string.IsNullOrWhiteSpace(b.Effect))
@@ -303,6 +316,14 @@ public sealed class LiveEffectRouter : IDisposable
             BridgeLog.Info($"Capturado {user} {giftLabel} x{repeat}");
             return;
         }
+
+        _voice?.Enqueue(new TtsMessage(LivePortIds.TikTok, Viewer(user), name, DateTime.UtcNow)
+        {
+            Kind = TtsMessageKind.Gift,
+            SpeakerKey = user,
+            Count = repeat,
+            Diamonds = diamonds,
+        });
 
         var tick = _goals.Contribute(name, id, repeat);
         if (tick != null)
