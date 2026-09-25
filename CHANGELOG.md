@@ -4,15 +4,30 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
-## [2.1.0-alpha.1] - 2026-09-24
+## [2.1.0-beta.1] - 2026-09-25
 
--
+Primera beta de la 2.x: une en una sola versión Android, la Voz y las mejoras visuales de la 1.3.1.
 
+### Voz (Alpha, solo Windows)
+* Nueva sección **Voz**: lee en voz alta el chat de TikTok y Twitch, y puede anunciar regalos, bits y seguidores.
+* Tres tipos de voz: **Microsoft Edge** (naturales, con internet), **Voces locales HD (Piper)** (naturales, sin internet, se descargan una vez) y **Windows** (sin internet).
+* Voces locales HD: instalación del motor con un clic, catálogo oficial por idioma, descargas verificadas, licencia de cada voz, voces propias (`.onnx` + `.onnx.json`) y botón para abrir su carpeta.
+* **Respaldo automático**: si el tipo de voz elegido falla (sin internet o bloqueado), el chat se sigue leyendo con otro.
+* Si Microsoft bloquea sus voces (403), la sección se bloquea con un aviso claro para el streamer.
+* **Voz por plataforma** (una para TikTok y otra para Twitch) y **voz aleatoria** por idiomas, con la misma voz para cada persona si se quiere.
+* Selector de voces agrupado por idioma; velocidad, tono, volumen y salida de audio configurables.
+* Micrófono elegible: la voz se calla cuando hablas y **repite entero el mensaje cortado** al terminar.
+* Filtros del chat: comandos, enlaces, emojis, spam repetido, bots, mensajes propios, roles (suscriptores/moderadores), palabras prohibidas, espera por persona y longitud máxima.
+* Atajos globales para silenciar (Ctrl+Alt+M) y saltar mensaje (Ctrl+Alt+N); silenciar, saltar y vaciar desde la página.
+* Aviso y botón de descarga de **Visual C++** si a Windows le faltan librerías para las voces locales.
 
-## [2.0.0-alpha.1] - 2026-09-24
-
--
-
+### Otros cambios
+* **Contador de muertes y ajustes que ya no se pierden**: se guardan en la carpeta del usuario y junto al programa, con copia de respaldo. Corrige que no se guardaran mientras no se colocaran todos los overlays.
+* **Combos de TikTok**: cuando TikTok reinicia el conteo de un combo (x1, x1…), lo anterior se acumula en vez de perderse.
+* **Acerca de**: Discord y YouTube de HiveShock, Instagram del desarrollador y sección de equipo (testers, soporte, administradores).
+* Ayuda actualizada con todo lo de Voz.
+* Scripts de versión con versiones preliminares (alpha/beta/rc) y sin estropear acentos en Windows.
+* Pruebas automáticas en el CI.
 
 ## [1.3.1] - 2026-09-22
 

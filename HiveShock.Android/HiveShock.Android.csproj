@@ -11,7 +11,7 @@
     <ApplicationTitle>HiveShock</ApplicationTitle>
     <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
     <!-- major*10000 + minor*100 + patch; alinear con Directory.Build.props -->
-    <ApplicationVersion>10300</ApplicationVersion>
+    <ApplicationVersion>20100</ApplicationVersion>
     <AndroidPackageFormat>apk</AndroidPackageFormat>
     <AndroidManifest>AndroidManifest.xml</AndroidManifest>
     <PublishTrimmed>false</PublishTrimmed>
