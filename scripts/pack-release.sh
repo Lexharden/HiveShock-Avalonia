@@ -241,7 +241,7 @@ write_leeme() {
 
   sed \
     -e "s/{VERSION}/$VERSION/g" \
-    -e "s/{LAUNCH}/$LAUNCH/g" \
+    -e "s|{LAUNCH}|$LAUNCH|g" \
     -e "s|{REPLACE}|$REPLACE|g" \
     "$tpl" |
     tr -d '\r' > "$out"

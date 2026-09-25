@@ -55,6 +55,9 @@ jobs:
 
       - name: Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # El paquete "tools" ya no existe en el sdkmanager actual (rompía el job).
+          packages: platform-tools
 
       - name: Workload Android
         run: dotnet workload install android
