@@ -1,5 +1,3 @@
-using System.IO;
-using System.Text.Json;
 using HiveShock.Avalonia.Themes;
 using HiveShock.Configuration;
 using HiveShock.Hosting;
@@ -41,40 +39,15 @@ public sealed class UiPreferences
     public string OverlayBackgroundColor { get; set; } = "";
     public string OverlayAlign { get; set; } = "center";
 
-    private static string Path => System.IO.Path.Combine(AppPaths.AppDirectory, ".hiveshock-ui.json");
-    private static string LegacyPath => System.IO.Path.Combine(AppPaths.AppDirectory, ".bridge-ui.json");
+    private const string FileName = ".hiveshock-ui.json";
+    private const string LegacyFileName = ".bridge-ui.json";
 
-    public static UiPreferences Load()
-    {
-        try
-        {
-            var path = File.Exists(Path) ? Path : LegacyPath;
-            if (!File.Exists(path))
-            {
-                return new UiPreferences();
-            }
+    /// <summary>Copia válida más reciente (carpeta del usuario o junto al .exe); ver <see cref="UserDataStore"/>.</summary>
+    public static UiPreferences Load() =>
+        UserDataStore.Load<UiPreferences>(FileName, LegacyFileName) ?? new UiPreferences();
 
-            var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<UiPreferences>(json) ?? new UiPreferences();
-        }
-        catch
-        {
-            return new UiPreferences();
-        }
-    }
-
-    public void Save()
-    {
-        try
-        {
-            var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(Path, json + Environment.NewLine);
-        }
-        catch
-        {
-            // ignore
-        }
-    }
+    /// <summary>Guarda en las dos ubicaciones con respaldo .bak. Nunca lanza.</summary>
+    public void Save() => UserDataStore.Save(FileName, this);
 
     public bool FollowsSystem =>
         !string.Equals(Theme, "dark", StringComparison.OrdinalIgnoreCase) &&
