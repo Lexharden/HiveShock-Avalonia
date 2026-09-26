@@ -4,15 +4,19 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.1.2-alpha.1] - 2026-09-26
+
+* **Vistos pasa a llamarse Catálogo**: ya muestra todos los regalos de TikTok, no solo los que salieron en tus lives.
+* Buscador al elegir un regalo del catálogo (escritorio y Android): por nombre, alias o id, sin importar acentos; Enter elige el primero. Cada regalo muestra cuántas veces salió en tus lives.
+* Sin repetidos en el Catálogo: las variantes de TikTok del mismo regalo (mismo nombre y precio, otro id) se muestran como una sola fila; los que comparten nombre pero cuestan distinto siguen separados. Manda el nombre oficial y el visto en el live queda como alias.
+
 ## [2.1.1-alpha.1] - 2026-09-25
 
 * **Regalos de TikTok actualizados**: 684 imágenes nuevas en `gifts-images/` (formato `{id}_{Nombre}.webp`) y lista oficial en `tiktok_gifts.json` (id, nombre, diamantes e imagen).
-* **Vistos pasa a llamarse Catálogo**: muestra también los regalos que aún no salieron en tus lives, con buscador y un interruptor para ver solo los vistos. Se pueden asignar efectos a cualquier regalo sin esperar a verlo.
+* **Vistos** muestra también los regalos que aún no salieron en tus lives, con buscador y un interruptor para ver solo los vistos. Se pueden asignar efectos a cualquier regalo sin esperar a verlo.
 * El catálogo completa diamantes, nombre oficial e imagen de lo visto sin modificar `gift-catalog.json`, y ya no se pierde si el archivo se daña (se recupera del respaldo o se aparta).
-* Sin repetidos en el Catálogo: las variantes de TikTok del mismo regalo (mismo nombre y precio, otro id) se muestran como una sola fila; los que comparten nombre pero cuestan distinto siguen separados. Manda el nombre oficial y el visto en el live queda como alias.
 * Imágenes: se aceptan `{id}_{Nombre}.webp`, `{id}.webp` y `{nombre}.webp`; la carpeta se revisa sola al añadir imágenes.
 * Las actualizaciones incluyen la lista oficial y las imágenes nuevas (sin tocar tus perfiles ni tu catálogo).
-* Buscador al elegir un regalo del catálogo (escritorio y Android): por nombre, alias o id, sin importar acentos; Enter elige el primero.
 * Voz: nueva opción en los filtros para no leer mensajes que etiquetan a alguien con @usuario.
 
 ## [2.1.0-beta.1] - 2026-09-25
