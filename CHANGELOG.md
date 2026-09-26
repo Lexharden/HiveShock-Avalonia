@@ -4,6 +4,13 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.1.1-alpha.1] - 2026-09-25
+
+* **Regalos de TikTok actualizados**: 684 imágenes nuevas en `gifts-images/` (formato `{id}_{Nombre}.webp`) y lista oficial en `tiktok_gifts.json` (id, nombre, diamantes e imagen).
+* **Vistos** muestra también los regalos que aún no salieron en tus lives, con buscador y un interruptor para ver solo los vistos. Se pueden asignar efectos a cualquier regalo sin esperar a verlo.
+* El catálogo completa diamantes, nombre oficial e imagen de lo visto sin modificar `gift-catalog.json`, y ya no se pierde si el archivo se daña (se recupera del respaldo o se aparta).
+* Imágenes: se aceptan `{id}_{Nombre}.webp`, `{id}.webp` y `{nombre}.webp`; la carpeta se revisa sola al añadir imágenes.
+* Las actualizaciones incluyen la lista oficial y las imágenes nuevas (sin tocar tus perfiles ni tu catálogo).
 * Voz: nueva opción en los filtros para no leer mensajes que etiquetan a alguien con @usuario.
 
 ## [2.1.0-beta.1] - 2026-09-25
