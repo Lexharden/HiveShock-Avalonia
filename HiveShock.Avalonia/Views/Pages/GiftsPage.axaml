@@ -7,7 +7,7 @@
         <StackPanel Grid.Row="0" Margin="0,0,0,8">
             <WrapPanel>
                 <Button Classes="secondary" Content="Nuevo" Command="{Binding NewGiftCommand}" />
-                <Button Classes="secondary" Content="Elegir de los vistos" Command="{Binding FromCatalogCommand}" />
+                <Button Classes="secondary" Content="Elegir del catálogo" Command="{Binding FromCatalogCommand}" />
                 <Button Classes="secondary" Content="Quitar" Command="{Binding DeleteGiftCommand}" />
                 <Button Classes="secondary" Content="Recargar" Command="{Binding ReloadCommand}" />
                 <Button Classes="secondary" Content="Abrir imágenes" Command="{Binding OpenImagesCommand}" />

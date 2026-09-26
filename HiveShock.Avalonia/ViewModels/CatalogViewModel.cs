@@ -52,11 +52,7 @@ public sealed partial class CatalogViewModel : ViewModelBase
         Rows.Clear();
         foreach (var g in _all)
         {
-            if (query.Length == 0 ||
-                g.Id.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                g.OtherIds.Any(id => id.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
-                g.DisplayName.Contains(query, StringComparison.CurrentCultureIgnoreCase) ||
-                g.Also.Any(a => a.Contains(query, StringComparison.CurrentCultureIgnoreCase)))
+            if (g.Matches(query))
             {
                 Rows.Add(g);
             }
@@ -79,7 +75,7 @@ public sealed partial class CatalogViewModel : ViewModelBase
     {
         if (Selected == null)
         {
-            _shell.Dialogs.Info("Vistos", "Elige un regalo para editarlo.");
+            _shell.Dialogs.Info("Catálogo", "Elige un regalo para editarlo.");
             return;
         }
 
@@ -98,11 +94,11 @@ public sealed partial class CatalogViewModel : ViewModelBase
         {
             _shell.Runtime.Catalog.UpsertManual(result.Id, result.NameEn, result.NameEs, result.Diamonds, existing);
             Load();
-            BridgeLog.Info($"Vistos {(existing == null ? "+" : "~")} {result.DisplayName}");
+            BridgeLog.Info($"Catálogo {(existing == null ? "+" : "~")} {result.DisplayName}");
         }
         catch (Exception ex)
         {
-            _shell.Dialogs.Warn("Vistos", ex.Message);
+            _shell.Dialogs.Warn("Catálogo", ex.Message);
         }
     }
 
@@ -130,7 +126,7 @@ public sealed partial class CatalogViewModel : ViewModelBase
     {
         if (Selected == null)
         {
-            _shell.Dialogs.Info("Vistos", "Elige un regalo para usarlo en este juego.");
+            _shell.Dialogs.Info("Catálogo", "Elige un regalo para usarlo en este juego.");
             return;
         }
 

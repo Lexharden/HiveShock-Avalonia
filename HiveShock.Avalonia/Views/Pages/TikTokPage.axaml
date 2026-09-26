@@ -40,7 +40,7 @@
             <TabItem Header="Regalos">
                 <ContentControl Content="{Binding Gifts}" Margin="0,8,0,0" />
             </TabItem>
-            <TabItem Header="Vistos">
+            <TabItem Header="Catálogo">
                 <ContentControl Content="{Binding Catalog}" Margin="0,8,0,0" />
             </TabItem>
             <TabItem Header="Metas">

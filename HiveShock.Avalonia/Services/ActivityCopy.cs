@@ -188,7 +188,7 @@ public static class ActivityCopy
 
         if (m.StartsWith("Sin mapeo:", StringComparison.Ordinal))
         {
-            return "Llegó un regalo que aún no tiene efecto. Revisa Regalos o anótalo en Vistos.";
+            return "Llegó un regalo que aún no tiene efecto. Revisa Regalos o búscalo en Catálogo.";
         }
 
         return null;

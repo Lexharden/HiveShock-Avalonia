@@ -201,7 +201,7 @@ public sealed partial class GiftsViewModel : ViewModelBase
         var list = _shell.Runtime.Catalog.ListSorted();
         if (list.Count == 0)
         {
-            _shell.Dialogs.Info("Vistos", "Todavía no hay regalos. Conecta en “Anotar regalos” durante un live.");
+            _shell.Dialogs.Info("Catálogo", "El catálogo está vacío. Revisa que tiktok_gifts.json esté junto al programa o conecta en «Anotar regalos» durante un live.");
             return;
         }
 

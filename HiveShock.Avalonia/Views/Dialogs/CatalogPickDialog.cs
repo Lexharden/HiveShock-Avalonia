@@ -23,7 +23,8 @@ public sealed class CatalogPickDialog : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         CanResize = true;
 
-        var list = new ListBox { ItemsSource = items };
+        var visible = new System.Collections.ObjectModel.ObservableCollection<CatalogGift>(items);
+        var list = new ListBox { ItemsSource = visible };
         list.ItemTemplate = new FuncDataTemplate<CatalogGift>((gift, _) =>
         {
             var row = new DockPanel { Margin = new Thickness(4, 6) };
@@ -38,6 +39,7 @@ public sealed class CatalogPickDialog : Window
             DockPanel.SetDock(image, Dock.Left);
             row.Children.Add(image);
             var diamonds = gift.Diamonds?.ToString() ?? "—";
+            var seen = gift.Seen > 0 ? $" · visto {gift.Seen} {(gift.Seen == 1 ? "vez" : "veces")}" : "";
             row.Children.Add(new StackPanel
             {
                 Children =
@@ -45,7 +47,7 @@ public sealed class CatalogPickDialog : Window
                     new TextBlock { Text = gift.DisplayName, FontWeight = FontWeight.SemiBold },
                     new TextBlock
                     {
-                        Text = $"{diamonds} diamantes",
+                        Text = $"{diamonds} diamantes{seen}",
                         FontSize = 12,
                         Opacity = 0.75,
                     },
@@ -65,11 +67,51 @@ public sealed class CatalogPickDialog : Window
 
         var title = new TextBlock
         {
-            Text = "Regalos que ya salieron en el live",
+            Text = "Catálogo de regalos",
             FontSize = 15,
             FontWeight = FontWeight.SemiBold,
-            Margin = new Thickness(0, 0, 0, 12),
+            Margin = new Thickness(0, 0, 0, 8),
         };
+
+        var count = new TextBlock { FontSize = 12, Opacity = 0.75, Margin = new Thickness(2, 6, 0, 8) };
+        var search = new TextBox { PlaceholderText = "Buscar por nombre o id…" };
+        void Filter()
+        {
+            var query = search.Text;
+            visible.Clear();
+            foreach (var gift in items.Where(g => g.Matches(query)))
+            {
+                visible.Add(gift);
+            }
+
+            count.Text = string.IsNullOrWhiteSpace(query)
+                ? $"{items.Count} regalos"
+                : $"{visible.Count} de {items.Count} regalos";
+            if (visible.Count > 0)
+            {
+                list.SelectedIndex = 0;
+            }
+        }
+
+        search.TextChanged += (_, _) => Filter();
+        search.KeyDown += (_, e) =>
+        {
+            // Enter elige el primero; flecha abajo pasa a la lista para moverse con el teclado.
+            if (e.Key == Key.Enter)
+            {
+                Confirm(list);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Down && visible.Count > 0)
+            {
+                list.Focus();
+                e.Handled = true;
+            }
+        };
+        Opened += (_, _) => search.Focus();
+        Filter();
+
+        var header = new StackPanel { Children = { title, search, count } };
 
         var cancel = new Button { Content = "Cancelar", Classes = { "secondary" }, IsCancel = true };
         cancel.Click += (_, _) => Close(false);
@@ -87,9 +129,9 @@ public sealed class CatalogPickDialog : Window
         buttons.Children.Add(ok);
 
         var root = new DockPanel { Margin = new Thickness(18) };
-        DockPanel.SetDock(title, Dock.Top);
+        DockPanel.SetDock(header, Dock.Top);
         DockPanel.SetDock(buttons, Dock.Bottom);
-        root.Children.Add(title);
+        root.Children.Add(header);
         root.Children.Add(buttons);
         root.Children.Add(list);
         Content = root;

@@ -27,7 +27,7 @@ public sealed class CatalogEditDialog : Window
         var root = new StackPanel { Margin = new Thickness(22) };
         root.Children.Add(new TextBlock
         {
-            Text = existing == null ? "Añadir a vistos" : "Editar en vistos",
+            Text = existing == null ? "Añadir al catálogo" : "Editar en el catálogo",
             FontSize = 15,
             FontWeight = FontWeight.SemiBold,
             Margin = new Thickness(0, 0, 0, 14),
@@ -58,7 +58,7 @@ public sealed class CatalogEditDialog : Window
             var nameEsText = nameEs.Text?.Trim() ?? "";
             if (string.IsNullOrWhiteSpace(nameEnText) && string.IsNullOrWhiteSpace(nameEsText))
             {
-                    var warn = new MessageDialog("Vistos", "Pon al menos un nombre.", confirm: false, kind: "warn");
+                    var warn = new MessageDialog("Catálogo", "Pon al menos un nombre.", confirm: false, kind: "warn");
                 await warn.ShowDialog<bool>(this);
                 return;
             }
@@ -69,7 +69,7 @@ public sealed class CatalogEditDialog : Window
             {
                 if (!int.TryParse(diamondsRaw, out var d) || d < 0)
                 {
-                    var warn = new MessageDialog("Vistos", "Diamantes debe ser un número de 0 en adelante.", confirm: false, kind: "warn");
+                    var warn = new MessageDialog("Catálogo", "Diamantes debe ser un número de 0 en adelante.", confirm: false, kind: "warn");
                     await warn.ShowDialog<bool>(this);
                     return;
                 }

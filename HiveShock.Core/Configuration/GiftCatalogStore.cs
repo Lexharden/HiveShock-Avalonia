@@ -61,6 +61,34 @@ public sealed class CatalogGift
     public string? ImagePath =>
         GiftImages.ResolvePathForNames(Id, new[] { NameEn, NameEs }.Concat(Also), ImageFile);
 
+    /// <summary>
+    /// Para los buscadores: nombre, alias o cualquier id (también de variantes), sin distinguir
+    /// mayúsculas ni acentos ("corazon" encuentra "Corazón"). Consulta vacía = coincide.
+    /// </summary>
+    public bool Matches(string? query)
+    {
+        var q = Fold(query);
+        if (q.Length == 0)
+        {
+            return true;
+        }
+
+        return Id.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+               OtherIds.Any(id => id.Contains(q, StringComparison.OrdinalIgnoreCase)) ||
+               new[] { NameEn, NameEs }.Concat(Also).Any(name => Fold(name).Contains(q, StringComparison.Ordinal));
+    }
+
+    private static string Fold(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return "";
+        }
+
+        var decomposed = text.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        return new string(decomposed.Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark).ToArray());
+    }
+
     internal CatalogGift Clone() => new()
     {
         Id = Id,

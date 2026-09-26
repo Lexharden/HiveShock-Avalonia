@@ -196,6 +196,19 @@ public sealed class GiftCatalogStoreTests : IDisposable
     }
 
     [Fact]
+    public void Search_matches_name_alias_and_any_id_ignoring_accents()
+    {
+        var gift = new CatalogGift { Id = "5582", NameEn = "Mishka Bear", NameEs = "Corazón", Also = ["Oso"], OtherIds = ["5566"] };
+
+        Assert.True(gift.Matches(""));
+        Assert.True(gift.Matches("mishka"));
+        Assert.True(gift.Matches("corazon"));
+        Assert.True(gift.Matches("OSO"));
+        Assert.True(gift.Matches("5566"));
+        Assert.False(gift.Matches("pegasus"));
+    }
+
+    [Fact]
     public void Find_works_for_seen_and_reference_gifts()
     {
         var store = Store();

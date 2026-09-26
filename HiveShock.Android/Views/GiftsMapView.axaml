@@ -11,7 +11,7 @@
                            Text="Regalos de TikTok. El mínimo es el combo de un viewer, no el total del chat." />
                 <WrapPanel>
                     <Button Classes="secondary" Content="Nuevo" Command="{Binding NewGiftCommand}" />
-                    <Button Classes="secondary" Content="De vistos" Command="{Binding OpenCatalogCommand}" />
+                    <Button Classes="secondary" Content="Del catálogo" Command="{Binding OpenCatalogCommand}" />
                     <Button Classes="secondary" Content="Quitar" Command="{Binding DeleteGiftCommand}" />
                     <Button Classes="primary" Content="Guardar" Command="{Binding SaveCommand}" />
                 </WrapPanel>
@@ -63,7 +63,8 @@
         <Border Background="#CC0E1520" IsVisible="{Binding CatalogOpen}">
             <Border Classes="card" Margin="24" VerticalAlignment="Center">
                 <StackPanel>
-                    <TextBlock Classes="fieldLabel" Text="Regalos vistos" />
+                    <TextBlock Classes="fieldLabel" Text="Catálogo de regalos" />
+                    <TextBox Text="{Binding CatalogSearch}" PlaceholderText="Buscar por nombre o id…" Margin="0,0,0,8" />
                     <ListBox ItemsSource="{Binding CatalogPicks}" SelectedItem="{Binding CatalogSelected}"
                              MinHeight="160" MaxHeight="280" Margin="0,0,0,12">
                         <ListBox.ItemTemplate>

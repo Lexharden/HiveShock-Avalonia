@@ -18,7 +18,7 @@
 
             <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,16,0,8" Text="Páginas" />
             <TextBlock Classes="helpBullet" Text="Inicio — juego, conectar y ventanas de OBS." />
-            <TextBlock Classes="helpBullet" Text="TikTok — tu usuario, regalos, vistos, metas y chat de TikTok." />
+            <TextBlock Classes="helpBullet" Text="TikTok — tu usuario, regalos, catálogo (todos los regalos de TikTok), metas y chat de TikTok." />
             <TextBlock Classes="helpBullet" Text="Twitch — entrar con tu cuenta, chat, follows y bits." />
             <TextBlock Classes="helpBullet" Text="Voz (Alpha) — lee el chat en voz alta, con filtros y pausa automática cuando hablas." />
             <TextBlock Classes="helpBullet" Text="Acerca de — versión, comunidad (Discord y YouTube), equipo y cómo apoyar el proyecto." />

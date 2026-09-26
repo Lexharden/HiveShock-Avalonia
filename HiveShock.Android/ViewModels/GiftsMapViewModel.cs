@@ -18,6 +18,23 @@ public sealed partial class GiftsMapViewModel : ObservableObject
     [ObservableProperty] private GiftMapRow? _selected;
     [ObservableProperty] private CatalogGift? _catalogSelected;
     [ObservableProperty] private bool _catalogOpen;
+    [ObservableProperty] private string _catalogSearch = "";
+
+    private IReadOnlyList<CatalogGift> _catalogAll = [];
+
+    partial void OnCatalogSearchChanged(string value) => FilterCatalog();
+
+    /// <summary>Filtra la lista del catálogo por nombre o id (el catálogo completo tiene cientos de regalos).</summary>
+    private void FilterCatalog()
+    {
+        CatalogPicks.Clear();
+        foreach (var gift in _catalogAll.Where(g => g.Matches(CatalogSearch)))
+        {
+            CatalogPicks.Add(gift);
+        }
+
+        CatalogSelected = CatalogPicks.FirstOrDefault();
+    }
     [ObservableProperty] private string _testComboText = "1";
 
     public bool HasSelection => Selected != null;
@@ -83,20 +100,17 @@ public sealed partial class GiftsMapViewModel : ObservableObject
     private void OpenCatalog()
     {
         _shell.Runtime.ReloadCatalog();
-        CatalogPicks.Clear();
-        foreach (var gift in _shell.Runtime.Catalog.ListSorted())
-        {
-            CatalogPicks.Add(gift);
-        }
+        _catalogAll = _shell.Runtime.Catalog.ListSorted();
+        CatalogSearch = "";
+        FilterCatalog();
 
         if (CatalogPicks.Count == 0)
         {
-            _shell.Log("Todavía no hay regalos vistos. Conecta un live de TikTok.");
+            _shell.Log("El catálogo de regalos está vacío. Conecta un live de TikTok.");
             CatalogOpen = false;
             return;
         }
 
-        CatalogSelected = CatalogPicks.FirstOrDefault();
         CatalogOpen = true;
     }
 

@@ -200,8 +200,8 @@ Opcional: `-IncludeCli` / `--cli` añade la consola.
 - [ ] Conectar: Listo → Conectando → En vivo / Anotando / En pruebas
 - [ ] Contador de muertes/vidas, rescue y borrar partida (si el perfil lo permite)
 - [ ] Overlays OBS on/off + aspecto (contador y regalos), capturables
-- [ ] Regalos: lista, alta manual / desde Vistos, efecto por perfil, guardar, probar, thumbs
-- [ ] Vistos: listar, editar, usar en este juego, carpeta de imágenes
+- [ ] Regalos: lista, alta manual / desde el Catálogo, efecto por perfil, guardar, probar, thumbs
+- [ ] Catálogo: todos los regalos de TikTok + vistos en lives, buscar, editar, usar en este juego, carpeta de imágenes
 - [ ] Likes y chat: likes / follow / share / palabras del chat (se guardan con Guardar)
 - [ ] Ayuda + Acerca de (Yafel, web, Instagram, Discord, YouTube, equipo, Ko-fi, versión)
 - [ ] Tema oscuro / claro / sistema
