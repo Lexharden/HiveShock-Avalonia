@@ -22,17 +22,49 @@ public sealed partial class CatalogViewModel : ViewModelBase
 
     [ObservableProperty] private CatalogGift? _selected;
 
+    /// <summary>Incluir los regalos de tiktok_gifts.json que aún no han salido en ningún live.</summary>
+    [ObservableProperty] private bool _showAllTikTokGifts = true;
+
+    [ObservableProperty] private string _searchText = "";
+
+    [ObservableProperty] private string _summary = "";
+
+    private IReadOnlyList<CatalogGift> _all = [];
+
+    partial void OnShowAllTikTokGiftsChanged(bool value) => Load();
+
+    partial void OnSearchTextChanged(string value) => ApplyFilter();
+
     public void Load()
     {
         _shell.Runtime.ReloadCatalog();
+        GiftImages.Invalidate();
         GiftImageLoader.ClearCache();
+        _all = _shell.Runtime.Catalog.ListSorted(ShowAllTikTokGifts);
+        ApplyFilter();
+        _shell.Studio.RefreshStats();
+    }
+
+    /// <summary>Filtra por nombre (EN, ES o alias) o por id, sin recargar el catálogo.</summary>
+    private void ApplyFilter()
+    {
+        var query = SearchText.Trim();
         Rows.Clear();
-        foreach (var g in _shell.Runtime.Catalog.ListSorted())
+        foreach (var g in _all)
         {
-            Rows.Add(g);
+            if (query.Length == 0 ||
+                g.Id.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                g.DisplayName.Contains(query, StringComparison.CurrentCultureIgnoreCase) ||
+                g.Also.Any(a => a.Contains(query, StringComparison.CurrentCultureIgnoreCase)))
+            {
+                Rows.Add(g);
+            }
         }
 
-        _shell.Studio.RefreshStats();
+        var seen = _all.Count(g => !g.IsReferenceOnly);
+        Summary = query.Length == 0
+            ? $"{_all.Count} regalos · {seen} vistos en tus lives"
+            : $"{Rows.Count} de {_all.Count} regalos";
     }
 
     [RelayCommand]

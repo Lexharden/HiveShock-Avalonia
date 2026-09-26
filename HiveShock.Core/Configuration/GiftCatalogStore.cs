@@ -16,6 +16,18 @@ public sealed class CatalogGift
     public int Seen { get; set; }
     public string? LastSeenUtc { get; set; }
 
+    /// <summary>Imagen indicada por tiktok_gifts.json (se resuelve dentro de gifts-images/). No se guarda.</summary>
+    [JsonIgnore]
+    public string? ImageFile { get; set; }
+
+    /// <summary>Icono oficial en el CDN de TikTok, si se conoce. No se guarda.</summary>
+    [JsonIgnore]
+    public string? IconUrl { get; set; }
+
+    /// <summary>True si solo viene de tiktok_gifts.json (aún no se ha visto en un live). No se guarda.</summary>
+    [JsonIgnore]
+    public bool IsReferenceOnly { get; set; }
+
     public string DisplayName
     {
         get
@@ -33,9 +45,37 @@ public sealed class CatalogGift
     public string PrimaryName =>
         NameEs ?? NameEn ?? Also.FirstOrDefault() ?? "";
 
-    public string? ImagePath => GiftImages.ResolvePath(Id, PrimaryName, null);
+    public string? ImagePath =>
+        GiftImages.ResolvePathForNames(Id, new[] { NameEn, NameEs }.Concat(Also), ImageFile);
+
+    internal CatalogGift Clone() => new()
+    {
+        Id = Id,
+        NameEn = NameEn,
+        NameEs = NameEs,
+        Also = [.. Also],
+        Diamonds = Diamonds,
+        Seen = Seen,
+        LastSeenUtc = LastSeenUtc,
+        ImageFile = ImageFile,
+        IconUrl = IconUrl,
+        IsReferenceOnly = IsReferenceOnly,
+    };
 }
 
+/// <summary>
+/// Catálogo de regalos. Dos fuentes:
+/// <list type="bullet">
+/// <item><c>gift-catalog.json</c>: lo que se aprende en los lives (visto N veces, nombres EN/ES,
+/// diamantes) y las altas manuales. Es lo único que se guarda.</item>
+/// <item><c>tiktok_gifts.json</c> (<see cref="GiftReferenceCatalog"/>): la lista oficial de regalos,
+/// solo lectura. Completa diamantes, nombres e imagen de lo visto, y añade los regalos que aún
+/// no aparecieron en ningún live para poder asignarles efectos igual.</item>
+/// </list>
+/// <see cref="ListSorted"/> devuelve copias ya combinadas, así editar la lista no toca el archivo.
+/// Guardado atómico con .bak; si el archivo está dañado se recupera del .bak o se aparta, nunca
+/// se sobrescribe con un catálogo vacío.
+/// </summary>
 public sealed class GiftCatalogStore
 {
     private static readonly JsonSerializerOptions JsonOpts = new()
@@ -44,16 +84,30 @@ public sealed class GiftCatalogStore
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true,
     };
 
     private readonly object _gate = new();
     private readonly string _path;
+    private readonly Func<GiftReferenceCatalog> _loadReference;
     private readonly Dictionary<string, CatalogGift> _byId = new(StringComparer.Ordinal);
+    private GiftReferenceCatalog _reference = GiftReferenceCatalog.Empty;
 
-    public GiftCatalogStore(string path) => _path = path;
+    /// <summary>Si el archivo no se pudo leer ni apartar, no se guarda para no destruirlo.</summary>
+    private bool _readOnly;
+
+    public GiftCatalogStore(string path, GiftReferenceCatalog? reference = null)
+    {
+        _path = path;
+        _loadReference = reference != null
+            ? () => reference
+            : () => GiftReferenceCatalog.Load(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path)));
+    }
 
     public string Path => _path;
 
+    /// <summary>Regalos vistos en lives o dados de alta a mano (lo que guarda gift-catalog.json).</summary>
     public int Count
     {
         get
@@ -61,6 +115,18 @@ public sealed class GiftCatalogStore
             lock (_gate)
             {
                 return _byId.Count;
+            }
+        }
+    }
+
+    /// <summary>Lista oficial de regalos (tiktok_gifts.json) cargada.</summary>
+    public GiftReferenceCatalog Reference
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _reference;
             }
         }
     }
@@ -73,39 +139,40 @@ public sealed class GiftCatalogStore
         return store;
     }
 
+    /// <summary>Relee gift-catalog.json y tiktok_gifts.json (botón Recargar incluido).</summary>
     public void Load()
     {
+        var reference = _loadReference();
         lock (_gate)
         {
+            _reference = reference;
             _byId.Clear();
+            _readOnly = false;
             if (!File.Exists(_path))
             {
                 return;
             }
 
-            try
+            if (TryRead(_path, out var gifts, out var error))
             {
-                var text = File.ReadAllText(_path, Encoding.UTF8);
-                var doc = JsonSerializer.Deserialize<CatalogFile>(text, JsonOpts);
-                if (doc?.Gifts == null)
-                {
-                    return;
-                }
-
-                foreach (var g in doc.Gifts)
-                {
-                    var key = KeyOf(g);
-                    if (string.IsNullOrWhiteSpace(key))
-                    {
-                        continue;
-                    }
-
-                    _byId[key] = g;
-                }
+                AddAll(gifts);
+                return;
             }
-            catch (Exception ex)
+
+            BridgeLog.Warn($"gift-catalog.json dañado ({error}).");
+            if (TryRead(_path + ".bak", out var backup, out _))
             {
-                BridgeLog.Warn($"gift-catalog.json: {ex.Message}");
+                AddAll(backup);
+                BridgeLog.Warn($"gift-catalog.json: se recuperó la copia de respaldo ({backup.Count} regalos).");
+                SetAsideCorrupt();
+                return;
+            }
+
+            // Sin respaldo: se aparta el archivo dañado para que el próximo guardado no lo destruya.
+            if (!SetAsideCorrupt())
+            {
+                _readOnly = true;
+                BridgeLog.Error("gift-catalog.json dañado y no se pudo apartar: no se guardarán cambios para no perderlo.");
             }
         }
     }
@@ -222,14 +289,59 @@ public sealed class GiftCatalogStore
         return changed;
     }
 
-    public IReadOnlyList<CatalogGift> ListSorted()
+    /// <summary>
+    /// Regalos ordenados por diamantes y nombre, como copias ya combinadas con tiktok_gifts.json.
+    /// Con <paramref name="includeReference"/> también los que aún no se han visto en un live.
+    /// </summary>
+    public IReadOnlyList<CatalogGift> ListSorted(bool includeReference = true)
     {
         lock (_gate)
         {
-            return _byId.Values
+            var result = new List<CatalogGift>(_byId.Count + (includeReference ? _reference.Count : 0));
+            var known = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var row in _byId.Values)
+            {
+                result.Add(Enrich(row));
+                if (!string.IsNullOrWhiteSpace(row.Id))
+                {
+                    known.Add(row.Id.Trim());
+                }
+            }
+
+            if (includeReference)
+            {
+                foreach (var entry in _reference.All)
+                {
+                    if (known.Add(entry.Id))
+                    {
+                        result.Add(FromReference(entry));
+                    }
+                }
+            }
+
+            return result
                 .OrderBy(g => g.Diamonds ?? int.MaxValue)
                 .ThenBy(g => g.DisplayName, StringComparer.OrdinalIgnoreCase)
                 .ToList();
+        }
+    }
+
+    /// <summary>Un regalo por id (visto o de la lista oficial), ya combinado; null si no se conoce.</summary>
+    public CatalogGift? Find(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return null;
+        }
+
+        lock (_gate)
+        {
+            if (_byId.TryGetValue(id.Trim(), out var row))
+            {
+                return Enrich(row);
+            }
+
+            return _reference.FindById(id) is { } entry ? FromReference(entry) : null;
         }
     }
 
@@ -239,19 +351,129 @@ public sealed class GiftCatalogStore
         return zeroBased >= 0 && zeroBased < list.Count ? list[zeroBased] : null;
     }
 
+    /// <summary>Copia de lo guardado completada con la lista oficial: diamantes que falten, imagen y nombre oficial como alias.</summary>
+    private CatalogGift Enrich(CatalogGift row)
+    {
+        var view = row.Clone();
+        var entry = _reference.FindById(row.Id) ??
+                    (string.IsNullOrWhiteSpace(row.Id) ? _reference.FindByName(row.PrimaryName) : null);
+        if (entry == null)
+        {
+            return view;
+        }
+
+        if (view.Diamonds is not > 0 && entry.Diamonds is > 0)
+        {
+            view.Diamonds = entry.Diamonds;
+        }
+
+        if (string.IsNullOrWhiteSpace(view.NameEn) && string.IsNullOrWhiteSpace(view.NameEs))
+        {
+            view.NameEn = entry.Name;
+        }
+        else if (entry.Name.Length > 0 && !NamesEqual(view.NameEn, entry.Name) && !NamesEqual(view.NameEs, entry.Name) &&
+                 !view.Also.Any(a => NamesEqual(a, entry.Name)))
+        {
+            // TikTok renombra regalos ("Roson" → "Rosa"): el nombre oficial queda como alias.
+            view.Also.Add(entry.Name);
+        }
+
+        view.ImageFile = entry.ImageFile;
+        view.IconUrl = entry.IconUrl;
+        return view;
+    }
+
+    private static CatalogGift FromReference(GiftReferenceEntry entry) => new()
+    {
+        Id = entry.Id,
+        NameEn = entry.Name.Length > 0 ? entry.Name : null,
+        Diamonds = entry.Diamonds,
+        Seen = 0,
+        ImageFile = entry.ImageFile,
+        IconUrl = entry.IconUrl,
+        IsReferenceOnly = true,
+    };
+
+    private void AddAll(IEnumerable<CatalogGift> gifts)
+    {
+        foreach (var g in gifts)
+        {
+            var key = KeyOf(g);
+            if (!string.IsNullOrWhiteSpace(key))
+            {
+                g.Also ??= [];
+                _byId[key] = g;
+            }
+        }
+    }
+
+    private static bool TryRead(string path, out List<CatalogGift> gifts, out string error)
+    {
+        gifts = [];
+        error = "";
+        if (!File.Exists(path))
+        {
+            error = "no existe";
+            return false;
+        }
+
+        try
+        {
+            var doc = JsonSerializer.Deserialize<CatalogFile>(File.ReadAllText(path, Encoding.UTF8), JsonOpts);
+            gifts = doc?.Gifts?.Where(g => g != null).ToList() ?? [];
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
+        }
+    }
+
+    /// <summary>Renombra el archivo dañado a gift-catalog.corrupt-FECHA.json. True si se pudo.</summary>
+    private bool SetAsideCorrupt()
+    {
+        try
+        {
+            var aside = System.IO.Path.Combine(
+                System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(_path))!,
+                $"gift-catalog.corrupt-{DateTime.Now:yyyyMMdd-HHmmss}.json");
+            File.Move(_path, aside);
+            BridgeLog.Warn($"gift-catalog.json dañado guardado aparte como {System.IO.Path.GetFileName(aside)}.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            BridgeLog.Warn($"No se pudo apartar gift-catalog.json dañado: {ex.Message}");
+            return false;
+        }
+    }
+
     private void SaveUnlocked()
     {
+        if (_readOnly)
+        {
+            return;
+        }
+
         var file = new CatalogFile
         {
-            Help = "Catálogo de regalos capturados del live (id + nombres EN/ES). Se actualiza solo.",
+            Help = "Catálogo de regalos capturados del live (id + nombres EN/ES). Se actualiza solo. " +
+                   "La lista oficial completa está en tiktok_gifts.json.",
             Gifts = _byId.Values
                 .OrderBy(g => g.Diamonds ?? int.MaxValue)
                 .ThenBy(g => g.DisplayName, StringComparer.OrdinalIgnoreCase)
                 .ToList(),
         };
 
-        var json = JsonSerializer.Serialize(file, JsonOpts);
-        File.WriteAllText(_path, json + Environment.NewLine, new UTF8Encoding(false));
+        try
+        {
+            AtomicFile.WriteAllText(_path, JsonSerializer.Serialize(file, JsonOpts) + Environment.NewLine);
+        }
+        catch (Exception ex)
+        {
+            BridgeLog.Warn($"gift-catalog.json no se pudo guardar: {ex.Message}");
+        }
     }
 
     private static bool MergeName(CatalogGift row, string name)

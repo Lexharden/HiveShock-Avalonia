@@ -153,36 +153,9 @@ public static class UserDataStore
 
     private static bool TryWriteAtomic(string path, string json)
     {
-        var temp = path + ".tmp";
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            using (var stream = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
-            using (var writer = new StreamWriter(stream))
-            {
-                writer.Write(json);
-                writer.Flush();
-                stream.Flush(flushToDisk: true);
-            }
-
-            if (File.Exists(path))
-            {
-                try
-                {
-                    File.Replace(temp, path, path + ".bak", ignoreMetadataErrors: true);
-                }
-                catch (Exception)
-                {
-                    // Algunos antivirus o discos no permiten Replace: copia manual del respaldo.
-                    File.Copy(path, path + ".bak", overwrite: true);
-                    File.Move(temp, path, overwrite: true);
-                }
-            }
-            else
-            {
-                File.Move(temp, path);
-            }
-
+            AtomicFile.WriteAllText(path, json);
             return true;
         }
         catch (Exception ex)
@@ -194,15 +167,6 @@ public static class UserDataStore
                 {
                     BridgeLog.Warn($"Datos: no se pudo escribir {path}: {ex.Message}");
                 }
-            }
-
-            try
-            {
-                File.Delete(temp);
-            }
-            catch
-            {
-                // nada que limpiar
             }
 
             return false;

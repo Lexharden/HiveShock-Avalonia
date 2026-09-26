@@ -14,6 +14,14 @@
                 <Button Classes="secondary" Content="Abrir carpeta" Command="{Binding OpenFolderCommand}" />
                 <Button Classes="primary" Content="Usar en este juego" Command="{Binding AddToGiftsCommand}" />
             </WrapPanel>
+            <DockPanel Margin="0,4,0,0">
+                <ToggleSwitch DockPanel.Dock="Right" Margin="12,0,0,0"
+                              OnContent="Todos los regalos de TikTok" OffContent="Solo los vistos en mis lives"
+                              IsChecked="{Binding ShowAllTikTokGifts}" />
+                <TextBox Text="{Binding SearchText}" PlaceholderText="Buscar por nombre o id…" />
+            </DockPanel>
+            <TextBlock Text="{Binding Summary}" FontSize="12" Margin="4,6,0,0"
+                       Foreground="{DynamicResource MutedBrush}" />
             <Grid Margin="8,8,8,4" ColumnDefinitions="48,*,90,90">
                 <TextBlock Grid.Column="1" Classes="fieldLabel" Text="Nombre" Margin="0" />
                 <TextBlock Grid.Column="2" Classes="fieldLabel" Text="Diamantes" Margin="0" />
