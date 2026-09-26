@@ -31,7 +31,7 @@
         <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="cfg:CatalogGift">
-                    <Grid ColumnDefinitions="48,*,90,90" Margin="0,4">
+                    <Grid ColumnDefinitions="48,*,90,90" Margin="0,4" ToolTip.Tip="{Binding IdsText}">
                         <Border Width="40" Height="40" CornerRadius="8" ClipToBounds="True"
                                 Background="{DynamicResource CardAltBrush}">
                             <Image Width="36" Height="36" Stretch="Uniform"

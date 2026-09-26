@@ -131,7 +131,9 @@ public sealed class GiftCatalogStoreTests : IDisposable
         var all = store.ListSorted();
         Assert.Equal(4, all.Count);
         Assert.Equal(1, all.Single(g => g.Id == "5655").Diamonds);          // completado desde la lista
-        Assert.Contains("Rosa", all.Single(g => g.Id == "8913").Also);       // nombre oficial como alias
+        var rosa = all.Single(g => g.Id == "8913");
+        Assert.Equal("Rosa", rosa.NameEn);                                    // manda el nombre oficial
+        Assert.Contains("Roson", rosa.Also);                                  // el del live queda de alias
         Assert.True(all.Single(g => g.Id == "9427").IsReferenceOnly);
         Assert.False(all.Single(g => g.Id == "423360").IsReferenceOnly);
         Assert.Equal(3, store.ListSorted(includeReference: false).Count);
@@ -152,6 +154,45 @@ public sealed class GiftCatalogStoreTests : IDisposable
         using var doc = JsonDocument.Parse(saved);
         // Los diamantes completados desde la lista oficial solo se ven en la lista, no se escriben.
         Assert.False(doc.RootElement.GetProperty("gifts")[0].TryGetProperty("diamonds", out _));
+    }
+
+    [Fact]
+    public void Variants_with_same_name_and_price_are_merged_but_different_prices_are_not()
+    {
+        var reference = GiftReferenceCatalog.FromEntries(
+        [
+            new("5566", "Mishka Bear", 100, "", ""),
+            new("5582", "Mishka Bear", 100, "", ""),
+            new("19441", "Freestyle", 1, "", ""),
+            new("105795", "Freestyle", 1800, "", ""),
+        ]);
+        var store = new GiftCatalogStore(CatalogPath, reference);
+        store.Load();
+        store.Observe("5582", "Mishka Bear", 100); // la variante vista pasa a ser la principal
+
+        var all = store.ListSorted();
+
+        var bear = Assert.Single(all, g => g.NameEn == "Mishka Bear");
+        Assert.Equal("5582", bear.Id);
+        Assert.Equal(["5566"], bear.OtherIds);
+        Assert.Equal(1, bear.Seen);
+        Assert.False(bear.IsReferenceOnly);
+        Assert.Contains("5566", bear.IdsText);
+        Assert.Equal(2, all.Count(g => g.NameEn == "Freestyle")); // 1 y 1800 diamantes: regalos distintos
+    }
+
+    [Fact]
+    public void Official_name_wins_and_the_live_name_becomes_an_alias()
+    {
+        var reference = GiftReferenceCatalog.FromEntries([new("5827", "Ice Cream Cone", 1, "", "")]);
+        var store = new GiftCatalogStore(CatalogPath, reference);
+        store.Load();
+        store.Observe("5827", "Finger Heart", 1);
+
+        var gift = store.Find("5827")!;
+        Assert.Equal("Ice Cream Cone", gift.NameEn);
+        Assert.Contains("Finger Heart", gift.Also);
+        Assert.Contains("\"Finger Heart\"", File.ReadAllText(CatalogPath)); // lo guardado no cambia
     }
 
     [Fact]

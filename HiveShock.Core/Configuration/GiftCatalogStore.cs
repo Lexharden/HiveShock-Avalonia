@@ -28,6 +28,19 @@ public sealed class CatalogGift
     [JsonIgnore]
     public bool IsReferenceOnly { get; set; }
 
+    /// <summary>
+    /// Otros ids del mismo regalo (variantes de TikTok con el mismo nombre y precio, ej. Mishka Bear
+    /// 5566 y 5582) fusionados en esta fila por <see cref="GiftCatalogStore.ListSorted"/>. No se guarda.
+    /// </summary>
+    [JsonIgnore]
+    public List<string> OtherIds { get; set; } = [];
+
+    /// <summary>"id 5566" o "ids 5566, 5582 (variantes del mismo regalo)".</summary>
+    [JsonIgnore]
+    public string IdsText => OtherIds.Count == 0
+        ? string.IsNullOrWhiteSpace(Id) ? "sin id" : $"id {Id}"
+        : $"ids {string.Join(", ", new[] { Id }.Concat(OtherIds))} (variantes del mismo regalo)";
+
     public string DisplayName
     {
         get
@@ -60,6 +73,7 @@ public sealed class CatalogGift
         ImageFile = ImageFile,
         IconUrl = IconUrl,
         IsReferenceOnly = IsReferenceOnly,
+        OtherIds = [.. OtherIds],
     };
 }
 
@@ -319,11 +333,70 @@ public sealed class GiftCatalogStore
                 }
             }
 
-            return result
+            return MergeVariants(result)
                 .OrderBy(g => g.Diamonds ?? int.MaxValue)
                 .ThenBy(g => g.DisplayName, StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
+    }
+
+    /// <summary>
+    /// TikTok publica variantes del mismo regalo con otro id (por región o evento): mismo nombre y
+    /// mismo precio. Se muestran como una sola fila (id más visto como principal, los demás en
+    /// <see cref="CatalogGift.OtherIds"/>, vistas sumadas). Con distinto precio son regalos distintos
+    /// que comparten nombre (Freestyle de 1 y de 1800) y quedan separados. Coherente con el live:
+    /// los efectos ya se asignan por nombre, así que una variante dispara el mismo efecto.
+    /// </summary>
+    private static List<CatalogGift> MergeVariants(List<CatalogGift> gifts)
+    {
+        var merged = new List<CatalogGift>(gifts.Count);
+        foreach (var group in gifts.GroupBy(g => g.Diamonds is > 0 && NormalizeKey(g.NameEn ?? g.PrimaryName) is { Length: > 0 } name
+                     ? $"{name}|{g.Diamonds}"
+                     : $"solo|{KeyOf(g)}"))
+        {
+            if (group.Count() == 1)
+            {
+                merged.Add(group.First());
+                continue;
+            }
+
+            var ordered = group
+                .OrderByDescending(g => g.Seen)
+                .ThenBy(g => long.TryParse(g.Id, out var n) ? n : long.MaxValue)
+                .ToList();
+            var main = ordered[0].Clone();
+            foreach (var variant in ordered.Skip(1))
+            {
+                if (!string.IsNullOrWhiteSpace(variant.Id) && variant.Id != main.Id && !main.OtherIds.Contains(variant.Id))
+                {
+                    main.OtherIds.Add(variant.Id);
+                }
+
+                main.OtherIds.AddRange(variant.OtherIds.Where(id => !main.OtherIds.Contains(id)));
+                foreach (var name in new[] { variant.NameEn, variant.NameEs }.Concat(variant.Also))
+                {
+                    if (!string.IsNullOrWhiteSpace(name) && !NamesEqual(name, main.NameEn) && !NamesEqual(name, main.NameEs) &&
+                        !main.Also.Any(a => NamesEqual(a, name)))
+                    {
+                        main.Also.Add(name);
+                    }
+                }
+
+                main.Seen += variant.Seen;
+                main.IsReferenceOnly &= variant.IsReferenceOnly;
+                if (string.Compare(variant.LastSeenUtc, main.LastSeenUtc, StringComparison.Ordinal) > 0)
+                {
+                    main.LastSeenUtc = variant.LastSeenUtc;
+                }
+
+                main.ImageFile ??= variant.ImageFile;
+                main.IconUrl ??= variant.IconUrl;
+            }
+
+            merged.Add(main);
+        }
+
+        return merged;
     }
 
     /// <summary>Un regalo por id (visto o de la lista oficial), ya combinado; null si no se conoce.</summary>
@@ -367,15 +440,18 @@ public sealed class GiftCatalogStore
             view.Diamonds = entry.Diamonds;
         }
 
-        if (string.IsNullOrWhiteSpace(view.NameEn) && string.IsNullOrWhiteSpace(view.NameEs))
+        if (entry.Name.Length > 0 && !NamesEqual(view.NameEn, entry.Name))
         {
+            // El nombre oficial manda (TikTok renombra regalos, y el live a veces trae otro nombre para
+            // el mismo id: 5827 es "Ice Cream Cone"); el que se vio en el live queda como alias.
+            if (!string.IsNullOrWhiteSpace(view.NameEn) && !NamesEqual(view.NameEn, view.NameEs) &&
+                !view.Also.Any(a => NamesEqual(a, view.NameEn)))
+            {
+                view.Also.Add(view.NameEn);
+            }
+
             view.NameEn = entry.Name;
-        }
-        else if (entry.Name.Length > 0 && !NamesEqual(view.NameEn, entry.Name) && !NamesEqual(view.NameEs, entry.Name) &&
-                 !view.Also.Any(a => NamesEqual(a, entry.Name)))
-        {
-            // TikTok renombra regalos ("Roson" → "Rosa"): el nombre oficial queda como alias.
-            view.Also.Add(entry.Name);
+            view.Also.RemoveAll(a => NamesEqual(a, entry.Name));
         }
 
         view.ImageFile = entry.ImageFile;

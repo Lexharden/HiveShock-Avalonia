@@ -54,6 +54,7 @@ public sealed partial class CatalogViewModel : ViewModelBase
         {
             if (query.Length == 0 ||
                 g.Id.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                g.OtherIds.Any(id => id.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
                 g.DisplayName.Contains(query, StringComparison.CurrentCultureIgnoreCase) ||
                 g.Also.Any(a => a.Contains(query, StringComparison.CurrentCultureIgnoreCase)))
             {
