@@ -640,6 +640,10 @@
                             <TextBlock VerticalAlignment="Center" Text="No leer comandos (mensajes que empiezan con ! o /)" />
                         </DockPanel>
                         <DockPanel>
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding SkipMentions}" />
+                            <TextBlock VerticalAlignment="Center" Text="No leer mensajes que etiquetan a alguien (@usuario)" />
+                        </DockPanel>
+                        <DockPanel>
                             <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding RemoveLinks}" />
                             <TextBlock VerticalAlignment="Center" Text="Quitar los enlaces de los mensajes" />
                         </DockPanel>

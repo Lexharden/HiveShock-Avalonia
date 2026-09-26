@@ -119,6 +119,9 @@ public sealed class TtsSettings
     // --- Filtros ---
     public bool IgnoreOwnMessages { get; set; } = true;
     public bool SkipCommands { get; set; } = true;
+
+    /// <summary>No leer mensajes que etiquetan a alguien con @usuario (suelen ser conversaciones entre viewers).</summary>
+    public bool SkipMentions { get; set; }
     public bool RemoveLinks { get; set; } = true;
     public bool ReadEmojis { get; set; }
     public int MaxMessageLength { get; set; } = 150;

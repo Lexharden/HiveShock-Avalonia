@@ -93,6 +93,11 @@ public sealed partial class TtsMessageFilter
             return TtsFilterResult.Skip("es un comando");
         }
 
+        if (settings.SkipMentions && MentionRegex().IsMatch(text))
+        {
+            return TtsFilterResult.Skip("etiqueta a alguien con @");
+        }
+
         if (settings.RemoveLinks)
         {
             text = LinkRegex().Replace(text, " ");
@@ -323,6 +328,10 @@ public sealed partial class TtsMessageFilter
 
     [GeneratedRegex(@"(https?://\S+|www\.\S+|\b[\w-]+\.(com|net|org|tv|gg|ly|io|me|co|xyz|link|live)(/\S*)?\b)", RegexOptions.IgnoreCase)]
     private static partial Regex LinkRegex();
+
+    /// <summary>"@usuario" suelto (no "ana@gmail.com": la @ no puede ir pegada a una letra o número).</summary>
+    [GeneratedRegex(@"(?<![\p{L}\p{N}])@[\p{L}\p{N}_.]+")]
+    private static partial Regex MentionRegex();
 
     [GeneratedRegex(@"(\p{L})\1{3,}", RegexOptions.IgnoreCase)]
     private static partial Regex RepeatedCharsRegex();

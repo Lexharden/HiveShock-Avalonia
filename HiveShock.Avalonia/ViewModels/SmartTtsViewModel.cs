@@ -778,6 +778,12 @@ public sealed partial class SmartTtsViewModel : ViewModelBase
         set => SetSetting(S.SkipCommands, value, v => S.SkipCommands = v);
     }
 
+    public bool SkipMentions
+    {
+        get => S.SkipMentions;
+        set => SetSetting(S.SkipMentions, value, v => S.SkipMentions = v);
+    }
+
     public bool RemoveLinks
     {
         get => S.RemoveLinks;
@@ -838,6 +844,7 @@ public sealed partial class SmartTtsViewModel : ViewModelBase
         var defaults = new TtsSettings();
         S.IgnoreOwnMessages = defaults.IgnoreOwnMessages;
         S.SkipCommands = defaults.SkipCommands;
+        S.SkipMentions = defaults.SkipMentions;
         S.RemoveLinks = defaults.RemoveLinks;
         S.ReadEmojis = defaults.ReadEmojis;
         S.MaxMessageLength = defaults.MaxMessageLength;
@@ -847,7 +854,7 @@ public sealed partial class SmartTtsViewModel : ViewModelBase
         IgnoredUsersText = string.Join(Environment.NewLine, TtsSettings.DefaultIgnoredUsers.Union(S.IgnoredUsers, StringComparer.OrdinalIgnoreCase));
         foreach (var name in new[]
                  {
-                     nameof(IgnoreOwnMessages), nameof(SkipCommands), nameof(RemoveLinks), nameof(ReadEmojis),
+                     nameof(IgnoreOwnMessages), nameof(SkipCommands), nameof(SkipMentions), nameof(RemoveLinks), nameof(ReadEmojis),
                      nameof(MaxMessageLength), nameof(MaxMessageLengthText), nameof(MaxMessageAgeSeconds),
                      nameof(MaxMessageAgeText), nameof(PerUserCooldownSeconds), nameof(PerUserCooldownText),
                      nameof(SelectedAudience),

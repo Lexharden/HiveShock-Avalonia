@@ -4,6 +4,8 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+* Voz: nueva opción en los filtros para no leer mensajes que etiquetan a alguien con @usuario.
+
 ## [2.1.0-beta.1] - 2026-09-25
 
 Primera beta de la 2.x: une en una sola versión Android, la Voz y las mejoras visuales de la 1.3.1.

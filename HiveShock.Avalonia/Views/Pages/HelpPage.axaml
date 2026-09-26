@@ -42,7 +42,7 @@
             <TextBlock Classes="helpBullet" Text="Voz por plataforma: una voz para TikTok y otra para Twitch, para saber de dónde viene cada mensaje." />
             <TextBlock Classes="helpBullet" Text="Voz aleatoria: cada mensaje con una voz al azar de los idiomas que marques. Con «misma voz por persona», cada viewer suena siempre igual." />
             <TextBlock Classes="helpBullet" Text="Micrófono: la voz se calla mientras hablas y, al terminar, repite entero el mensaje que se cortó. Usa audífonos; si la voz sale por los altavoces, el micrófono la oye y se corta sola. Ajusta la sensibilidad con «Probar micrófono»." />
-            <TextBlock Classes="helpBullet" Text="Filtros: no lee comandos, enlaces, bots, tus propios mensajes ni spam repetido. Añade palabras prohibidas y usuarios ignorados para proteger tu directo." />
+            <TextBlock Classes="helpBullet" Text="Filtros: no lee comandos, enlaces, bots, tus propios mensajes ni spam repetido; y, si lo activas, tampoco los que etiquetan a alguien con @. Añade palabras prohibidas y usuarios ignorados para proteger tu directo." />
             <TextBlock Classes="helpBullet" Text="Atajos: Control+Alt+M silencia y Control+Alt+N salta el mensaje actual, aunque estés dentro del juego." />
             <TextBlock Classes="helpBullet" Text="Respaldo: si el tipo de voz elegido falla (sin internet o bloqueado), el chat se sigue leyendo con otro tipo de voz en vez de quedarse mudo." />
             <TextBlock Classes="helpBullet" Text="Si aparece el aviso de bloqueo de Microsoft, no es culpa de tu equipo ni de tu cuenta. Usa las voces locales o las de Windows y busca una actualización de HiveShock." />

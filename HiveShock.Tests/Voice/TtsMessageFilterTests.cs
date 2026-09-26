@@ -48,6 +48,29 @@ public class TtsMessageFilterTests
         Assert.Equal(reason, Eval(text, Guid.NewGuid().ToString("N")).SkipReason);
     }
 
+    [Theory]
+    [InlineData("@ana jajaja qué buena", true)]
+    [InlineData("oye @leo_22 mira esto", true)]
+    [InlineData("gracias @Pepe.Gamer", true)]
+    [InlineData("mi correo es ana@gmail.com", false)]
+    [InlineData("nos vemos a las 5 @ la plaza", false)]
+    [InlineData("hola a todos", false)]
+    public void Mentions_are_skipped_only_when_enabled(string text, bool isMention)
+    {
+        _settings.SkipMentions = true;
+        var result = Eval(text, Guid.NewGuid().ToString("N"));
+        Assert.Equal(!isMention, result.Accepted);
+        if (isMention)
+        {
+            Assert.Equal("etiqueta a alguien con @", result.SkipReason);
+        }
+
+        // Filtro nuevo: con el mismo, el anti-spam descartaría el texto por repetido.
+        _settings.SkipMentions = false;
+        var fresh = new TtsMessageFilter().Evaluate(new TtsMessage("tiktok", "otro", text, Now), _settings, Now);
+        Assert.True(fresh.Accepted);
+    }
+
     [Fact]
     public void Links_are_removed_and_repeated_letters_shortened()
     {
