@@ -16,6 +16,8 @@ internal static class AndroidAssetSeed
 
         CopyMissingTree(assets, "profiles", Path.Combine(destRoot, "profiles"));
         CopyFileIfMissing(assets, "gift-catalog.json", Path.Combine(destRoot, "gift-catalog.json"));
+        // Lista oficial de regalos: no es del usuario, se renueva con cada versión de la app.
+        CopyFileAlways(assets, "tiktok_gifts.json", Path.Combine(destRoot, "tiktok_gifts.json"));
         CopyFileIfMissing(assets, "active-profile.txt", Path.Combine(destRoot, "active-profile.txt"));
         CopyFileIfMissing(assets, "env.example", Path.Combine(destRoot, ".env.example"));
     }
@@ -68,6 +70,21 @@ internal static class AndroidAssetSeed
         catch
         {
             return true;
+        }
+    }
+
+    private static void CopyFileAlways(AssetManager assets, string assetPath, string destPath)
+    {
+        try
+        {
+            using var input = assets.Open(assetPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
+            using var output = File.Create(destPath);
+            input.CopyTo(output);
+        }
+        catch
+        {
+            // Asset opcional
         }
     }
 

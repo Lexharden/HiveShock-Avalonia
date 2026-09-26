@@ -631,9 +631,9 @@ else
     "$PUBLISH_GUI"/. \
     "$STAGE_UPDATE/"
 
+  # gifts-images/ y tiktok_gifts.json sí van: son del programa (regalos nuevos al actualizar).
   rm -rf \
     "$STAGE_UPDATE/profiles" \
-    "$STAGE_UPDATE/gifts-images" \
     "$STAGE_UPDATE/gift-catalog.json" \
     "$STAGE_UPDATE/active-profile.txt" \
     "$STAGE_UPDATE/.env.example"

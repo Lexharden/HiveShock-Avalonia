@@ -4,7 +4,7 @@
 
 .DESCRIPTION
   - full:   primera instalacion (app + profiles + catalogo + gifts-images)
-  - update: solo el ejecutable. Sin profiles, catalogo ni datos del usuario.
+  - update: ejecutable + lista oficial de regalos (tiktok_gifts.json + gifts-images). Sin profiles ni catalogo del usuario.
 
   Salida en: dist\
 
@@ -278,6 +278,11 @@ if ($isOsx) {
 else {
     Copy-Item (Join-Path $PublishGui $guiName) $StageUpdate -Force
 }
+# Lista oficial de regalos e imágenes: son del programa, no del usuario (llegan regalos nuevos al actualizar).
+$refJson = Join-Path $PublishGui "tiktok_gifts.json"
+if (Test-Path $refJson) { Copy-Item $refJson $StageUpdate -Force }
+$refImages = Join-Path $PublishGui "gifts-images"
+if (Test-Path $refImages) { Copy-Item $refImages (Join-Path $StageUpdate "gifts-images") -Recurse -Force }
 $cliWinU = Join-Path $PublishCli "HiveShock.Cli.exe"
 $cliUnixU = Join-Path $PublishCli "HiveShock.Cli"
 if ($IncludeCli -and (Test-Path $cliWinU)) { Copy-Item $cliWinU $StageUpdate -Force }
@@ -302,4 +307,4 @@ Write-Host "  RID:    $Runtime"
 Write-Host "  FULL:   $fullZip"
 Write-Host "  UPDATE: $updateZip"
 Write-Host ""
-Write-Host "UPDATE = solo ejecutable (+ CLI si -IncludeCli). Sin profiles ni catalogo."
+Write-Host "UPDATE = ejecutable + lista oficial de regalos (+ CLI si -IncludeCli). Sin profiles ni catalogo del usuario."
