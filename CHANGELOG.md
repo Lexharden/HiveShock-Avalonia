@@ -4,12 +4,17 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.2.0-zeldathon.1] - 2026-09-30
+
+Edición especial para los streamers del evento Zeldathon. No es una versión pública: se entrega directamente a los participantes y no se publica en Releases.
+
 ### Zeldathon
 * **Cronómetro en pantalla**: nuevo overlay para OBS con el reloj oficial de la carrera (cuenta atrás del día, estado en vivo/pausado/agotado, avisos de color a 30 y 5 minutos, barra de tiempo usado y «reinicia en») o un cronómetro manual (sube o baja). Se personaliza como los demás overlays.
 * **Página Zeldathon**: conecta HiveShock con el servidor de la carrera con tu token. El reloj oficial se sincroniza (y se congela al perder conexión), y tu progreso, ítems, jefes, corazones, rupias, chat y espectadores aparecen solos en la web. Reconexión automática.
 * Cuando se acaba el tiempo del día el servidor ordena cerrar el juego: cierre limpio (guarda la partida) y, si hace falta, forzado. Detalles en `docs/zeldathon.md`.
 * Perfil Ocarina of Time: `zeldathon.json` traduce lo que manda el juego a los ids de la carrera (editable sin recompilar). Ahora cubre unos 60 ítems (armas, escudos, túnicas, botas, flechas, hechizos, mejoras, canciones, medallas, piedras) y el Link que se está jugando (niño/adulto).
 * El catálogo de ítems y objetivos lo administra el organizador en el servidor; HiveShock lo descarga al conectar y solo envía lo que el servidor conoce, y termina el juego con los objetivos que exige el evento.
+* Nuevo efecto **Ralentizar a Link** (`slow_down`) en el perfil Ocarina of Time: baja la velocidad de Link durante unos segundos (intensidad ajustable de 0.2 a 0.9).
 
 ### Guardado
 * **Guardado automático** en Regalos, Metas y Eventos con una etiqueta que dice si se guardó (verde), está pendiente (dorada) o falló (roja). Se puede desactivar. Perfil y efectos siguen guardándose solo con su botón.
