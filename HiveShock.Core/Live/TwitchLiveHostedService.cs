@@ -136,7 +136,7 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
                     SpeakerKey = chatterId,
                 });
             },
-            user => _router.HandleFollow(user, ct, LivePortIds.Twitch),
+            (user, followerId) => _router.HandleFollow(user, followerId, ct, LivePortIds.Twitch),
             (user, bits) => _router.HandleCheer(user, bits, ct),
             () =>
             {

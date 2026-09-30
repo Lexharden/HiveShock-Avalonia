@@ -16,7 +16,7 @@ public sealed class TwitchEventSubClient
         string accessToken,
         string userId,
         Action<string, string, string, ChatterRoles> onChat,
-        Action<string> onFollow,
+        Action<string, string> onFollow,
         Action<string, int> onCheer,
         Action connected,
         CancellationToken ct)
@@ -110,7 +110,7 @@ public sealed class TwitchEventSubClient
     private static void HandleNotification(
         JsonElement root,
         Action<string, string, string, ChatterRoles> onChat,
-        Action<string> onFollow,
+        Action<string, string> onFollow,
         Action<string, int> onCheer)
     {
         var subType = root.GetProperty("metadata").TryGetProperty("subscription_type", out var st)
@@ -145,7 +145,8 @@ public sealed class TwitchEventSubClient
         if (string.Equals(subType, "channel.follow", StringComparison.OrdinalIgnoreCase))
         {
             var user = evt.TryGetProperty("user_name", out var n) ? n.GetString() ?? "" : "";
-            onFollow(user);
+            var followerId = evt.TryGetProperty("user_id", out var uid) ? uid.GetString() ?? "" : "";
+            onFollow(user, followerId);
             return;
         }
 

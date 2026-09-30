@@ -177,6 +177,17 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
     public void ResetDeathCounter() => DeathCounter.Reset();
 
+    /// <summary>Olvida quién ya disparó el efecto de seguir. Solo con el puente detenido.</summary>
+    public void ClearFollowHistory()
+    {
+        if (IsRunning)
+        {
+            throw new InvalidOperationException("Detén el puente para borrar el historial de seguidores.");
+        }
+
+        FollowGate.ClearPersisted();
+    }
+
     public Task SimulateGoalAsync(string goalId, int units = 1, CancellationToken ct = default)
     {
         var snap = Goals.Snapshots().FirstOrDefault(g =>

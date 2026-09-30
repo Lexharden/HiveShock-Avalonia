@@ -450,6 +450,9 @@ public sealed class LikesConfig
 public sealed class SimpleEffectConfig
 {
     public string Effect { get; init; } = "";
+
+    /// <summary>Solo follow: cada usuario dispara el efecto una vez (evita seguir/dejar de seguir en bucle).</summary>
+    public bool OncePerUser { get; init; } = true;
 }
 
 public sealed class ChatConfig
@@ -1282,7 +1285,11 @@ public sealed class GiftConfigStore
             return new SimpleEffectConfig();
         }
 
-        return new SimpleEffectConfig { Effect = GetString(el, "effect") ?? "" };
+        return new SimpleEffectConfig
+        {
+            Effect = GetString(el, "effect") ?? "",
+            OncePerUser = !el.TryGetProperty("oncePerUser", out _) || ParseBool(el, "oncePerUser"),
+        };
     }
 
     private static ChatConfig ParseChat(JsonElement root)

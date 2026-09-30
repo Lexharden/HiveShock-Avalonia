@@ -346,6 +346,10 @@
                                                   SelectedValue="{Binding Events.FollowEffect}"
                                                   SelectedValueBinding="{Binding Id}"
                                                   DisplayMemberBinding="{Binding Display}" />
+                                        <CheckBox Content="Solo la primera vez que sigue (evita el spam de seguir y dejar de seguir)"
+                                                  IsChecked="{Binding Events.FollowOncePerUser}" Margin="0,8,0,0" />
+                                        <Button Classes="secondary" Content="Olvidar seguidores"
+                                                Command="{Binding Events.ClearFollowHistoryCommand}" HorizontalAlignment="Left" />
                                     </StackPanel>
                                 </Border>
                                 <Border Classes="card" Grid.Column="1" Margin="8,0,0,0">

@@ -24,6 +24,9 @@ public sealed class LiveEffectRouter : IDisposable
     private readonly object _streakGate = new();
     private readonly Timer _streakFlushTimer;
     private readonly ChatCommandGate _chatGate = new();
+    private readonly FollowGate _followGate;
+    private long _followIgnored;
+    private long _followIgnoredLogTicks;
     private readonly ConcurrentDictionary<string, byte> _seenUnmapped = new();
     private long _likeBucket;
 
@@ -45,6 +48,7 @@ public sealed class LiveEffectRouter : IDisposable
         _overlay = overlay;
         _goals = goals;
         _voice = voice;
+        _followGate = new FollowGate();
         _streakFlushTimer = new Timer(
             _ => FlushStaleStreaks(),
             null,
@@ -52,7 +56,11 @@ public sealed class LiveEffectRouter : IDisposable
             TimeSpan.FromMilliseconds(150));
     }
 
-    public void Dispose() => _streakFlushTimer.Dispose();
+    public void Dispose()
+    {
+        _streakFlushTimer.Dispose();
+        _followGate.Dispose();
+    }
 
     public void HandleChat(string user, string? stableId, string text, CancellationToken ct, string portId)
     {
@@ -108,6 +116,17 @@ public sealed class LiveEffectRouter : IDisposable
         _ = _dispatcher.EnqueueAsync(effectId, viewer, $"Chat {prefix}{command}", ct, fromChat: true);
     }
 
+    /// <summary>Id para el anti-spam de follow: el numérico no cambia aunque el usuario cambie de @.</summary>
+    public static string TikTokFollowerId(UserIdentity? user)
+    {
+        if (user is { UserId: > 0 })
+        {
+            return user.UserId.ToString();
+        }
+
+        return user?.UniqueId is { Length: > 0 } uid ? uid : "";
+    }
+
     public static string TikTokStableId(UserIdentity? user)
     {
         if (user?.UniqueId is { Length: > 0 } uid)
@@ -150,16 +169,29 @@ public sealed class LiveEffectRouter : IDisposable
         BridgeLog.Info("Chat saturado, se omiten comandos");
     }
 
-    public void HandleFollow(string user, CancellationToken ct, string portId)
+    /// <param name="followerId">Id estable del usuario (no el nombre visible); vacío si no se conoce.</param>
+    public void HandleFollow(string user, string followerId, CancellationToken ct, string portId)
     {
         if (_options.CaptureOnly)
         {
             return;
         }
 
+        var isTwitch = string.Equals(portId, LivePortIds.Twitch, StringComparison.OrdinalIgnoreCase);
+        if (_gifts.Snapshot.Follow.OncePerUser)
+        {
+            var channel = isTwitch ? _options.TwitchUserLogin : _options.TikTokUniqueId;
+            var id = string.IsNullOrWhiteSpace(followerId) ? user : followerId;
+            if (_followGate.TryAdmit(FollowGate.Key(portId, channel, id)) == FollowAdmitKind.Duplicate)
+            {
+                LogFollowIgnored();
+                return;
+            }
+        }
+
         _voice?.Enqueue(new TtsMessage(portId, Viewer(user), "", DateTime.UtcNow) { Kind = TtsMessageKind.Follow, SpeakerKey = user });
 
-        var effect = string.Equals(portId, LivePortIds.Twitch, StringComparison.OrdinalIgnoreCase)
+        var effect = isTwitch
             ? _gifts.Snapshot.TwitchFollow.Effect
             : _gifts.Snapshot.Follow.Effect;
         if (string.IsNullOrWhiteSpace(effect))
@@ -169,6 +201,20 @@ public sealed class LiveEffectRouter : IDisposable
 
         BridgeLog.Info($"Follow {Viewer(user)} -> {effect}");
         _ = _dispatcher.EnqueueAsync(effect, Viewer(user), "Follow", ct);
+    }
+
+    /// <summary>Un follow repetido no dispara nada; el log se agrupa para no inundar la actividad.</summary>
+    private void LogFollowIgnored()
+    {
+        var count = Interlocked.Increment(ref _followIgnored);
+        var now = Environment.TickCount64;
+        var last = Interlocked.Read(ref _followIgnoredLogTicks);
+        if (now - last < 10_000 || Interlocked.CompareExchange(ref _followIgnoredLogTicks, now, last) != last)
+        {
+            return;
+        }
+
+        BridgeLog.Info($"Follow repetido ignorado (ya disparó antes) · {count} en total");
     }
 
     public void HandleCheer(string user, int bits, CancellationToken ct)

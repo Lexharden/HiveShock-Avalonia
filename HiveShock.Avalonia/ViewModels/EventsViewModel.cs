@@ -27,6 +27,7 @@ public sealed partial class EventsViewModel : ViewModelBase
     [ObservableProperty] private string _likesEveryText = "0";
     [ObservableProperty] private string _likesEffect = "";
     [ObservableProperty] private string _followEffect = "";
+    [ObservableProperty] private bool _followOncePerUser = true;
     [ObservableProperty] private string _shareEffect = "";
     [ObservableProperty] private bool _chatEnabled;
     [ObservableProperty] private string _chatPrefix = "!";
@@ -56,6 +57,7 @@ public sealed partial class EventsViewModel : ViewModelBase
         LikesEveryText = editor.LikesEvery.ToString();
         LikesEffect = editor.LikesEffect;
         FollowEffect = editor.FollowEffect;
+        FollowOncePerUser = editor.FollowOncePerUser;
         ShareEffect = editor.ShareEffect;
         ChatEnabled = editor.ChatEnabled;
         ChatPrefix = editor.ChatPrefix;
@@ -100,6 +102,7 @@ public sealed partial class EventsViewModel : ViewModelBase
         editor.LikesEvery = int.TryParse(LikesEveryText.Trim(), out var n) ? Math.Max(0, n) : 0;
         editor.LikesEffect = LikesEffect ?? "";
         editor.FollowEffect = FollowEffect ?? "";
+        editor.FollowOncePerUser = FollowOncePerUser;
         editor.ShareEffect = ShareEffect ?? "";
         editor.ChatEnabled = ChatEnabled;
         editor.ChatPrefix = string.IsNullOrWhiteSpace(ChatPrefix) ? "!" : ChatPrefix.Trim();
@@ -131,6 +134,27 @@ public sealed partial class EventsViewModel : ViewModelBase
             }
 
             editor.TwitchBits.Add(new EditableBitsRule { Min = min, Effect = bit.Effect ?? "" });
+        }
+    }
+
+    [RelayCommand]
+    private async Task ClearFollowHistoryAsync()
+    {
+        if (!await _shell.Dialogs.ConfirmAsync(
+                "Olvidar seguidores",
+                "Todos los usuarios volverán a poder disparar el efecto de seguir una vez. ¿Continuar?"))
+        {
+            return;
+        }
+
+        try
+        {
+            _shell.Runtime.ClearFollowHistory();
+            _shell.Dialogs.Info("Olvidar seguidores", "Historial de seguidores borrado.");
+        }
+        catch (Exception ex)
+        {
+            _shell.Dialogs.Warn("Olvidar seguidores", ex.Message);
         }
     }
 
