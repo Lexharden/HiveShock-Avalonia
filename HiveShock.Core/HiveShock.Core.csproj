@@ -12,6 +12,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Traducción juego → Zeldathon de fábrica: las actualizaciones no reemplazan profiles/, así que un
+         perfil sin su propio zeldathon.json usa esta copia. -->
+    <EmbeddedResource Include="..\config\profiles\ocarina-of-time\zeldathon.json"
+                      LogicalName="zeldathon.ocarina-of-time.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
   </ItemGroup>
 

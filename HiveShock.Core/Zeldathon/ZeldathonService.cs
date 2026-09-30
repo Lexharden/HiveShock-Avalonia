@@ -13,6 +13,7 @@ public sealed class ZeldathonService : IAsyncDisposable
     public const long DefaultBudgetSeconds = 4 * 3600;
 
     private readonly Func<Uri, CancellationToken, Task<string>> _fetch;
+    private readonly Timer _reconcileTimer;
 
     public ZeldathonService(
         ZeldathonSettings? settings = null,
@@ -31,11 +32,32 @@ public sealed class ZeldathonService : IAsyncDisposable
         Client = new ZeldathonClient(factory ?? new WebSocketTransportFactory(), Clock, opt);
         _fetch = fetch ?? DefaultFetchAsync;
         Client.StateChanged += state => StateChanged?.Invoke(state);
+
+        Session = new ZeldathonSession(Clock, Client.Send, Client.RequestClock);
+        Client.GameRunning = () => Session.GameActive;
+        Client.Connected += Session.OnConnected;
+        Client.MessageRejected += (type, code, _) => Session.OnRejected(type, code);
+        Clock.Changed += Session.Reconcile;
+        // Reintenta iniciar la sesión (el evento puede empezar después) sin depender de otro evento del juego.
+        _reconcileTimer = new Timer(_ => Session.Reconcile(), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
     }
 
     public ZeldathonSettings Settings { get; }
     public ZeldathonClock Clock { get; }
     public ZeldathonClient Client { get; }
+
+    /// <summary>Estado del juego → mensajes de ingesta (progreso, ítems, jefes, stats).</summary>
+    public ZeldathonSession Session { get; }
+
+    /// <summary>Carga la traducción juego → catálogo del perfil (zeldathon.json en su carpeta).</summary>
+    public void LoadMap(string profileDirectory, string profileId)
+    {
+        Session.Map = ZeldathonMap.LoadForProfile(profileDirectory, profileId);
+        if (Session.Map.IsEmpty)
+        {
+            BridgeLog.Info("Zeldathon: este perfil no tiene zeldathon.json; no se enviará progreso del juego.");
+        }
+    }
 
     /// <summary>Presupuesto diario del evento (el servidor lo dice en /api/event; por defecto 4 h).</summary>
     public long BudgetSeconds { get; private set; } = DefaultBudgetSeconds;
@@ -117,7 +139,11 @@ public sealed class ZeldathonService : IAsyncDisposable
         }
     }
 
-    public async ValueTask DisposeAsync() => await Client.DisposeAsync().ConfigureAwait(false);
+    public async ValueTask DisposeAsync()
+    {
+        await _reconcileTimer.DisposeAsync().ConfigureAwait(false);
+        await Client.DisposeAsync().ConfigureAwait(false);
+    }
 
     private static async Task<string> DefaultFetchAsync(Uri uri, CancellationToken ct)
     {

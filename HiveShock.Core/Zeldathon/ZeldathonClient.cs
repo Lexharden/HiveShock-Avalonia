@@ -146,6 +146,10 @@ public sealed class ZeldathonClient : IAsyncDisposable
         _outbox.Writer.TryWrite(message);
     }
 
+    /// <summary>Pide el reloj oficial ya (un latido extra), sin esperar al siguiente.</summary>
+    public void RequestClock() =>
+        Send(ZeldathonProtocol.Heartbeat($"hb-q-{Interlocked.Increment(ref _heartbeatSeq)}", GameRunning?.Invoke()));
+
     public async ValueTask DisposeAsync() => await Task.Run(Stop).ConfigureAwait(false);
 
     private async Task RunAsync(Uri uri, string token, CancellationToken ct)

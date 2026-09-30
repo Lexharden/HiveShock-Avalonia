@@ -99,6 +99,21 @@ public sealed class BridgeRuntime : IAsyncDisposable
         _events = new GameEventServer(options);
         _events.EventReceived += OnGameEvent;
         _events.Start();
+        Zeldathon.LoadMap(profile.Directory, profile.Id);
+        Zeldathon.Session.SnapshotWanted += () => _ = RequestGameSnapshotAsync();
+    }
+
+    /// <summary>Pide al juego que vuelva a mandar su estado completo. Si el juego no está abierto, no pasa nada.</summary>
+    private async Task RequestGameSnapshotAsync()
+    {
+        try
+        {
+            await _gameClient.SendActionAsync("request_snapshot").ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // Sin juego abierto no hay nada que pedir: cuando cargue una partida mandará todo por sí solo.
+        }
     }
 
     public static BridgeRuntime Create(string[]? args = null)
@@ -137,6 +152,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         _profile = profile;
         _effects = effects;
         _gifts = gifts;
+        Zeldathon.LoadMap(profile.Directory, profile.Id);
         Options.ProfileId = profile.Id;
         Goals.ResetAll();
         Goals.ApplyDefinitions(_gifts.Snapshot.Goals);
@@ -174,6 +190,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         }
 
         _profile = ProfileStore.LoadFromDirectory(_profile.Directory);
+        Zeldathon.LoadMap(_profile.Directory, _profile.Id);
         ReloadEffectsAndGifts();
     }
 
@@ -320,6 +337,9 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
     private void OnGameEvent(object? sender, GameEventArgs e)
     {
+        // Telemetría para Zeldathon (escena, ítems, jefes, stats…); los eventos de muerte los ignora.
+        Zeldathon.Session.OnGameEvent(e.Event, e.Data);
+
         if (!_profile.Info.SupportsDeathEvents)
         {
             return;

@@ -11,6 +11,9 @@ public sealed class GameEventArgs : EventArgs
 {
     public required string Event { get; init; }
     public int Deaths { get; init; }
+
+    /// <summary>El JSON completo del evento (telemetría: escena, ítem, jefe, stats…). Ya independiente del lector.</summary>
+    public JsonElement? Data { get; init; }
 }
 
 /// <summary>Escucha JSON del juego en EVENT_PORT (default 43002).</summary>
@@ -118,7 +121,7 @@ public sealed class GameEventServer : IAsyncDisposable
                 deaths = n;
             }
 
-            EventReceived?.Invoke(this, new GameEventArgs { Event = eventName, Deaths = deaths });
+            EventReceived?.Invoke(this, new GameEventArgs { Event = eventName, Deaths = deaths, Data = root.Clone() });
         }
         catch (Exception ex)
         {

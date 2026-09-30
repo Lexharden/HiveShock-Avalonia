@@ -1,0 +1,89 @@
+{
+  "_help": "Traduce lo que manda el juego (números del código de Ship of Harkinian) a los ids del catálogo de Zeldathon. Se puede editar sin recompilar el juego. Áreas y jefes son texto libre (≤64); ítems y objetivos deben existir en el catálogo de la web.",
+  "version": 1,
+
+  "_areas": "número de escena (SCENE_*) -> id de área",
+  "areas": {
+    "0": "deku-tree", "17": "deku-tree",
+    "1": "dodongos-cavern", "18": "dodongos-cavern",
+    "2": "jabu-jabu", "19": "jabu-jabu",
+    "3": "forest-temple", "20": "forest-temple",
+    "4": "fire-temple", "21": "fire-temple",
+    "5": "water-temple", "22": "water-temple",
+    "6": "spirit-temple", "23": "spirit-temple",
+    "7": "shadow-temple", "24": "shadow-temple",
+    "8": "bottom-of-the-well",
+    "9": "ice-cavern",
+    "10": "ganons-castle", "13": "ganons-castle", "25": "ganons-castle", "26": "ganons-castle", "100": "ganons-castle",
+    "67": "temple-of-time", "68": "temple-of-time",
+    "81": "hyrule-field",
+    "82": "kakariko-village",
+    "83": "graveyard",
+    "84": "zoras-river",
+    "85": "kokiri-forest",
+    "86": "sacred-forest-meadow",
+    "87": "lake-hylia",
+    "88": "zoras-domain",
+    "89": "zoras-fountain",
+    "90": "gerudo-valley",
+    "91": "lost-woods",
+    "92": "desert-colossus",
+    "93": "gerudos-fortress",
+    "94": "haunted-wasteland",
+    "95": "hyrule-castle",
+    "96": "death-mountain",
+    "97": "death-mountain-crater",
+    "98": "goron-city",
+    "99": "lon-lon-ranch"
+  },
+
+  "_items": "id de ítem del juego (ITEM_*) -> id de ítem del catálogo",
+  "items": {
+    "2": "bombs",
+    "3": "bow",
+    "10": "hookshot",
+    "11": "longshot",
+    "14": "boomerang",
+    "17": "megaton-hammer",
+    "60": "master-sword",
+    "64": "mirror-shield",
+    "69": "iron-boots"
+  },
+
+  "_bosses": "id de actor del jefe (ACTOR_BOSS_*) -> id de jefe",
+  "bosses": {
+    "40": "gohma",
+    "39": "king-dodongo",
+    "186": "barinade",
+    "82": "phantom-ganon",
+    "150": "volvagia",
+    "196": "morpha",
+    "233": "bongo-bongo",
+    "220": "twinrova",
+    "232": "ganondorf",
+    "378": "ganon"
+  },
+
+  "_objectives": "cómo se completa cada objetivo: bit de questItems (medallas/piedras), ítem obtenido o jefe vencido",
+  "objectives": {
+    "quest": {
+      "18": "deku-tree",
+      "19": "dodongos-cavern",
+      "20": "jabu-jabu",
+      "0": "forest-temple",
+      "1": "fire-temple",
+      "2": "water-temple",
+      "3": "spirit-temple",
+      "4": "shadow-temple"
+    },
+    "items": {
+      "59": "kokiri-forest"
+    },
+    "bosses": {
+      "ganon": "ganons-castle"
+    }
+  },
+
+  "_finish": "al vencer a este jefe se avisa GAME_FINISHED (el servidor exige todos los objetivos)",
+  "finishBoss": "ganon"
+}
