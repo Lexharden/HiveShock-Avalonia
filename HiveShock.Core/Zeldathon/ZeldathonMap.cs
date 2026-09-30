@@ -19,6 +19,15 @@ public sealed class ZeldathonMap
     /// <summary>Bit de <c>questItems</c> (medallas y piedras) → objetivo.</summary>
     public Dictionary<int, string> QuestObjectives { get; } = new();
 
+    /// <summary>Bit de <c>questItems</c> (medallas, piedras, canciones…) → ítem del catálogo.</summary>
+    public Dictionary<int, string> QuestItems { get; } = new();
+
+    /// <summary>
+    /// Mejoras: nombre del campo del evento <c>upgrades</c> → (nivel mínimo → ítem). Con nivel ≥ N se tiene el ítem
+    /// de N; p. ej. <c>strength</c>: 1 = brazalete Goron, 2 = guanteletes de plata.
+    /// </summary>
+    public Dictionary<string, SortedDictionary<int, string>> Upgrades { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Ítem del juego que completa un objetivo (p. ej. la espada Kokiri).</summary>
     public Dictionary<int, string> ItemObjectives { get; } = new();
 
@@ -31,7 +40,9 @@ public sealed class ZeldathonMap
     /// <summary>Jefe cuya derrota termina el juego.</summary>
     public string FinishBoss { get; private set; } = "";
 
-    public bool IsEmpty => Areas.Count == 0 && Items.Count == 0 && Bosses.Count == 0 && QuestObjectives.Count == 0;
+    public bool IsEmpty =>
+        Areas.Count == 0 && Items.Count == 0 && Bosses.Count == 0 && QuestObjectives.Count == 0 &&
+        QuestItems.Count == 0 && Upgrades.Count == 0;
 
     public static ZeldathonMap Load(string path)
     {
@@ -101,24 +112,28 @@ public sealed class ZeldathonMap
         }
 
         ReadNumbered(root, "areas", Areas, text => text.Length is > 0 and <= MaxTextLength, "área");
-        ReadNumbered(root, "items", Items, ZeldathonCatalog.IsItem, "ítem");
+        // Ítems y objetivos se revisan contra el catálogo del servidor al enviar (Session), no aquí: el
+        // organizador puede añadir ítems nuevos y este archivo ya podría mencionarlos.
+        ReadNumbered(root, "items", Items, IsId, "ítem");
+        ReadNumbered(root, "questItems", QuestItems, IsId, "ítem de misión");
+        ReadUpgrades(root);
         ReadNumbered(root, "bosses", Bosses, text => text.Length is > 0 and <= MaxTextLength, "jefe");
 
         if (root.TryGetProperty("objectives", out var obj) && obj.ValueKind == JsonValueKind.Object)
         {
-            ReadNumbered(obj, "quest", QuestObjectives, ZeldathonCatalog.IsObjective, "objetivo");
-            ReadNumbered(obj, "items", ItemObjectives, ZeldathonCatalog.IsObjective, "objetivo");
+            ReadNumbered(obj, "quest", QuestObjectives, IsId, "objetivo");
+            ReadNumbered(obj, "items", ItemObjectives, IsId, "objetivo");
             if (obj.TryGetProperty("bosses", out var bosses) && bosses.ValueKind == JsonValueKind.Object)
             {
                 foreach (var prop in bosses.EnumerateObject())
                 {
-                    if (prop.Value.ValueKind == JsonValueKind.String && ZeldathonCatalog.IsObjective(prop.Value.GetString() ?? ""))
+                    if (prop.Value.ValueKind == JsonValueKind.String && IsId(prop.Value.GetString() ?? ""))
                     {
                         BossObjectives[prop.Name] = prop.Value.GetString()!;
                     }
                     else
                     {
-                        BridgeLog.Warn($"zeldathon.json: objetivo desconocido para el jefe «{prop.Name}»");
+                        BridgeLog.Warn($"zeldathon.json: objetivo no válido para el jefe «{prop.Name}»");
                     }
                 }
             }
@@ -138,6 +153,43 @@ public sealed class ZeldathonMap
         if (root.TryGetProperty("finishBoss", out var finish) && finish.ValueKind == JsonValueKind.String)
         {
             FinishBoss = finish.GetString() ?? "";
+        }
+    }
+
+    private static bool IsId(string text) => text.Length is > 0 and <= MaxTextLength;
+
+    private void ReadUpgrades(JsonElement root)
+    {
+        if (!root.TryGetProperty("upgrades", out var section) || section.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        foreach (var field in section.EnumerateObject())
+        {
+            if (field.Value.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            var levels = new SortedDictionary<int, string>();
+            foreach (var level in field.Value.EnumerateObject())
+            {
+                var value = level.Value.ValueKind == JsonValueKind.String ? level.Value.GetString() ?? "" : "";
+                if (int.TryParse(level.Name, out var n) && n > 0 && IsId(value))
+                {
+                    levels[n] = value;
+                }
+                else
+                {
+                    BridgeLog.Warn($"zeldathon.json: mejora «{field.Name}» nivel «{level.Name}» no es válida y se ignora");
+                }
+            }
+
+            if (levels.Count > 0)
+            {
+                Upgrades[field.Name] = levels;
+            }
         }
     }
 

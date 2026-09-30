@@ -67,14 +67,14 @@ public class ZeldathonE2ETests
             quits++;
             return Task.CompletedTask;
         };
-        service.Session.Map = ZeldathonMap.Parse("""
-            {
-              "areas": { "85": "kokiri-forest", "5": "water-temple" },
-              "items": { "10": "hookshot", "3": "bow" },
-              "bosses": { "40": "gohma" },
-              "objectives": { "quest": { "18": "deku-tree" }, "items": { "59": "kokiri-forest" } }
-            }
-            """);
+        // The map that ships with HiveShock (embedded copy: this profile has no file in the temp folder).
+        var empty = Path.Combine(Path.GetTempPath(), $"hs-e2e-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(empty);
+        service.Session.Map = ZeldathonMap.LoadForProfile(empty, "ocarina-of-time");
+        Directory.Delete(empty);
+        Assert.False(service.Session.Map.IsEmpty);
+        // No real game is running in this test: without a process name the closer only sends "quit_game".
+        service.Session.Map.GameProcesses.Clear();
         var broadcasting = false;
         service.IsBroadcasting = () => broadcasting;
 
@@ -86,6 +86,13 @@ public class ZeldathonE2ETests
         Assert.Equal(14_400, service.BudgetSeconds);
         Assert.Equal("live", service.EventStatus);
 
+        // The server's own catalog (edited by organizers) replaces the built-in copy.
+        await service.RefreshCatalogAsync();
+        Assert.NotEqual("factory", service.Catalog.Version);
+        Assert.True(service.Catalog.Items.Count >= 60);
+        Assert.True(service.Catalog.IsItem("hover-boots"));
+        Assert.Equal(10, service.Catalog.Objectives.Count);
+
         // El juego carga una partida y manda su estado.
         void Game(string json)
         {
@@ -95,9 +102,12 @@ public class ZeldathonE2ETests
 
         Game("""{"event":"game_session","state":"loaded"}""");
         Game("""{"event":"scene","scene":85}""");
-        Game("""{"event":"inventory","items":[10,3,59]}""");
-        Game("""{"event":"quest","items":262144}""");
-        Game("""{"event":"stats","hearts":7,"maxHearts":8,"rupees":150,"skulltulas":4}""");
+        // hookshot, bow, Kokiri sword (child), hover boots (adult), fire arrows
+        Game("""{"event":"inventory","items":[10,3,59,70,4]}""");
+        // bit 12 = Zelda's Lullaby, bit 18 = Kokiri's Emerald (also completes the Deku Tree objective)
+        Game("""{"event":"quest","items":266240}""");
+        Game("""{"event":"upgrades","strength":1,"wallet":1,"scale":0}""");
+        Game("""{"event":"stats","age":"child","hearts":7,"maxHearts":8,"rupees":150,"skulltulas":4}""");
         Game("""{"event":"boss_defeated","actor":40}""");
 
         await WaitUntil(async () => (await Get("api/racers/cuaco"))["status"]?.GetValue<string>() == "live", "la sesión queda en vivo");
@@ -106,12 +116,21 @@ public class ZeldathonE2ETests
             var racer = await Get("api/racers/cuaco");
             return racer["items"]?["hookshot"]?.GetValue<bool>() == true
                    && racer["items"]?["bow"]?.GetValue<bool>() == true
+                   && racer["items"]?["kokiri-sword"]?.GetValue<bool>() == true
+                   && racer["items"]?["hover-boots"]?.GetValue<bool>() == true
+                   && racer["items"]?["fire-arrows"]?.GetValue<bool>() == true
+                   && racer["items"]?["zeldas-lullaby"]?.GetValue<bool>() == true
+                   && racer["items"]?["kokiri-emerald"]?.GetValue<bool>() == true
+                   && racer["items"]?["goron-bracelet"]?.GetValue<bool>() == true
+                   && racer["items"]?["wallet"]?.GetValue<bool>() == true
+                   && racer["stats"]?["age"]?.GetValue<string>() == "child"
                    && racer["stats"]?["rupees"]?.GetValue<long>() == 150
                    && racer["stats"]?["bossesDefeated"]?.GetValue<int>() == 1
                    && racer["currentArea"]?.GetValue<string>() == "kokiri-forest";
         }, "el progreso llega a la web");
         var progress = await Get("api/racers/cuaco");
-        Assert.Equal(20.0, progress["progressPercentage"]!.GetValue<double>());
+        Assert.Equal(20.0, progress["progressPercentage"]!.GetValue<double>()); // kokiri-forest + deku-tree of 10
+        Assert.False((await Get("api/racers/cuaco"))["items"]!.AsObject().ContainsKey("silver-scale"));
         Assert.Contains("deku-tree", progress["completedObjectives"]!.AsArray().Select(n => n!.GetValue<string>()));
         Assert.Contains("kokiri-forest", progress["completedObjectives"]!.AsArray().Select(n => n!.GetValue<string>()));
 

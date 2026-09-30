@@ -18,6 +18,7 @@ public sealed class ZeldathonService : IAsyncDisposable
     private readonly IProcessControl _processes;
     private long _chatPending;
     private int _gameMissing;
+    private int _ticks;
 
     public ZeldathonService(
         ZeldathonSettings? settings = null,
@@ -90,6 +91,13 @@ public sealed class ZeldathonService : IAsyncDisposable
         FlushChat();
         WatchGame();
         RefreshStream();
+
+        // Cada ~5 min: por si el organizador cambió el catálogo o las reglas del evento.
+        if (++_ticks % 60 == 0 && Client.State == ZeldathonConnectionState.Connected)
+        {
+            _ = RefreshEventAsync();
+            _ = RefreshCatalogAsync();
+        }
     }
 
     /// <summary>Manda el estado del directo si cambió (se llama al cambiar un canal y cada 5 s).</summary>
@@ -161,6 +169,9 @@ public sealed class ZeldathonService : IAsyncDisposable
     /// <summary>Presupuesto diario del evento (el servidor lo dice en /api/event; por defecto 4 h).</summary>
     public long BudgetSeconds { get; private set; } = DefaultBudgetSeconds;
 
+    /// <summary>Ítems y objetivos que acepta el servidor (descargados al conectar; antes, el de fábrica).</summary>
+    public ZeldathonCatalog Catalog => Session.Catalog;
+
     /// <summary>Estado del evento según el servidor ("upcoming", "live", "paused", "finished") o vacío.</summary>
     public string EventStatus { get; private set; } = "";
 
@@ -183,6 +194,7 @@ public sealed class ZeldathonService : IAsyncDisposable
 
         Client.Start(uri, Settings.Token.Trim());
         _ = RefreshEventAsync();
+        _ = RefreshCatalogAsync();
         BridgeLog.Info($"Zeldathon: conectando a {uri.Host}");
         return null;
     }
@@ -206,19 +218,31 @@ public sealed class ZeldathonService : IAsyncDisposable
         }
     }
 
-    /// <summary>Lee /api/event para saber el presupuesto diario y el estado del evento. Nunca lanza.</summary>
+    private Uri? ApiUri(string path)
+    {
+        if (!Settings.TryBuildIngestUri(out var ingest, out _))
+        {
+            return null;
+        }
+
+        var builder = new UriBuilder(ingest) { Scheme = ingest.Scheme == "wss" ? "https" : "http" };
+        builder.Path = builder.Path[..^"/ingest".Length] + path;
+        return builder.Uri;
+    }
+
+    /// <summary>
+    /// Lee /api/event: presupuesto diario, estado y los objetivos que exige para terminar. Nunca lanza.
+    /// </summary>
     public async Task RefreshEventAsync(CancellationToken ct = default)
     {
         try
         {
-            if (!Settings.TryBuildIngestUri(out var ingest, out _))
+            if (ApiUri("/api/event") is not { } uri)
             {
                 return;
             }
 
-            var builder = new UriBuilder(ingest) { Scheme = ingest.Scheme == "wss" ? "https" : "http" };
-            builder.Path = builder.Path[..^"/ingest".Length] + "/api/event";
-            var json = await _fetch(builder.Uri, ct).ConfigureAwait(false);
+            var json = await _fetch(uri, ct).ConfigureAwait(false);
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
             if (root.TryGetProperty("dailyBudgetSeconds", out var b) && b.TryGetInt64(out var seconds) && seconds > 0)
@@ -230,11 +254,47 @@ public sealed class ZeldathonService : IAsyncDisposable
             {
                 EventStatus = st.GetString() ?? "";
             }
+
+            if (root.TryGetProperty("rules", out var rules) &&
+                rules.TryGetProperty("requiredObjectiveIds", out var req) && req.ValueKind == JsonValueKind.Array)
+            {
+                var ids = req.EnumerateArray().Select(e => e.GetString()).OfType<string>().Where(x => x.Length > 0).ToList();
+                if (ids.Count > 0)
+                {
+                    Session.RequiredObjectives = ids;
+                }
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // Sin /api/event el cronómetro sigue funcionando con el presupuesto por defecto.
             BridgeLog.Warn($"Zeldathon: no se pudo leer el evento ({ex.Message})");
+        }
+    }
+
+    /// <summary>
+    /// Descarga /api/catalog (lo edita el organizador). Si falla se conserva el que ya había (el de fábrica
+    /// al principio). Nunca lanza.
+    /// </summary>
+    public async Task RefreshCatalogAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            if (ApiUri("/api/catalog") is not { } uri)
+            {
+                return;
+            }
+
+            var catalog = ZeldathonCatalog.Parse(await _fetch(uri, ct).ConfigureAwait(false));
+            if (catalog.Version != Session.Catalog.Version)
+            {
+                Session.Catalog = catalog;
+                BridgeLog.Info($"Zeldathon: catálogo actualizado ({catalog.Items.Count} ítems, {catalog.Objectives.Count} objetivos)");
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            BridgeLog.Warn($"Zeldathon: no se pudo leer el catálogo ({ex.Message})");
         }
     }
 

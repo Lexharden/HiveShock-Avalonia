@@ -47,20 +47,28 @@ El juego manda **números**; HiveShock los traduce con `profiles/<perfil>/zeldat
 | --- | --- | --- |
 | `game_session` | `state`: `loaded`/`exited`, `file` | `OnLoadGame` / `OnExitGame` |
 | `scene` | `scene` (`SCENE_*`) | al cambiar de escena |
-| `inventory` | `items`: lista de `ITEM_*` | ítems de progreso que tiene el jugador |
-| `quest` | `items`: máscara `questItems` | medallas y piedras espirituales |
-| `stats` | `hearts`, `maxHearts`, `rupees`, `skulltulas` | vida, rupias, skulltulas |
+| `inventory` | `items`: lista de `ITEM_*` | ítems de progreso del inventario y del equipo (espadas, escudos, túnicas, botas, flechas, hechizos, botellas…) |
+| `quest` | `items`: máscara `questItems` | medallas, piedras espirituales, canciones, piedra del dolor y tarjeta gerudo |
+| `upgrades` | `bombBag`, `wallet`, `strength`, `scale`, `magic`, `doubleDefense`, … (niveles) | mejoras de la partida |
+| `stats` | `age` (`child`/`adult`), `hearts`, `maxHearts`, `rupees`, `skulltulas` | Link actual, vida, rupias, skulltulas |
 | `boss_defeated` | `actor` (`ACTOR_BOSS_*`) | `OnBossDefeat` |
 
 Acciones hacia el juego (puerto 43000): `request_snapshot` (re-emitir todo el estado; HiveShock lo pide al
 conectar) y `quit_game` (cierre limpio; `save: true` guarda antes). **No** están en `effects.json` a propósito: un
 regalo de un espectador no debe poder cerrar el juego.
 
+### Catálogo (lo administra el organizador)
+Los ítems y objetivos (por Link niño / adulto / ambos) viven en el servidor y se editan en `/admin → Catálogo`.
+HiveShock descarga `/api/catalog` y `/api/event` al conectar (y cada ~5 min): solo envía ítems y objetivos que el
+servidor conoce, y termina el juego con los objetivos que **el evento** exige. Si un `zeldathon.json` menciona un
+id que el servidor aún no tiene, se avisa una vez en el log y se envía en cuanto el organizador lo crea. Sin conexión
+se usa el catálogo de fábrica incluido en el programa.
+
 ### `zeldathon.json`
-`areas` (escena → id), `items` (ítem del juego → id del catálogo), `bosses` (actor → id de jefe),
-`objectives.quest|items|bosses` (cómo se completa cada objetivo), `finishBoss` y `gameProcesses` (nombre del proceso
-para el cierre forzado). Los ids de ítems y objetivos deben existir en el catálogo del servidor; lo demás se ignora
-con un aviso en el log. Si un perfil no trae el archivo se usa la copia de fábrica incluida en el programa.
+`areas` (escena → id), `items` (ítem del juego → id), `questItems` (bit de `questItems` → id: medallas, canciones,
+piedras…), `upgrades` (campo → {nivel mínimo: id}), `bosses` (actor → id de jefe), `objectives.quest|items|bosses`
+(cómo se completa cada objetivo), `finishBoss` y `gameProcesses` (nombre del proceso para el cierre forzado).
+Si un perfil no trae el archivo se usa la copia de fábrica incluida en el programa.
 
 ## Pruebas
 * `dotnet test`: reloj, cliente (transporte falso), sesión, mapa, cierre del juego, cronómetro y reporte de stream.

@@ -61,12 +61,13 @@ public class ZeldathonSessionTests
     }
 
     [Fact]
-    public void The_map_keeps_valid_entries_and_drops_unknown_catalog_ids()
+    public void The_map_keeps_its_entries_and_the_session_checks_them_against_the_catalog()
     {
         var map = ZeldathonMap.Parse(MapJson);
         Assert.Equal("kokiri-forest", map.Areas[85]);
         Assert.Equal("hookshot", map.Items[10]);
-        Assert.False(map.Items.ContainsKey(999));
+        // Not validated here: the organizer may add "not-in-catalog" to the server later.
+        Assert.Equal("not-in-catalog", map.Items[999]);
         Assert.Equal("forest-temple", map.QuestObjectives[0]);
         Assert.Equal("kokiri-forest", map.ItemObjectives[59]);
         Assert.Equal("ganons-castle", map.BossObjectives["ganon"]);
@@ -93,9 +94,18 @@ public class ZeldathonSessionTests
         Assert.False(map.IsEmpty);
         // Cada objetivo del catálogo se puede completar de alguna forma.
         var reachable = map.QuestObjectives.Values.Concat(map.ItemObjectives.Values).Concat(map.BossObjectives.Values).ToHashSet();
-        Assert.All(ZeldathonCatalog.Objectives, o => Assert.Contains(o, reachable));
+        var catalog = ZeldathonCatalog.Default;
+        Assert.All(catalog.Objectives, o => Assert.Contains(o, reachable));
         Assert.Equal(map.Items.Values.Distinct().Count(), map.Items.Count);
-        Assert.All(ZeldathonCatalog.Items, i => Assert.Contains(i, map.Items.Values));
+        // Every item of the factory catalog can be obtained through one of the three routes.
+        var obtainable = map.Items.Values
+            .Concat(map.QuestItems.Values)
+            .Concat(map.Upgrades.Values.SelectMany(levels => levels.Values))
+            .ToHashSet();
+        Assert.All(catalog.Items, i => Assert.Contains(i, obtainable));
+        // ...and everything the map can grant exists in the catalog (no typos).
+        Assert.All(obtainable, i => Assert.True(catalog.IsItem(i), $"{i} is not in the catalog"));
+        Assert.All(reachable, o => Assert.True(catalog.IsObjective(o), $"{o} is not an objective"));
     }
 
     [Fact]
@@ -214,9 +224,9 @@ public class ZeldathonSessionTests
         // Se completan los que faltan por medios de la tabla (aquí solo hay algunos: se fuerzan en el mapa).
         var map = rig.Session.Map;
         map.QuestObjectives.Clear();
-        for (var i = 0; i < ZeldathonCatalog.Objectives.Count; i++)
+        for (var i = 0; i < ZeldathonCatalog.Default.Objectives.Count; i++)
         {
-            map.QuestObjectives[i] = ZeldathonCatalog.Objectives[i];
+            map.QuestObjectives[i] = ZeldathonCatalog.Default.Objectives[i];
         }
 
         rig.Game("""{"event":"quest","items":1023}""");
@@ -291,5 +301,145 @@ public class ZeldathonSessionTests
         rig.Game("""{"event":"player_death","deaths":3}""");
         rig.Game("""{"event":"algo_raro"}""");
         Assert.Empty(rig.Sent);
+    }
+}
+
+public class ZeldathonSessionCatalogTests
+{
+    private const string Map = """
+        {
+          "items": { "50": "magic-beans", "3": "bow" },
+          "questItems": { "12": "zeldas-lullaby", "13": "eponas-song", "18": "kokiri-emerald" },
+          "upgrades": {
+            "strength": { "1": "goron-bracelet", "2": "silver-gauntlets", "3": "golden-gauntlets" },
+            "doubleDefense": { "1": "double-defense" }
+          },
+          "objectives": { "quest": { "18": "deku-tree" } }
+        }
+        """;
+
+    private sealed class Rig
+    {
+        public readonly List<ZeldathonOutbound> Sent = [];
+        public readonly ZeldathonClock Clock = new(() => 0);
+        public readonly ZeldathonSession Session;
+
+        public Rig(ZeldathonCatalog? catalog = null, string? mapJson = null)
+        {
+            Session = new ZeldathonSession(Clock, Sent.Add, map: ZeldathonMap.Parse(mapJson ?? Map));
+            if (catalog != null)
+            {
+                Session.Catalog = catalog;
+            }
+
+            Clock.Changed += Session.Reconcile;
+            Clock.Update(new ZeldathonClockSnapshot("r", 3_600_000, ZeldathonRacerStatus.Online, DateTime.UtcNow, DateTime.UtcNow));
+            Game("""{"event":"game_session","state":"loaded"}""");
+            Clock.Update(new ZeldathonClockSnapshot("r", 3_600_000, ZeldathonRacerStatus.Live, DateTime.UtcNow, DateTime.UtcNow));
+        }
+
+        public void Game(string json)
+        {
+            using var doc = JsonDocument.Parse(json);
+            Session.OnGameEvent(doc.RootElement.GetProperty("event").GetString()!, doc.RootElement.Clone());
+        }
+
+        public List<string> Items() =>
+            Sent.Where(m => m.Type == "ITEM_ACQUIRED").Select(m => JsonNode.Parse(m.Json)!["item"]!.GetValue<string>()).ToList();
+
+        public JsonNode? LastStats() =>
+            Sent.LastOrDefault(m => m.Type == "STATS_UPDATED") is { } m ? JsonNode.Parse(m.Json)!["stats"] : null;
+    }
+
+    [Fact]
+    public void An_item_the_server_does_not_know_yet_is_held_back_and_sent_when_the_catalog_gains_it()
+    {
+        var rig = new Rig();
+        rig.Game("""{"event":"inventory","items":[3,50]}""");
+        Assert.Equal(["bow"], rig.Items()); // magic-beans is not in the factory catalog
+
+        var withBeans = ZeldathonCatalog.Parse("""
+            {"version":"v2","items":[{"id":"bow","enabled":true},{"id":"magic-beans","enabled":true}],
+             "objectives":[{"id":"deku-tree","sortOrder":1,"required":true,"enabled":true}]}
+            """);
+        rig.Session.Catalog = withBeans; // the organizer added it in the panel
+        Assert.Equal(["bow", "magic-beans"], rig.Items().Order().ToArray());
+        Assert.Single(rig.Items(), i => i == "magic-beans");
+    }
+
+    [Fact]
+    public void Quest_bits_grant_songs_and_stones_as_items()
+    {
+        var rig = new Rig();
+        rig.Game("""{"event":"quest","items":274432}"""); // bits 12, 13 and 18
+        var items = rig.Items();
+        Assert.Contains("zeldas-lullaby", items);
+        Assert.Contains("eponas-song", items);
+        Assert.Contains("kokiri-emerald", items);
+        Assert.DoesNotContain("sarias-song", items);
+    }
+
+    [Fact]
+    public void Upgrade_levels_grant_every_item_up_to_that_level_and_never_take_them_back()
+    {
+        var rig = new Rig();
+        rig.Game("""{"event":"upgrades","strength":2,"doubleDefense":true}""");
+        var items = rig.Items();
+        Assert.Contains("goron-bracelet", items);
+        Assert.Contains("silver-gauntlets", items);
+        Assert.DoesNotContain("golden-gauntlets", items);
+        Assert.Contains("double-defense", items);
+
+        rig.Game("""{"event":"upgrades","strength":0}"""); // e.g. a reloaded save: the run keeps its best level
+        Assert.Equal(items.Count, rig.Items().Count);
+        rig.Game("""{"event":"upgrades","strength":3}""");
+        Assert.Contains("golden-gauntlets", rig.Items());
+    }
+
+    [Fact]
+    public void The_current_link_travels_in_the_stats_and_only_valid_values_are_accepted()
+    {
+        var rig = new Rig();
+        rig.Game("""{"event":"stats","age":"child","hearts":3,"maxHearts":3}""");
+        Assert.Equal("child", rig.LastStats()!["age"]!.GetValue<string>());
+
+        rig.Game("""{"event":"stats","age":"adult","hearts":3,"maxHearts":3}""");
+        Assert.Equal("adult", rig.LastStats()!["age"]!.GetValue<string>());
+
+        var before = rig.Sent.Count(m => m.Type == "STATS_UPDATED");
+        rig.Game("""{"event":"stats","age":"toddler","hearts":3,"maxHearts":3}"""); // ignored: nothing changed
+        Assert.Equal(before, rig.Sent.Count(m => m.Type == "STATS_UPDATED"));
+    }
+
+    [Fact]
+    public void Progress_and_current_objective_follow_the_servers_objectives()
+    {
+        var catalog = ZeldathonCatalog.Parse("""
+            {"version":"v","items":[{"id":"bow","enabled":true}],
+             "objectives":[
+               {"id":"deku-tree","sortOrder":1,"required":true,"enabled":true},
+               {"id":"bonus-goal","sortOrder":2,"required":false,"enabled":true},
+               {"id":"water-temple","sortOrder":3,"required":true,"enabled":true},
+               {"id":"forest-temple","sortOrder":4,"required":true,"enabled":true}]}
+            """);
+        var rig = new Rig(catalog);
+        rig.Game("""{"event":"quest","items":262144}"""); // deku-tree
+        var progress = JsonNode.Parse(rig.Sent.Last(m => m.Type == "GAME_PROGRESS").Json)!["progress"]!;
+        Assert.Equal(25.0, progress["percentage"]!.GetValue<double>());
+        Assert.Equal("bonus-goal", progress["currentObjective"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void Finishing_uses_the_objectives_the_event_requires_not_the_whole_catalog()
+    {
+        var rig = new Rig(mapJson: """
+            {"bosses":{"378":"ganon"},"objectives":{"bosses":{"ganon":"ganons-castle"}},"finishBoss":"ganon"}
+            """);
+        rig.Game("""{"event":"boss_defeated","actor":378}""");
+        Assert.DoesNotContain(rig.Sent, m => m.Type == "GAME_FINISHED"); // deku-tree and the rest are missing
+
+        rig.Session.RequiredObjectives = ["ganons-castle"]; // the event only asks for the last one
+        rig.Session.Reconcile();
+        Assert.Single(rig.Sent, m => m.Type == "GAME_FINISHED");
     }
 }

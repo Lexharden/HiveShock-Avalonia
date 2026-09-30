@@ -26,11 +26,18 @@ public sealed class ZeldathonSession
     private readonly HashSet<string> _items = new(StringComparer.Ordinal);
     private readonly HashSet<string> _objectives = new(StringComparer.Ordinal);
     private readonly HashSet<string> _bosses = new(StringComparer.OrdinalIgnoreCase);
+    private string? _age;
     private double? _hearts;
     private double? _maxHearts;
     private long? _rupees;
     private long? _skulltulas;
     private bool _finishReady;
+
+    // Lo que el juego dijo, sin traducir: al cambiar el mapa o el catálogo se vuelve a derivar todo de aquí.
+    private readonly HashSet<int> _rawItems = [];
+    private readonly HashSet<int> _rawBosses = [];
+    private long _rawQuest;
+    private readonly Dictionary<string, int> _rawUpgrades = new(StringComparer.OrdinalIgnoreCase);
 
     // Lo que ya se le envió al servidor.
     private string? _sentArea;
@@ -42,6 +49,7 @@ public sealed class ZeldathonSession
     private bool _startedSent;
     private long _lastStartMs = long.MinValue / 2;
     private int _startAttempts;
+    private readonly HashSet<string> _warnedUnknown = new(StringComparer.Ordinal);
 
     public ZeldathonSession(
         ZeldathonClock clock,
@@ -54,10 +62,52 @@ public sealed class ZeldathonSession
         _send = send;
         _requestClock = requestClock;
         _nowMs = nowMs ?? (() => Environment.TickCount64);
-        Map = map ?? new ZeldathonMap();
+        _map = map ?? new ZeldathonMap();
     }
 
-    public ZeldathonMap Map { get; set; }
+    private ZeldathonMap _map;
+    private ZeldathonCatalog _catalog = ZeldathonCatalog.Default;
+
+    /// <summary>Traducción juego → catálogo. Al cambiarla se recalcula todo con lo que el juego ya dijo.</summary>
+    public ZeldathonMap Map
+    {
+        get => _map;
+        set
+        {
+            lock (_gate)
+            {
+                _map = value;
+                Rederive();
+            }
+
+            Reconcile();
+        }
+    }
+
+    /// <summary>
+    /// Lo que el servidor acepta (se descarga al conectar; mientras tanto, el catálogo de fábrica). Un ítem que
+    /// el juego ya reportó y que antes era desconocido se envía en cuanto el catálogo lo incluye.
+    /// </summary>
+    public ZeldathonCatalog Catalog
+    {
+        get => _catalog;
+        set
+        {
+            lock (_gate)
+            {
+                _catalog = value;
+                Rederive();
+            }
+
+            Reconcile();
+        }
+    }
+
+    /// <summary>
+    /// Objetivos que exigen las reglas del evento para terminar (<c>/api/event</c>). Sin dato se usan los
+    /// marcados como requeridos en el catálogo.
+    /// </summary>
+    public IReadOnlyCollection<string>? RequiredObjectives { get; set; }
 
     /// <summary>Se pide al juego que vuelva a mandar todo su estado (HiveShock arrancó después que el juego).</summary>
     public event Action? SnapshotWanted;
@@ -221,6 +271,8 @@ public sealed class ZeldathonSession
                 return ApplyStats(data);
             case "quest":
                 return Long(data, "items") is { } mask && ApplyQuest(mask);
+            case "upgrades":
+                return ApplyUpgrades(data);
             default:
                 return false;
         }
@@ -228,21 +280,64 @@ public sealed class ZeldathonSession
 
     private bool AddItem(int gameItem)
     {
+        _rawItems.Add(gameItem);
+        return DeriveItem(gameItem);
+    }
+
+    private bool DeriveItem(int gameItem)
+    {
         var changed = false;
         if (Map.Items.TryGetValue(gameItem, out var id))
         {
-            changed |= _items.Add(id);
+            changed |= GrantItem(id);
         }
 
         if (Map.ItemObjectives.TryGetValue(gameItem, out var objective))
         {
-            changed |= _objectives.Add(objective);
+            changed |= GrantObjective(objective);
         }
 
         return changed;
     }
 
+    /// <summary>Solo se envían ítems que el servidor conoce (si no, contestaría <c>invalid</c>).</summary>
+    private bool GrantItem(string id)
+    {
+        if (Catalog.IsItem(id))
+        {
+            return _items.Add(id);
+        }
+
+        WarnUnknown("ítem", id);
+        return false;
+    }
+
+    private bool GrantObjective(string id)
+    {
+        if (Catalog.IsObjective(id))
+        {
+            return _objectives.Add(id);
+        }
+
+        WarnUnknown("objetivo", id);
+        return false;
+    }
+
+    private void WarnUnknown(string what, string id)
+    {
+        if (_warnedUnknown.Add($"{what}:{id}"))
+        {
+            Logging.BridgeLog.Warn($"Zeldathon: el servidor no conoce el {what} «{id}» (zeldathon.json); no se enviará.");
+        }
+    }
+
     private bool AddBoss(int actor)
+    {
+        _rawBosses.Add(actor);
+        return DeriveBoss(actor);
+    }
+
+    private bool DeriveBoss(int actor)
     {
         if (!Map.Bosses.TryGetValue(actor, out var boss))
         {
@@ -252,7 +347,7 @@ public sealed class ZeldathonSession
         var changed = _bosses.Add(boss);
         if (Map.BossObjectives.TryGetValue(boss, out var objective))
         {
-            changed |= _objectives.Add(objective);
+            changed |= GrantObjective(objective);
         }
 
         if (Map.FinishBoss.Length > 0 && string.Equals(boss, Map.FinishBoss, StringComparison.OrdinalIgnoreCase) && !_finishReady)
@@ -266,16 +361,105 @@ public sealed class ZeldathonSession
 
     private bool ApplyQuest(long mask)
     {
+        _rawQuest |= mask;
+        return DeriveQuest(_rawQuest);
+    }
+
+    private bool DeriveQuest(long mask)
+    {
         var changed = false;
         foreach (var (bit, objective) in Map.QuestObjectives)
         {
             if (bit is >= 0 and < 32 && (mask & (1L << bit)) != 0)
             {
-                changed |= _objectives.Add(objective);
+                changed |= GrantObjective(objective);
+            }
+        }
+
+        foreach (var (bit, item) in Map.QuestItems)
+        {
+            if (bit is >= 0 and < 32 && (mask & (1L << bit)) != 0)
+            {
+                changed |= GrantItem(item);
             }
         }
 
         return changed;
+    }
+
+    /// <summary>Mejoras del juego (bolsa de bombas, monedero, fuerza, escama, magia…) → ítems por nivel.</summary>
+    private bool ApplyUpgrades(JsonElement? data)
+    {
+        if (data is not { ValueKind: JsonValueKind.Object } el)
+        {
+            return false;
+        }
+
+        var changed = false;
+        foreach (var (field, _) in Map.Upgrades)
+        {
+            if (!el.TryGetProperty(field, out var value))
+            {
+                continue;
+            }
+
+            var level = value.ValueKind switch
+            {
+                JsonValueKind.True => 1,
+                JsonValueKind.False => 0,
+                _ when value.TryGetInt32(out var n) => n,
+                _ => 0,
+            };
+            _rawUpgrades[field] = Math.Max(level, _rawUpgrades.GetValueOrDefault(field));
+            changed |= DeriveUpgrade(field);
+        }
+
+        return changed;
+    }
+
+    private bool DeriveUpgrade(string field)
+    {
+        var changed = false;
+        if (Map.Upgrades.TryGetValue(field, out var levels) && _rawUpgrades.TryGetValue(field, out var level))
+        {
+            foreach (var (needed, item) in levels)
+            {
+                if (level >= needed)
+                {
+                    changed |= GrantItem(item);
+                }
+            }
+        }
+
+        return changed;
+    }
+
+    /// <summary>Recalcula ítems, objetivos y jefes a partir de lo que el juego reportó (cambió el mapa o el catálogo).</summary>
+    private void Rederive()
+    {
+        _items.Clear();
+        _objectives.Clear();
+        _bosses.Clear();
+        _finishReady = false;
+        foreach (var item in _rawItems)
+        {
+            DeriveItem(item);
+        }
+
+        if (_rawQuest != 0)
+        {
+            DeriveQuest(_rawQuest);
+        }
+
+        foreach (var field in _rawUpgrades.Keys)
+        {
+            DeriveUpgrade(field);
+        }
+
+        foreach (var actor in _rawBosses)
+        {
+            DeriveBoss(actor);
+        }
     }
 
     private bool ApplyStats(JsonElement? data)
@@ -285,21 +469,31 @@ public sealed class ZeldathonSession
             return false;
         }
 
-        var before = (_hearts, _maxHearts, _rupees, _skulltulas);
+        var before = (_hearts, _maxHearts, _rupees, _skulltulas, _age);
+        if (el.ValueKind == JsonValueKind.Object && el.TryGetProperty("age", out var age) && age.ValueKind == JsonValueKind.String)
+        {
+            _age = age.GetString() is "child" or "adult" ? age.GetString() : _age;
+        }
+
         _hearts = Num(el, "hearts") ?? _hearts;
         _maxHearts = Num(el, "maxHearts") ?? _maxHearts;
         _rupees = Num(el, "rupees") is { } r ? (long)r : _rupees;
         _skulltulas = Num(el, "skulltulas") is { } s ? (long)s : _skulltulas;
-        return before != (_hearts, _maxHearts, _rupees, _skulltulas);
+        return before != (_hearts, _maxHearts, _rupees, _skulltulas, _age);
     }
 
     private void NewRun()
     {
         _runId = Guid.NewGuid().ToString("N")[..8];
         _area = null;
+        _rawItems.Clear();
+        _rawBosses.Clear();
+        _rawQuest = 0;
+        _rawUpgrades.Clear();
         _items.Clear();
         _objectives.Clear();
         _bosses.Clear();
+        _age = null;
         _hearts = _maxHearts = null;
         _rupees = _skulltulas = null;
         _finishReady = false;
@@ -352,7 +546,7 @@ public sealed class ZeldathonSession
         }
 
         var ordered = OrderedObjectives();
-        var current = ZeldathonCatalog.Objectives.FirstOrDefault(o => !_objectives.Contains(o));
+        var current = Catalog.Objectives.FirstOrDefault(o => !_objectives.Contains(o));
         var progressKey = $"{ComputePercentage():0.##}|{string.Join(',', ordered)}|{current}|{_area}";
         if (progressKey != _sentProgress)
         {
@@ -376,6 +570,7 @@ public sealed class ZeldathonSession
         }
 
         var stats = new JsonObject();
+        if (_age != null) stats["age"] = _age;
         if (_hearts is { } h) stats["hearts"] = h;
         if (_maxHearts is { } m) stats["maxHearts"] = m;
         if (_rupees is { } r) stats["rupees"] = r;
@@ -389,7 +584,7 @@ public sealed class ZeldathonSession
             _sentStats = statsKey;
         }
 
-        if (_finishReady && !_sentFinished && ZeldathonCatalog.Objectives.All(_objectives.Contains))
+        if (_finishReady && !_sentFinished && (RequiredObjectives ?? Catalog.Required).All(_objectives.Contains))
         {
             _send(ZeldathonProtocol.Message("GAME_FINISHED", $"finish:{_runId}"));
             _sentFinished = true;
@@ -397,10 +592,12 @@ public sealed class ZeldathonSession
     }
 
     private List<string> OrderedObjectives() =>
-        ZeldathonCatalog.Objectives.Where(_objectives.Contains).ToList();
+        Catalog.Objectives.Where(_objectives.Contains).ToList();
 
     private double ComputePercentage() =>
-        Math.Round(_objectives.Count(ZeldathonCatalog.IsObjective) * 100.0 / ZeldathonCatalog.Objectives.Count, 1);
+        Catalog.Objectives.Count == 0
+            ? 0
+            : Math.Round(_objectives.Count(Catalog.IsObjective) * 100.0 / Catalog.Objectives.Count, 1);
 
     private static string Str(JsonElement? data, string name) =>
         data is { } el && el.ValueKind == JsonValueKind.Object && el.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String

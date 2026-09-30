@@ -1,6 +1,6 @@
 {
-  "_help": "Traduce lo que manda el juego (números del código de Ship of Harkinian) a los ids del catálogo de Zeldathon. Se puede editar sin recompilar el juego. Áreas y jefes son texto libre (≤64); ítems y objetivos deben existir en el catálogo de la web.",
-  "version": 1,
+  "_help": "Traduce lo que manda el juego (números del código de Ship of Harkinian) a los ids del catálogo de Zeldathon. Se puede editar sin recompilar el juego. Áreas y jefes son texto libre (≤64); los ítems y objetivos deben existir en el catálogo del servidor (lo que el organizador cree en el panel /admin); los que no existan se avisan en el log y no se envían.",
+  "version": 2,
 
   "_areas": "número de escena (SCENE_*) -> id de área",
   "areas": {
@@ -37,17 +37,74 @@
     "99": "lon-lon-ranch"
   },
 
-  "_items": "id de ítem del juego (ITEM_*) -> id de ítem del catálogo",
+  "_items": "id de ítem del juego (ITEM_*: inventario y equipo) -> id de ítem del catálogo",
   "items": {
     "2": "bombs",
     "3": "bow",
+    "4": "fire-arrows",
+    "5": "dins-fire",
+    "6": "fairy-slingshot",
+    "8": "ocarina-of-time",
+    "9": "bombchus",
     "10": "hookshot",
     "11": "longshot",
+    "12": "ice-arrows",
+    "13": "farores-wind",
     "14": "boomerang",
+    "15": "lens-of-truth",
     "17": "megaton-hammer",
+    "18": "light-arrows",
+    "19": "nayrus-love",
+    "20": "bottle",
+    "35": "zeldas-letter",
+    "43": "mask-of-truth",
+    "59": "kokiri-sword",
     "60": "master-sword",
+    "61": "biggoron-sword",
+    "62": "deku-shield",
+    "63": "hylian-shield",
     "64": "mirror-shield",
-    "69": "iron-boots"
+    "66": "goron-tunic",
+    "67": "zora-tunic",
+    "69": "iron-boots",
+    "70": "hover-boots"
+  },
+
+  "_questItems": "bit de questItems -> id de ítem: medallas, canciones, piedras espirituales, piedra del dolor y tarjeta gerudo",
+  "questItems": {
+    "0": "forest-medallion",
+    "1": "fire-medallion",
+    "2": "water-medallion",
+    "3": "spirit-medallion",
+    "4": "shadow-medallion",
+    "5": "light-medallion",
+    "6": "minuet-of-forest",
+    "7": "bolero-of-fire",
+    "8": "serenade-of-water",
+    "9": "requiem-of-spirit",
+    "10": "nocturne-of-shadow",
+    "11": "prelude-of-light",
+    "12": "zeldas-lullaby",
+    "13": "eponas-song",
+    "14": "sarias-song",
+    "15": "suns-song",
+    "16": "song-of-time",
+    "17": "song-of-storms",
+    "18": "kokiri-emerald",
+    "19": "goron-ruby",
+    "20": "zora-sapphire",
+    "21": "stone-of-agony",
+    "22": "gerudo-card"
+  },
+
+  "_upgrades": "campo del evento 'upgrades' -> { nivel mínimo: ítem }. Con nivel >= N se tiene el ítem de N",
+  "upgrades": {
+    "bombBag": { "1": "bomb-bag" },
+    "wallet": { "1": "wallet" },
+    "strength": { "1": "goron-bracelet", "2": "silver-gauntlets", "3": "golden-gauntlets" },
+    "scale": { "1": "silver-scale", "2": "golden-scale" },
+    "magic": { "1": "magic-meter" },
+    "doubleDefense": { "1": "double-defense" }
   },
 
   "_bosses": "id de actor del jefe (ACTOR_BOSS_*) -> id de jefe",
@@ -87,6 +144,6 @@
   "_gameProcesses": "nombre del proceso del juego (sin extensión): para cerrarlo cuando se acaba el tiempo y saber si sigue abierto",
   "gameProcesses": ["soh"],
 
-  "_finish": "al vencer a este jefe se avisa GAME_FINISHED (el servidor exige todos los objetivos)",
+  "_finish": "al vencer a este jefe se avisa GAME_FINISHED (el servidor exige los objetivos que pida el evento)",
   "finishBoss": "ganon"
 }
