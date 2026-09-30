@@ -34,6 +34,11 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
         LoadFromSettings();
         _service.StateChanged += _ => Dispatcher.UIThread.Post(RefreshStatus);
         _service.Client.MessageRejected += (_, _, _) => Dispatcher.UIThread.Post(RefreshStatus);
+        _service.Notice += message => Dispatcher.UIThread.Post(() =>
+        {
+            LastNotice = message;
+            _shell.Dialogs.Warn("Zeldathon", message);
+        });
         _tick = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _tick.Tick += (_, _) => RefreshLive();
         _tick.Start();
@@ -55,6 +60,7 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
     [ObservableProperty] private bool _toneError;
     [ObservableProperty] private string _lastError = "";
     [ObservableProperty] private string _traffic = "";
+    [ObservableProperty] private string _lastNotice = "";
     [ObservableProperty] private string _connectLabel = "Conectar";
 
     // ---- reloj oficial (vista en la página) ----

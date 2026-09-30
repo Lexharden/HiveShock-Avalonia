@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using HiveShock.Logging;
 
 namespace HiveShock.Zeldathon;
@@ -13,13 +14,17 @@ public sealed class ZeldathonService : IAsyncDisposable
     public const long DefaultBudgetSeconds = 4 * 3600;
 
     private readonly Func<Uri, CancellationToken, Task<string>> _fetch;
-    private readonly Timer _reconcileTimer;
+    private readonly Timer _tick;
+    private readonly IProcessControl _processes;
+    private long _chatPending;
+    private int _gameMissing;
 
     public ZeldathonService(
         ZeldathonSettings? settings = null,
         IZeldathonTransportFactory? factory = null,
         ZeldathonClientOptions? options = null,
-        Func<Uri, CancellationToken, Task<string>>? fetch = null)
+        Func<Uri, CancellationToken, Task<string>>? fetch = null,
+        IProcessControl? processes = null)
     {
         Settings = settings ?? ZeldathonSettings.Load();
         Clock = new ZeldathonClock();
@@ -38,8 +43,90 @@ public sealed class ZeldathonService : IAsyncDisposable
         Client.Connected += Session.OnConnected;
         Client.MessageRejected += (type, code, _) => Session.OnRejected(type, code);
         Clock.Changed += Session.Reconcile;
-        // Reintenta iniciar la sesión (el evento puede empezar después) sin depender de otro evento del juego.
-        _reconcileTimer = new Timer(_ => Session.Reconcile(), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+
+        _processes = processes ?? new SystemProcessControl();
+        Closer = new GameCloser(
+            ct => RequestGameQuit?.Invoke(ct) ?? Task.CompletedTask,
+            () => Session.Map.GameProcesses,
+            _processes);
+        Closer.Finished += (_, message) => Notice?.Invoke(message);
+        Client.ForceCloseRequested += () => _ = Closer.CloseAsync();
+
+        // Cada 5 s: reintenta iniciar la sesión (el evento puede empezar después), manda el chat contado
+        // y comprueba que el juego sigue abierto.
+        _tick = new Timer(_ => Tick(), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+    }
+
+    /// <summary>Cierra el juego cuando el servidor lo ordena (pide cierre limpio y, si hace falta, termina el proceso).</summary>
+    public GameCloser Closer { get; }
+
+    /// <summary>Pide al juego que se cierre limpiamente (acción <c>quit_game</c>). La pone quien conoce la conexión con el juego.</summary>
+    public Func<CancellationToken, Task>? RequestGameQuit { get; set; }
+
+    /// <summary>Aviso importante para el usuario (p. ej. "se acabó el tiempo, se cerró el juego").</summary>
+    public event Action<string>? Notice;
+
+    /// <summary>Cuenta mensajes de chat (TikTok y Twitch) para la métrica de HiveShock de la web.</summary>
+    public void CountChat(int count = 1)
+    {
+        if (count > 0)
+        {
+            Interlocked.Add(ref _chatPending, count);
+        }
+    }
+
+    /// <summary>Un paso del ciclo de 5 s. Público para poder probarlo sin esperar.</summary>
+    public void Tick()
+    {
+        Session.Reconcile();
+        FlushChat();
+        WatchGame();
+    }
+
+    private void FlushChat()
+    {
+        if (Client.State != ZeldathonConnectionState.Connected)
+        {
+            return;
+        }
+
+        var count = Interlocked.Exchange(ref _chatPending, 0);
+        if (count > 0)
+        {
+            Client.Send(ZeldathonProtocol.Message("CHAT_EVENT", fields: new JsonObject { ["count"] = (int)Math.Min(count, 1000) }));
+            if (count > 1000)
+            {
+                Interlocked.Add(ref _chatPending, count - 1000);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Si el juego se cierra sin avisar (ventana, fallo), el puerto de eventos no lo cuenta: se comprueba
+    /// el proceso y, tras dos revisiones seguidas sin él, se da la sesión por terminada.
+    /// </summary>
+    private void WatchGame()
+    {
+        var names = Session.Map.GameProcesses;
+        if (!Session.GameActive || names.Count == 0)
+        {
+            _gameMissing = 0;
+            return;
+        }
+
+        if (_processes.Find(names).Count > 0)
+        {
+            _gameMissing = 0;
+            return;
+        }
+
+        if (++_gameMissing >= 2)
+        {
+            _gameMissing = 0;
+            using var doc = JsonDocument.Parse("""{"event":"game_session","state":"exited"}""");
+            Session.OnGameEvent("game_session", doc.RootElement.Clone());
+            BridgeLog.Info("Zeldathon: el juego se cerró; sesión terminada.");
+        }
     }
 
     public ZeldathonSettings Settings { get; }
@@ -141,7 +228,7 @@ public sealed class ZeldathonService : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        await _reconcileTimer.DisposeAsync().ConfigureAwait(false);
+        await _tick.DisposeAsync().ConfigureAwait(false);
         await Client.DisposeAsync().ConfigureAwait(false);
     }
 

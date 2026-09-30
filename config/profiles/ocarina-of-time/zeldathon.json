@@ -84,6 +84,9 @@
     }
   },
 
+  "_gameProcesses": "nombre del proceso del juego (sin extensión): para cerrarlo cuando se acaba el tiempo y saber si sigue abierto",
+  "gameProcesses": ["soh"],
+
   "_finish": "al vencer a este jefe se avisa GAME_FINISHED (el servidor exige todos los objetivos)",
   "finishBoss": "ganon"
 }

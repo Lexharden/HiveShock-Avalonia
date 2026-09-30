@@ -101,6 +101,8 @@ public sealed class BridgeRuntime : IAsyncDisposable
         _events.Start();
         Zeldathon.LoadMap(profile.Directory, profile.Id);
         Zeldathon.Session.SnapshotWanted += () => _ = RequestGameSnapshotAsync();
+        Zeldathon.RequestGameQuit = ct => _gameClient.SendAsync(
+            new Dictionary<string, object?> { ["action"] = "quit_game", ["save"] = true }, ct);
     }
 
     /// <summary>Pide al juego que vuelva a mandar su estado completo. Si el juego no está abierto, no pasa nada.</summary>
@@ -493,6 +495,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
         builder.Services.AddSingleton(_gameClient);
         builder.Services.AddSingleton<EffectDispatcher>();
+        builder.Services.AddSingleton(Zeldathon);
         builder.Services.AddSingleton<LiveEffectRouter>();
         builder.Services.AddSingleton<CrowdControlServer>();
         builder.Services.AddHostedService<EffectPumpService>();

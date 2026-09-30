@@ -25,6 +25,7 @@ public sealed class LiveEffectRouter : IDisposable
     private readonly Timer _streakFlushTimer;
     private readonly ChatCommandGate _chatGate = new();
     private readonly FollowGate _followGate;
+    private readonly Zeldathon.ZeldathonService? _zeldathon;
     private long _followIgnored;
     private long _followIgnoredLogTicks;
     private readonly ConcurrentDictionary<string, byte> _seenUnmapped = new();
@@ -38,7 +39,8 @@ public sealed class LiveEffectRouter : IDisposable
         EffectDispatcher dispatcher,
         OverlayNotifier overlay,
         GiftGoalBank goals,
-        SmartVoiceManager? voice = null)
+        SmartVoiceManager? voice = null,
+        Zeldathon.ZeldathonService? zeldathon = null)
     {
         _options = options;
         _effects = effects;
@@ -48,6 +50,7 @@ public sealed class LiveEffectRouter : IDisposable
         _overlay = overlay;
         _goals = goals;
         _voice = voice;
+        _zeldathon = zeldathon;
         _followGate = new FollowGate();
         _streakFlushTimer = new Timer(
             _ => FlushStaleStreaks(),
@@ -64,6 +67,7 @@ public sealed class LiveEffectRouter : IDisposable
 
     public void HandleChat(string user, string? stableId, string text, CancellationToken ct, string portId)
     {
+        _zeldathon?.CountChat();
         if (_options.CaptureOnly)
         {
             return;

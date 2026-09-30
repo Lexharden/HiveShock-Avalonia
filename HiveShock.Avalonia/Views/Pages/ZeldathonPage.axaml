@@ -11,6 +11,12 @@
                        Text="Conecta HiveShock con la carrera: el reloj oficial y tu progreso se sincronizan con la página." />
             <ctl:SaveStatusChip DataContext="{Binding SaveStatus}" HorizontalAlignment="Left" Margin="0,0,0,12" />
 
+            <Border Classes="card" Margin="0,0,0,12" BorderBrush="{DynamicResource DangerBrush}"
+                    IsVisible="{Binding LastNotice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <TextBlock Text="{Binding LastNotice}" TextWrapping="Wrap" FontWeight="SemiBold"
+                           Foreground="{DynamicResource DangerBrush}" />
+            </Border>
+
             <TextBlock Classes="sectionTitle" Text="CONEXIÓN" />
             <Border Classes="card" Margin="0,0,0,16">
                 <StackPanel>

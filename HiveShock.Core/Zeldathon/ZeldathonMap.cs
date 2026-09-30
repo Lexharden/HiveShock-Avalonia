@@ -25,6 +25,9 @@ public sealed class ZeldathonMap
     /// <summary>Jefe (id de jefe) que completa un objetivo.</summary>
     public Dictionary<string, string> BossObjectives { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Nombres del proceso del juego (sin extensión), para cerrarlo o saber si sigue abierto.</summary>
+    public List<string> GameProcesses { get; } = [];
+
     /// <summary>Jefe cuya derrota termina el juego.</summary>
     public string FinishBoss { get; private set; } = "";
 
@@ -117,6 +120,17 @@ public sealed class ZeldathonMap
                     {
                         BridgeLog.Warn($"zeldathon.json: objetivo desconocido para el jefe «{prop.Name}»");
                     }
+                }
+            }
+        }
+
+        if (root.TryGetProperty("gameProcesses", out var procs) && procs.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var el in procs.EnumerateArray())
+            {
+                if (el.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(el.GetString()))
+                {
+                    GameProcesses.Add(el.GetString()!.Trim());
                 }
             }
         }
