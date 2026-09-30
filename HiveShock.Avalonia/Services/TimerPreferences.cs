@@ -10,7 +10,7 @@ public sealed class TimerPreferences
     public double Left { get; set; } = double.NaN;
     public double Top { get; set; } = double.NaN;
 
-    /// <summary>"official" = reloj del servidor de Zeldathon; "local" = cronómetro manual.</summary>
+    /// <summary>"official" = reloj del servidor de Zeldatón; "local" = cronómetro manual.</summary>
     public string Mode { get; set; } = "official";
 
     public string Label { get; set; } = "Tiempo restante";

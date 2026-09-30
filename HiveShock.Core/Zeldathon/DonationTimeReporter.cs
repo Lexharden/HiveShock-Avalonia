@@ -41,7 +41,7 @@ public sealed record DonationTimeEntry(
 
 /// <summary>
 /// Tiempo por donaciones: convierte regalos de TikTok (diamantes) y bits de Twitch en segundos con la
-/// tarifa del streamer y los manda al servidor de Zeldathon (TIME_DONATION), que es quien decide.
+/// tarifa del streamer y los manda al servidor de Zeldatón (TIME_DONATION), que es quien decide.
 /// Robusto ante cortes: cada donación se guarda en disco hasta que el servidor la confirma y se reenvía
 /// con el mismo id al reconectar o al volver a abrir HiveShock; el servidor nunca aplica dos veces un id.
 /// </summary>
@@ -172,7 +172,7 @@ public sealed class DonationTimeReporter
                         : "el organizador no permite que las donaciones resten tiempo";
                 if (_warned.Add(why))
                 {
-                    BridgeLog.Warn($"Zeldathon: {why}; las donaciones no cambian tu tiempo.");
+                    BridgeLog.Warn($"Zeldatón: {why}; las donaciones no cambian tu tiempo.");
                 }
 
                 Remember(new DonationTimeEntry("", _utcNow(), platform, what, viewer ?? "", 0, null, $"No enviado: {why}"));
@@ -206,7 +206,7 @@ public sealed class DonationTimeReporter
             {
                 var dropped = _journal.Pending.Count - MaxPending;
                 _journal.Pending.RemoveRange(0, dropped);
-                BridgeLog.Warn($"Zeldathon: {dropped} donaciones sin confirmar se descartaron (demasiadas pendientes).");
+                BridgeLog.Warn($"Zeldatón: {dropped} donaciones sin confirmar se descartaron (demasiadas pendientes).");
             }
 
             // Primero a disco: si HiveShock se cierra ahora, se reenvía al volver a abrirlo.
@@ -214,7 +214,7 @@ public sealed class DonationTimeReporter
             Remember(new DonationTimeEntry(pending.Id, pending.CreatedUtc, platform, what, viewer ?? "", pending.DeltaSeconds, null, "Enviando…"));
         }
 
-        BridgeLog.Info($"Zeldathon: {what} de {(string.IsNullOrWhiteSpace(viewer) ? "alguien" : viewer)} → {Signed(pending.DeltaSeconds)}");
+        BridgeLog.Info($"Zeldatón: {what} de {(string.IsNullOrWhiteSpace(viewer) ? "alguien" : viewer)} → {Signed(pending.DeltaSeconds)}");
         _send(pending.ToMessage());
         Changed?.Invoke();
         return true;
@@ -236,7 +236,7 @@ public sealed class DonationTimeReporter
 
         if (pending.Count > 0)
         {
-            BridgeLog.Info($"Zeldathon: reenviando {pending.Count} donaciones sin confirmar.");
+            BridgeLog.Info($"Zeldatón: reenviando {pending.Count} donaciones sin confirmar.");
         }
 
         foreach (var p in pending)
@@ -279,7 +279,7 @@ public sealed class DonationTimeReporter
                     break;
                 default:
                     status = "Rechazado: " + ZeldathonProtocol.Explain(reply.Code, reply.Message);
-                    BridgeLog.Warn($"Zeldathon rechazó una donación ({Signed(p.DeltaSeconds)}): {reply.Code} · {reply.Message}");
+                    BridgeLog.Warn($"Zeldatón rechazó una donación ({Signed(p.DeltaSeconds)}): {reply.Code} · {reply.Message}");
                     break;
             }
 
@@ -330,7 +330,7 @@ public sealed class DonationTimeReporter
         var removed = _journal.Pending.RemoveAll(p => p.CreatedUtc < limit);
         if (removed > 0)
         {
-            BridgeLog.Warn($"Zeldathon: {removed} donaciones sin confirmar de hace más de {MaxPendingAge.TotalHours:0} h se descartaron.");
+            BridgeLog.Warn($"Zeldatón: {removed} donaciones sin confirmar de hace más de {MaxPendingAge.TotalHours:0} h se descartaron.");
         }
 
         return removed > 0;

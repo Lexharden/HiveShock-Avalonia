@@ -228,7 +228,7 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
-        // Zeldathon: los bits pueden sumar o restar tiempo de la carrera (según la tarifa del streamer).
+        // Zeldatón: los bits pueden sumar o restar tiempo de la carrera (según la tarifa del streamer).
         _zeldathon?.Donations.OnTwitchBits(Viewer(user), bits);
 
         _voice?.Enqueue(new TtsMessage(LivePortIds.Twitch, Viewer(user), "", DateTime.UtcNow)
@@ -437,7 +437,7 @@ public sealed class LiveEffectRouter : IDisposable
     }
 
     /// <summary>
-    /// Zeldathon: el regalo (el combo entero, una vez) puede sumar o restar tiempo de la carrera. Si
+    /// Zeldatón: el regalo (el combo entero, una vez) puede sumar o restar tiempo de la carrera. Si
     /// TikTok no mandó el precio se toma del catálogo (diamantes por unidad × cantidad).
     /// </summary>
     private void ReportDonationTime(string user, string giftLabel, string id, int repeat, long diamonds)

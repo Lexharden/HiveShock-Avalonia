@@ -327,7 +327,7 @@ public sealed class ZeldathonSession
     {
         if (_warnedUnknown.Add($"{what}:{id}"))
         {
-            Logging.BridgeLog.Warn($"Zeldathon: el servidor no conoce el {what} «{id}» (zeldathon.json); no se enviará.");
+            Logging.BridgeLog.Warn($"Zeldatón: el servidor no conoce el {what} «{id}» (zeldathon.json); no se enviará.");
         }
     }
 

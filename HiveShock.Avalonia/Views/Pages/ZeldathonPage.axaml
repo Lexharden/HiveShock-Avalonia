@@ -6,7 +6,7 @@
              x:DataType="vm:ZeldathonViewModel">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="640" HorizontalAlignment="Left">
-            <TextBlock Classes="pageTitle" Text="Zeldathon" />
+            <TextBlock Classes="pageTitle" Text="Zeldatón" />
             <TextBlock Classes="pageLead"
                        Text="Conecta HiveShock con la carrera: el reloj oficial y tu progreso se sincronizan con la página." />
             <ctl:SaveStatusChip DataContext="{Binding SaveStatus}" HorizontalAlignment="Left" Margin="0,0,0,12" />

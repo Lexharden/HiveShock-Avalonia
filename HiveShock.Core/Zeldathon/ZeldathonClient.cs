@@ -36,7 +36,7 @@ public sealed class ZeldathonClientOptions
 }
 
 /// <summary>
-/// Cliente de ingesta de Zeldathon: mantiene la conexión (con reconexión y latidos), entrega el reloj
+/// Cliente de ingesta de Zeldatón: mantiene la conexión (con reconexión y latidos), entrega el reloj
 /// oficial a <see cref="ZeldathonClock"/> y envía los mensajes del juego. Todo mensaje lleva id y queda
 /// pendiente hasta que el servidor lo confirma, así un reintento tras una caída nunca aplica algo dos veces.
 /// </summary>
@@ -184,7 +184,7 @@ public sealed class ZeldathonClient : IAsyncDisposable
             catch (ZeldathonAuthException ex)
             {
                 LastError = "El servidor no aceptó el token. Revísalo en la página de Zeldathon.";
-                BridgeLog.Warn($"Zeldathon: {ex.Message}");
+                BridgeLog.Warn($"Zeldatón: {ex.Message}");
                 _clock.MarkDisconnected();
                 SetState(ZeldathonConnectionState.AuthFailed);
                 return;
@@ -294,7 +294,7 @@ public sealed class ZeldathonClient : IAsyncDisposable
                 Replied?.Invoke(msg);
                 return false;
             case ZeldathonInboundKind.ForceClose:
-                BridgeLog.Warn("Zeldathon: el tiempo del día se agotó, hay que cerrar el juego.");
+                BridgeLog.Warn("Zeldatón: el tiempo del día se agotó, hay que cerrar el juego.");
                 ForceCloseRequested?.Invoke();
                 return false;
             case ZeldathonInboundKind.Error:
@@ -317,7 +317,7 @@ public sealed class ZeldathonClient : IAsyncDisposable
         Interlocked.Increment(ref _rejected);
         var text = ZeldathonProtocol.Explain(msg.Code, msg.Message);
         LastError = text;
-        BridgeLog.Warn($"Zeldathon rechazó {(type.Length > 0 ? type : "un mensaje")}: {msg.Code} · {msg.Message}");
+        BridgeLog.Warn($"Zeldatón rechazó {(type.Length > 0 ? type : "un mensaje")}: {msg.Code} · {msg.Message}");
         MessageRejected?.Invoke(type, msg.Code, text);
         if (msg.Id != null)
         {

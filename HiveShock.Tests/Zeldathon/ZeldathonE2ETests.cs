@@ -7,7 +7,7 @@ using HiveShock.Zeldathon;
 namespace HiveShock.Tests.Zeldathon;
 
 /// <summary>
-/// Prueba de punta a punta contra un servidor de Zeldathon REAL (el del repo Zeldaton-web en local). Solo corre
+/// Prueba de punta a punta contra un servidor de Zeldatón REAL (el del repo Zeldaton-web en local). Solo corre
 /// si están estas variables; si no, pasa sin hacer nada:
 ///   ZELDATHON_E2E_URL=http://127.0.0.1:8080  ZELDATHON_E2E_TOKEN=&lt;token de "cuaco"&gt;  ZELDATHON_E2E_ADMIN=&lt;ADMIN_TOKEN&gt;
 /// Cambia el estado del evento y del corredor "cuaco": usar solo con una base de datos de desarrollo.

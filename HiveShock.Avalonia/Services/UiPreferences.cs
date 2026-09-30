@@ -30,7 +30,7 @@ public sealed class UiPreferences
     /// <summary>Guarda solo (con una pequeña espera) los cambios de regalos, metas y eventos.</summary>
     public bool AutoSaveEnabled { get; set; } = true;
 
-    /// <summary>Cronómetro en pantalla (reloj oficial de Zeldathon o cronómetro local).</summary>
+    /// <summary>Cronómetro en pantalla (reloj oficial de Zeldatón o cronómetro local).</summary>
     public TimerPreferences Timer { get; set; } = new();
 
     public string GiftsOverlayTitle { get; set; } = "Regalos";

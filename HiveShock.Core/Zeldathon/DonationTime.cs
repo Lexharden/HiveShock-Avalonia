@@ -44,7 +44,7 @@ public sealed class DonationTimeRule
     public string Signature => $"{Units}:{Seconds}";
 }
 
-/// <summary>Ajustes de "tiempo por donaciones" del streamer (se guardan con la conexión de Zeldathon).</summary>
+/// <summary>Ajustes de "tiempo por donaciones" del streamer (se guardan con la conexión de Zeldatón).</summary>
 public sealed class DonationTimeSettings
 {
     public bool Enabled { get; set; }

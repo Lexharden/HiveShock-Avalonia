@@ -7,7 +7,7 @@ using HiveShock.Zeldathon;
 
 namespace HiveShock.Avalonia.ViewModels;
 
-/// <summary>Página Zeldathon: conexión con el servidor de la carrera y ajustes del cronómetro en pantalla.</summary>
+/// <summary>Página Zeldatón: conexión con el servidor de la carrera y ajustes del cronómetro en pantalla.</summary>
 public sealed partial class ZeldathonViewModel : ViewModelBase
 {
     /// <summary>Solo estas propiedades son ajustes del usuario (el resto es estado en pantalla y no dispara guardado).</summary>
@@ -32,7 +32,7 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
         _shell = shell;
         _service = shell.Runtime.Zeldathon;
         SaveStatus = new SaveStatusViewModel(shell.Prefs);
-        AutoSaver = new AutoSaver(SaveStatus, _ => SaveAll(), "Ajustes de Zeldathon");
+        AutoSaver = new AutoSaver(SaveStatus, _ => SaveAll(), "Ajustes de Zeldatón");
         AutoSaver.Track(this, name => !Editable.Contains(name ?? ""));
 
         LoadFromSettings();
@@ -41,7 +41,7 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
         _service.Notice += message => Dispatcher.UIThread.Post(() =>
         {
             LastNotice = message;
-            _shell.Dialogs.Warn("Zeldathon", message);
+            _shell.Dialogs.Warn("Zeldatón", message);
         });
         _service.Donations.Changed += () => Dispatcher.UIThread.Post(RefreshDonations);
         _tick = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };

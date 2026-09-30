@@ -10,7 +10,7 @@ using HiveShock.Zeldathon;
 
 namespace HiveShock.Avalonia.Views.Overlays;
 
-/// <summary>Cronómetro en pantalla para OBS: reloj oficial de Zeldathon o cronómetro local.</summary>
+/// <summary>Cronómetro en pantalla para OBS: reloj oficial de Zeldatón o cronómetro local.</summary>
 public sealed class TimerOverlayWindow : Window
 {
     private const double BaseWidth = 300;

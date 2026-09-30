@@ -5,7 +5,7 @@ using HiveShock.Zeldathon;
 namespace HiveShock.Avalonia.Services;
 
 /// <summary>
-/// Da al overlay lo que tiene que pintar en cada instante: el reloj oficial de Zeldathon o el
+/// Da al overlay lo que tiene que pintar en cada instante: el reloj oficial de Zeldatón o el
 /// cronómetro local, según <see cref="TimerPreferences.Mode"/>. Los ajustes se leen en cada llamada,
 /// así cualquier cambio se ve al momento sin volver a crear nada.
 /// </summary>
@@ -23,7 +23,7 @@ public sealed class TimerSource
 
     public LocalStopwatch Local { get; }
 
-    /// <summary>Siempre el reloj oficial (lo que ve la página de Zeldathon), sin importar el modo elegido.</summary>
+    /// <summary>Siempre el reloj oficial (lo que ve la página de Zeldatón), sin importar el modo elegido.</summary>
     public TimerDisplay CurrentOfficial() =>
         TimerDisplayBuilder.Official(_zeldathon.Clock, BuildOptions(), _zeldathon.State);
 

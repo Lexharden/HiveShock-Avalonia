@@ -6,7 +6,7 @@ using HiveShock.Logging;
 namespace HiveShock.Zeldathon;
 
 /// <summary>
-/// Punto único de Zeldathon dentro de HiveShock: ajustes, reloj oficial y conexión. Vive fuera del
+/// Punto único de Zeldatón dentro de HiveShock: ajustes, reloj oficial y conexión. Vive fuera del
 /// puente (se puede ver el cronómetro oficial solo con el token, sin abrir el juego ni el live).
 /// </summary>
 public sealed class ZeldathonService : IAsyncDisposable
@@ -159,7 +159,7 @@ public sealed class ZeldathonService : IAsyncDisposable
             _gameMissing = 0;
             using var doc = JsonDocument.Parse("""{"event":"game_session","state":"exited"}""");
             Session.OnGameEvent("game_session", doc.RootElement.Clone());
-            BridgeLog.Info("Zeldathon: el juego se cerró; sesión terminada.");
+            BridgeLog.Info("Zeldatón: el juego se cerró; sesión terminada.");
         }
     }
 
@@ -176,7 +176,7 @@ public sealed class ZeldathonService : IAsyncDisposable
         Session.Map = ZeldathonMap.LoadForProfile(profileDirectory, profileId);
         if (Session.Map.IsEmpty)
         {
-            BridgeLog.Info("Zeldathon: este perfil no tiene zeldathon.json; no se enviará progreso del juego.");
+            BridgeLog.Info("Zeldatón: este perfil no tiene zeldathon.json; no se enviará progreso del juego.");
         }
     }
 
@@ -209,14 +209,14 @@ public sealed class ZeldathonService : IAsyncDisposable
         Client.Start(uri, Settings.Token.Trim());
         _ = RefreshEventAsync();
         _ = RefreshCatalogAsync();
-        BridgeLog.Info($"Zeldathon: conectando a {uri.Host}");
+        BridgeLog.Info($"Zeldatón: conectando a {uri.Host}");
         return null;
     }
 
     public void Disconnect()
     {
         Client.Stop();
-        BridgeLog.Info("Zeldathon desconectado");
+        BridgeLog.Info("Zeldatón desconectado");
     }
 
     /// <summary>Arranque de HiveShock: conecta sola si el usuario lo dejó así.</summary>
@@ -227,7 +227,7 @@ public sealed class ZeldathonService : IAsyncDisposable
             var error = Connect();
             if (error != null)
             {
-                BridgeLog.Warn($"Zeldathon: {error}");
+                BridgeLog.Warn($"Zeldatón: {error}");
             }
         }
     }
@@ -287,7 +287,7 @@ public sealed class ZeldathonService : IAsyncDisposable
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // Sin /api/event el cronómetro sigue funcionando con el presupuesto por defecto.
-            BridgeLog.Warn($"Zeldathon: no se pudo leer el evento ({ex.Message})");
+            BridgeLog.Warn($"Zeldatón: no se pudo leer el evento ({ex.Message})");
         }
     }
 
@@ -308,12 +308,12 @@ public sealed class ZeldathonService : IAsyncDisposable
             if (catalog.Version != Session.Catalog.Version)
             {
                 Session.Catalog = catalog;
-                BridgeLog.Info($"Zeldathon: catálogo actualizado ({catalog.Items.Count} ítems, {catalog.Objectives.Count} objetivos)");
+                BridgeLog.Info($"Zeldatón: catálogo actualizado ({catalog.Items.Count} ítems, {catalog.Objectives.Count} objetivos)");
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            BridgeLog.Warn($"Zeldathon: no se pudo leer el catálogo ({ex.Message})");
+            BridgeLog.Warn($"Zeldatón: no se pudo leer el catálogo ({ex.Message})");
         }
     }
 

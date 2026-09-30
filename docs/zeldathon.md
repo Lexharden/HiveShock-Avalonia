@@ -1,4 +1,4 @@
-# Zeldathon en HiveShock
+# Zeldatón en HiveShock
 
 HiveShock se conecta al servidor de la carrera (repo `Zeldaton-web`: backend en Rust + web en Vue) para
 sincronizar el reloj oficial y enviar lo que pasa en el juego. El servidor es la **única autoridad** del
@@ -7,11 +7,11 @@ tiempo, del ranking y del ganador: HiveShock cuenta hechos y muestra el reloj of
 ```
 Juego (Shipwright) ──JSON líneas :43002──▶ HiveShock ──WSS /ingest (token)──▶ servidor ──REST + WS──▶ web
       ▲  acciones :43000                        │  ▲ CLOCK · GAME_FORCE_CLOSE · ACK · ERROR
-      └── quit_game · request_snapshot ◀────────┘  └──▶ cronómetro en pantalla + página «Zeldathon»
+      └── quit_game · request_snapshot ◀────────┘  └──▶ cronómetro en pantalla + página «Zeldatón»
 ```
 
 ## Para el corredor
-1. Menú **Zeldathon**: pega la dirección del servidor y **tu token** (te lo da el organizador; es solo tuyo).
+1. Menú **Zeldatón**: pega la dirección del servidor y **tu token** (te lo da el organizador; es solo tuyo).
 2. **Conectar**. Con «Conectar automáticamente» queda listo cada vez que abres HiveShock.
 3. Abre el juego con HiveShock activado en Enhancements y carga tu partida: la sesión y el reloj empiezan solos.
 4. **Cronómetro en pantalla**: casilla en Inicio → Pantalla o en la página Zeldathon. Modo *reloj oficial* (cuenta
@@ -73,7 +73,7 @@ Si un perfil no trae el archivo se usa la copia de fábrica incluida en el progr
 ## Tiempo por donaciones
 Los regalos de TikTok (diamantes) y los bits de Twitch pueden **sumar o restar tiempo** del reloj oficial.
 
-* **El streamer** elige en la página Zeldathon, por plataforma: suman o restan, «cada N diamantes/bits = S segundos»,
+* **El streamer** elige en la página Zeldatón, por plataforma: suman o restan, «cada N diamantes/bits = S segundos»,
   un mínimo y un tope propio por donación (`Donations` en `.hiveshock-zeldathon.json`).
 * **El organizador** pone los límites en `/admin → Evento` (activar, sumar/restar, tope por donación, topes diarios por
   corredor). HiveShock los lee de `/api/event` (`donationTime`) y no envía lo que no se permite; el servidor los aplica

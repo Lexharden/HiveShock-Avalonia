@@ -6,10 +6,10 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [2.2.0-zeldathon.2] - 2026-09-30
 
-Edición especial para los streamers de Zeldathon (no pública).
+Edición especial para los streamers de Zeldatón (no pública).
 
 ### Tiempo por donaciones
-* **Los regalos de TikTok y los bits de Twitch pueden sumar o restar tiempo de la carrera.** En Zeldathon → «Tiempo por donaciones» eliges, para cada plataforma, si suman o restan y cuánto valen («cada 1 diamante = 1 segundo», «cada 100 bits = 60 segundos»), un mínimo para ignorar donaciones pequeñas y un tope propio por donación. Se ven ejemplos con tu tarifa.
+* **Los regalos de TikTok y los bits de Twitch pueden sumar o restar tiempo de la carrera.** En Zeldatón → «Tiempo por donaciones» eliges, para cada plataforma, si suman o restan y cuánto valen («cada 1 diamante = 1 segundo», «cada 100 bits = 60 segundos»), un mínimo para ignorar donaciones pequeñas y un tope propio por donación. Se ven ejemplos con tu tarifa.
 * Un combo de TikTok cuenta una vez con todos sus diamantes; si TikTok no manda el precio se toma del catálogo. Las fracciones no se pierden (diez Rosas a «cada 10 diamantes = 1 s» suman 1 s).
 * El servidor de la carrera aplica el cambio al reloj oficial dentro de los límites del organizador (activar, sumar/restar, tope por donación y topes diarios) y dice cuánto se aplicó de verdad; la página muestra las últimas donaciones y el total confirmado.
 * A prueba de cortes: cada donación se guarda en disco hasta que el servidor la confirma y se reenvía sola al reconectar o al volver a abrir HiveShock; el servidor nunca aplica dos veces la misma. Las pendientes de más de 12 h se descartan.
@@ -19,9 +19,9 @@ Edición especial para los streamers de Zeldathon (no pública).
 
 Edición especial para los streamers del evento Zeldathon. No es una versión pública: se entrega directamente a los participantes y no se publica en Releases.
 
-### Zeldathon
+### Zeldatón
 * **Cronómetro en pantalla**: nuevo overlay para OBS con el reloj oficial de la carrera (cuenta atrás del día, estado en vivo/pausado/agotado, avisos de color a 30 y 5 minutos, barra de tiempo usado y «reinicia en») o un cronómetro manual (sube o baja). Se personaliza como los demás overlays.
-* **Página Zeldathon**: conecta HiveShock con el servidor de la carrera con tu token. El reloj oficial se sincroniza (y se congela al perder conexión), y tu progreso, ítems, jefes, corazones, rupias, chat y espectadores aparecen solos en la web. Reconexión automática.
+* **Página Zeldatón**: conecta HiveShock con el servidor de la carrera con tu token. El reloj oficial se sincroniza (y se congela al perder conexión), y tu progreso, ítems, jefes, corazones, rupias, chat y espectadores aparecen solos en la web. Reconexión automática.
 * Cuando se acaba el tiempo del día el servidor ordena cerrar el juego: cierre limpio (guarda la partida) y, si hace falta, forzado. Detalles en `docs/zeldathon.md`.
 * Perfil Ocarina of Time: `zeldathon.json` traduce lo que manda el juego a los ids de la carrera (editable sin recompilar). Ahora cubre unos 60 ítems (armas, escudos, túnicas, botas, flechas, hechizos, mejoras, canciones, medallas, piedras) y el Link que se está jugando (niño/adulto).
 * El catálogo de ítems y objetivos lo administra el organizador en el servidor; HiveShock lo descarga al conectar y solo envía lo que el servidor conoce, y termina el juego con los objetivos que exige el evento.

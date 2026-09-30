@@ -43,7 +43,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
     public GiftGoalBank Goals { get; } = new();
     public LivePortHub Ports { get; } = new();
 
-    /// <summary>Conexión con el servidor de Zeldathon (reloj oficial y telemetría). Vive fuera del puente.</summary>
+    /// <summary>Conexión con el servidor de Zeldatón (reloj oficial y telemetría). Vive fuera del puente.</summary>
     public ZeldathonService Zeldathon { get; } = new();
 
     /// <summary>
@@ -341,7 +341,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
     private void OnGameEvent(object? sender, GameEventArgs e)
     {
-        // Telemetría para Zeldathon (escena, ítems, jefes, stats…); los eventos de muerte los ignora.
+        // Telemetría para Zeldatón (escena, ítems, jefes, stats…); los eventos de muerte los ignora.
         Zeldathon.Session.OnGameEvent(e.Event, e.Data);
 
         if (!_profile.Info.SupportsDeathEvents)

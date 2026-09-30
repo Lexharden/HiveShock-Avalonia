@@ -137,7 +137,7 @@ public sealed class GameCloser
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                BridgeLog.Warn($"Zeldathon: no se pudo pedir el cierre al juego ({ex.Message})");
+                BridgeLog.Warn($"Zeldatón: no se pudo pedir el cierre al juego ({ex.Message})");
             }
 
             if (names.Count == 0)
@@ -175,7 +175,7 @@ public sealed class GameCloser
 
     private GameCloseOutcome Report(GameCloseOutcome outcome, string message)
     {
-        BridgeLog.Warn($"Zeldathon: {message}");
+        BridgeLog.Warn($"Zeldatón: {message}");
         Finished?.Invoke(outcome, message);
         return outcome;
     }
