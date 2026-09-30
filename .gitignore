@@ -20,3 +20,6 @@ TestResults/
 *.keystore.pass
 *.jks
 
+
+# Restos del resolvedor de SDK de Visual Studio / Rider
+*.proj.Backup.tmp
