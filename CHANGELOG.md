@@ -4,6 +4,22 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+### Zeldathon
+* **Cronómetro en pantalla**: nuevo overlay para OBS con el reloj oficial de la carrera (cuenta atrás del día, estado en vivo/pausado/agotado, avisos de color a 30 y 5 minutos, barra de tiempo usado y «reinicia en») o un cronómetro manual (sube o baja). Se personaliza como los demás overlays.
+* **Página Zeldathon**: conecta HiveShock con el servidor de la carrera con tu token. El reloj oficial se sincroniza (y se congela al perder conexión), y tu progreso, ítems, jefes, corazones, rupias, chat y espectadores aparecen solos en la web. Reconexión automática.
+* Cuando se acaba el tiempo del día el servidor ordena cerrar el juego: cierre limpio (guarda la partida) y, si hace falta, forzado. Detalles en `docs/zeldathon.md`.
+* Perfil Ocarina of Time: `zeldathon.json` traduce lo que manda el juego a los ids de la carrera (editable sin recompilar).
+
+### Guardado
+* **Guardado automático** en Regalos, Metas y Eventos con una etiqueta que dice si se guardó (verde), está pendiente (dorada) o falló (roja). Se puede desactivar. Perfil y efectos siguen guardándose solo con su botón.
+* Metas: botón **Del catálogo** para añadir regalos a una meta.
+
+### Seguidores
+* **Anti-spam de seguir**: cada usuario dispara el efecto de seguir una sola vez (TikTok y Twitch), aunque siga y deje de seguir en bucle. Se recuerda entre directos; opción y botón «Olvidar seguidores» en Eventos.
+
+### Correcciones
+* Limpiar la caché de imágenes de regalos ya no provoca «Cannot access a disposed object» en los overlays.
+
 ## [2.1.2-alpha.1] - 2026-09-26
 
 * **Vistos pasa a llamarse Catálogo**: ya muestra todos los regalos de TikTok, no solo los que salieron en tus lives.

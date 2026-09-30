@@ -143,6 +143,7 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
     private readonly LiveEffectRouter _router;
     private readonly LivePortHub _hub;
     private readonly SmartVoiceManager? _voice;
+    private readonly HiveShock.Zeldathon.ZeldathonService? _zeldathon;
 #if DEBUG
     private readonly HiveShock.Live.LiveDiagnosticSink? _diagnostics;
 #endif
@@ -152,12 +153,14 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         GiftCatalogStore catalog,
         LiveEffectRouter router,
         LivePortHub hub,
-        SmartVoiceManager? voice = null
+        SmartVoiceManager? voice = null,
+        HiveShock.Zeldathon.ZeldathonService? zeldathon = null
 #if DEBUG
         , HiveShock.Live.LiveDiagnosticSink? diagnostics = null
 #endif
         )
     {
+        _zeldathon = zeldathon;
         _options = options;
         _catalog = catalog;
         _router = router;
@@ -282,7 +285,10 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         };
 
         client.OnDisconnected += () =>
+        {
+            _zeldathon?.Stream.SetViewers(null);
             BridgeLog.Warn("TikTok desconectado");
+        };
 
         client.OnReconnecting += info =>
             BridgeLog.Warn($"TikTok reconectando {info.Attempt}/{info.MaxRetries}");
@@ -290,9 +296,11 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         client.OnLiveEnded += _ =>
         {
             _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Ended, "Live cerrado");
+            _zeldathon?.Stream.SetViewers(null);
             BridgeLog.Info("TikTok live terminado");
         };
 
+        client.OnRoomUserSeq += room => _zeldathon?.Stream.SetViewers(room.ViewerCount);
         client.OnGift += gift => _router.HandleTikTokGift(gift, ct);
         client.OnLike += like =>
             _router.HandleLike(ViewerName(like.User), like.LikeCount > 0 ? like.LikeCount : 1, ct);

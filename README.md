@@ -75,6 +75,11 @@ Usa el mismo endpoint que el proyecto `edge-tts`; no hay API oficial. `Sec-MS-GE
 - **Voces propias**: cualquier par `nombre.onnx` + `nombre.onnx.json` copiado a `voices/` (o a una subcarpeta) se reconoce como voz; idioma, calidad y hablantes se leen del `.onnx.json`. En la UI: «Abrir carpeta de voces» → copiar → «Buscar voces nuevas».
 - **Librerías faltantes**: si `piper.exe` termina con `0xC0000135`, `0xC000007B` o `0xC0000142` (Windows no pudo cargar una DLL), se lanza `PiperDependencyException` y la UI ofrece descargar el [Visual C++ Redistributable x64](https://aka.ms/vs/17/release/vc_redist.x64.exe) o reinstalar el motor. Ojo al probarlo: Windows 11 trae su propio `onnxruntime.dll` en `System32`, así que quitar ese archivo no reproduce el fallo.
 
+## Zeldathon
+
+Conexión con el servidor de la carrera (reloj oficial, cronómetro en pantalla, progreso del juego y cierre al agotarse
+el tiempo). Ver [docs/zeldathon.md](docs/zeldathon.md).
+
 ## Datos del usuario
 
 Preferencias (contador de muertes, tema, overlays) y configuración de voz se guardan con `UserDataStore` en **dos sitios**: la carpeta de datos del usuario (`%LOCALAPPDATA%\HiveShock` en Windows, `~/Library/Application Support/HiveShock` en macOS, `~/.local/share/HiveShock` en Linux), que ninguna actualización toca, y una copia junto al ejecutable. Cada guardado es atómico y deja un `.bak`; al abrir se usa la copia válida más reciente. Piper vive en `…/HiveShock/piper/`.

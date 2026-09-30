@@ -101,6 +101,8 @@ public sealed class BridgeRuntime : IAsyncDisposable
         _events.Start();
         Zeldathon.LoadMap(profile.Directory, profile.Id);
         Zeldathon.Session.SnapshotWanted += () => _ = RequestGameSnapshotAsync();
+        Zeldathon.IsBroadcasting = () => Ports.AnyLive();
+        Ports.Changed += Zeldathon.RefreshStream;
         Zeldathon.RequestGameQuit = ct => _gameClient.SendAsync(
             new Dictionary<string, object?> { ["action"] = "quit_game", ["save"] = true }, ct);
     }

@@ -40,7 +40,9 @@ public sealed class ZeldathonService : IAsyncDisposable
 
         Session = new ZeldathonSession(Clock, Client.Send, Client.RequestClock);
         Client.GameRunning = () => Session.GameActive;
+        Stream = new StreamReporter(() => IsBroadcasting(), Client.Send);
         Client.Connected += Session.OnConnected;
+        Client.Connected += Stream.Forget;
         Client.MessageRejected += (type, code, _) => Session.OnRejected(type, code);
         Clock.Changed += Session.Reconcile;
 
@@ -56,6 +58,12 @@ public sealed class ZeldathonService : IAsyncDisposable
         // y comprueba que el juego sigue abierto.
         _tick = new Timer(_ => Tick(), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
     }
+
+    /// <summary>Directo y espectadores del corredor → STREAM_STATE.</summary>
+    public StreamReporter Stream { get; }
+
+    /// <summary>Dice si TikTok o Twitch están en directo. La pone quien conoce los canales del live.</summary>
+    public Func<bool> IsBroadcasting { get; set; } = () => false;
 
     /// <summary>Cierra el juego cuando el servidor lo ordena (pide cierre limpio y, si hace falta, termina el proceso).</summary>
     public GameCloser Closer { get; }
@@ -81,7 +89,11 @@ public sealed class ZeldathonService : IAsyncDisposable
         Session.Reconcile();
         FlushChat();
         WatchGame();
+        RefreshStream();
     }
+
+    /// <summary>Manda el estado del directo si cambió (se llama al cambiar un canal y cada 5 s).</summary>
+    public void RefreshStream() => Stream.Tick(Client.State == ZeldathonConnectionState.Connected);
 
     private void FlushChat()
     {
