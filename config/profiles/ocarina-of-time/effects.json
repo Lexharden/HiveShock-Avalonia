@@ -56,6 +56,7 @@
   "hearts": { "action": "hearts" },
   "invert": { "action": "invert", "duration": 20 },
   "speed": { "action": "speed", "duration": 20, "strength": 2 },
+  "slow_down": { "action": "slow", "duration": 20, "strength": 0.5 },
   "invincible": { "action": "invincible", "duration": 20 },
   "infinite_magic": { "action": "infinite_magic", "duration": 20 },
   "damage_up": { "action": "damage_up", "duration": 20, "strength": 3 },
