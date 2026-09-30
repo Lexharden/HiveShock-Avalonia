@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ctl="using:HiveShock.Avalonia.Views.Controls"
              xmlns:vm="using:HiveShock.Avalonia.ViewModels"
              xmlns:conv="using:HiveShock.Avalonia.Converters"
              x:Class="HiveShock.Avalonia.Views.Pages.TikTokPage"
@@ -52,6 +53,7 @@
                             <Button Classes="secondary" Content="Quitar" Command="{Binding Goals.RemoveCommand}" />
                             <Button Classes="secondary" Content="Poner a 0" Command="{Binding Goals.ResetSelectedCommand}" />
                             <Button Classes="secondary" Content="Simular +1" Command="{Binding Goals.SimulateCommand}" />
+                            <ctl:SaveStatusChip DataContext="{Binding Goals.SaveStatus}" Margin="8,0,0,8" />
                         </WrapPanel>
                     </StackPanel>
                     <ListBox Grid.Row="1" ItemsSource="{Binding Goals.Rows}"
@@ -75,7 +77,13 @@
                                     </DockPanel>
                                     <TextBlock Classes="fieldLabel" Text="Regalos que cuentan (nombres o IDs, coma)"
                                                Margin="0,8,0,4" />
-                                    <TextBox Text="{Binding GiftsText}" />
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Classes="secondary" Content="Del catálogo"
+                                                Margin="8,0,0,0"
+                                                Command="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).Goals.AddGiftFromCatalogCommand}"
+                                                CommandParameter="{Binding}" />
+                                        <TextBox Text="{Binding GiftsText}" />
+                                    </DockPanel>
                                     <ComboBox Margin="0,8,0,0"
                                               ItemsSource="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).Goals.EffectsWithNone}"
                                               SelectedValue="{Binding Effect}"
@@ -179,6 +187,7 @@
                                     </ListBox.ItemTemplate>
                                 </ListBox>
 
+                                <ctl:SaveStatusChip DataContext="{Binding ProfileEditor.SaveStatus}" HorizontalAlignment="Left" Margin="0,12,0,0" />
                                 <Button Classes="primary" Content="Guardar profile.json" Margin="0,12,0,0"
                                         HorizontalAlignment="Left" Command="{Binding ProfileEditor.SaveProfileCommand}"
                                         IsEnabled="{Binding ProfileEditor.CanEditProfile}" />
@@ -264,6 +273,7 @@
                                         </StackPanel>
                                     </Border>
                                 </Grid>
+                                <ctl:SaveStatusChip DataContext="{Binding ProfileEditor.SaveStatus}" HorizontalAlignment="Left" Margin="0,12,0,0" />
                                 <Button Classes="primary" Content="Guardar effects.json" Margin="0,12,0,0"
                                         HorizontalAlignment="Left" Command="{Binding ProfileEditor.SaveEffectsCommand}"
                                         IsEnabled="{Binding ProfileEditor.CanEditEffects}" />
@@ -282,6 +292,7 @@
             <TabItem Header="Chat">
                 <Grid RowDefinitions="Auto,*,Auto,*" Margin="0,8,0,0">
                     <StackPanel>
+                        <ctl:SaveStatusChip DataContext="{Binding Events.SaveStatus}" HorizontalAlignment="Left" Margin="0,0,0,8" />
                         <TextBlock Classes="sectionTitle" Text="PALABRAS DEL CHAT" />
                         <CheckBox Content="Activar" IsChecked="{Binding Events.ChatEnabled}" />
                         <WrapPanel Margin="0,8,0,0">

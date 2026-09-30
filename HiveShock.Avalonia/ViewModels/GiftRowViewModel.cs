@@ -34,6 +34,9 @@ public sealed partial class GiftRowViewModel : ObservableObject
 
     public bool HasParams => ParamFields.Count > 0;
 
+    /// <summary>Solo avisa de que se editó un parámetro del efecto (para el guardado automático).</summary>
+    public int ParamsEdited => 0;
+
     public bool ShowInstaKillHint =>
         string.Equals(Effect, "insta_kill", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(Effect, "instakill", StringComparison.OrdinalIgnoreCase) ||
@@ -114,7 +117,9 @@ public sealed partial class GiftRowViewModel : ObservableObject
         ParamFields.Clear();
         foreach (var def in schema)
         {
-            ParamFields.Add(new EffectParamFieldViewModel(Model, def));
+            var field = new EffectParamFieldViewModel(Model, def);
+            field.PropertyChanged += (_, _) => OnPropertyChanged(nameof(ParamsEdited));
+            ParamFields.Add(field);
         }
 
         OnPropertyChanged(nameof(HasParams));

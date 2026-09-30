@@ -9,7 +9,20 @@ public sealed partial class EventsViewModel : ViewModelBase
 {
     private readonly MainViewModel _shell;
 
-    public EventsViewModel(MainViewModel shell) => _shell = shell;
+    public EventsViewModel(MainViewModel shell)
+    {
+        _shell = shell;
+        // Todo lo editable de esta página cuenta; solo se ignora lo que es selección de la lista.
+        static bool Ignore(string? name) =>
+            name != null && (name.StartsWith("Selected", StringComparison.Ordinal) || name == nameof(EffectsWithNone));
+        var saver = shell.Gifts.AutoSaver;
+        saver.Track(this, Ignore);
+        saver.Track(ChatCommands);
+        saver.Track(TwitchChatCommands);
+        saver.Track(TwitchBits);
+    }
+
+    public SaveStatusViewModel SaveStatus => _shell.Gifts.SaveStatus;
 
     [ObservableProperty] private string _likesEveryText = "0";
     [ObservableProperty] private string _likesEffect = "";
@@ -39,6 +52,7 @@ public sealed partial class EventsViewModel : ViewModelBase
 
     public void LoadFromEditor(GiftFileEditor editor)
     {
+        using var _ = _shell.Gifts.AutoSaver.Suppress();
         LikesEveryText = editor.LikesEvery.ToString();
         LikesEffect = editor.LikesEffect;
         FollowEffect = editor.FollowEffect;
@@ -197,13 +211,6 @@ public sealed partial class EventsViewModel : ViewModelBase
     [RelayCommand]
     private void Save()
     {
-        try
-        {
-            _shell.Gifts.SaveToDisk();
-        }
-        catch (Exception ex)
-        {
-            _shell.Dialogs.Error("Eventos", ex.Message);
-        }
+        _shell.Gifts.SaveManual("Eventos");
     }
 }

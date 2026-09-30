@@ -616,6 +616,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         }
 
         _closing = true;
+        Gifts.AutoSaver.FlushIfDirty();
         Studio.PersistDeath();
         Overlays.CloseAll(Prefs);
         Runtime.Overlay.GiftReceived -= OnOverlayGift;

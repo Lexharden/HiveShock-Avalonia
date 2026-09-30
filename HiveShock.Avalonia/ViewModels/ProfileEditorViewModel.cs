@@ -103,6 +103,9 @@ public sealed partial class ProfileEditorViewModel : ViewModelBase
 
     public ProfileEditorViewModel(MainViewModel shell) => _shell = shell;
 
+    /// <summary>Sin guardado automático a propósito: son valores técnicos que solo se guardan con el botón.</summary>
+    public SaveStatusViewModel SaveStatus { get; } = new();
+
     [ObservableProperty] private string _displayName = "";
     [ObservableProperty] private string _description = "";
     [ObservableProperty] private string _helpNotes = "";
@@ -264,9 +267,11 @@ public sealed partial class ProfileEditorViewModel : ViewModelBase
             _shell.OnProfileChanged();
             Load();
             BridgeLog.Info("profile.json guardado.");
+            SaveStatus.MarkSaved("profile.json");
         }
         catch (Exception ex)
         {
+            SaveStatus.MarkFailed(ex.Message);
             _shell.Dialogs.Error("Perfil", ex.Message);
         }
     }
@@ -295,9 +300,11 @@ public sealed partial class ProfileEditorViewModel : ViewModelBase
             _shell.OnProfileChanged();
             Load();
             BridgeLog.Info("effects.json guardado.");
+            SaveStatus.MarkSaved("effects.json");
         }
         catch (Exception ex)
         {
+            SaveStatus.MarkFailed(ex.Message);
             _shell.Dialogs.Error("Efectos", ex.Message);
         }
     }

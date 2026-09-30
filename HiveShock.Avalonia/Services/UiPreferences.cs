@@ -27,6 +27,9 @@ public sealed class UiPreferences
     /// <summary>El panel de actividad empieza recogido: solo pesa lo justo salvo que el usuario lo abra.</summary>
     public bool ActivityPanelOpen { get; set; }
 
+    /// <summary>Guarda solo (con una pequeña espera) los cambios de regalos, metas y eventos.</summary>
+    public bool AutoSaveEnabled { get; set; } = true;
+
     public string GiftsOverlayTitle { get; set; } = "Regalos";
     public bool ShowGiftsOverlayTitle { get; set; } = true;
     public bool OverlayShowBackground { get; set; } = true;

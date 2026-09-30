@@ -17,7 +17,31 @@ public sealed partial class GiftsViewModel : ViewModelBase
     {
         _shell = shell;
         _editor = new GiftFileEditor(shell.Runtime.GiftsPath);
+        SaveStatus = new SaveStatusViewModel(shell.Prefs);
+        // gifts.json es un solo archivo: regalos, metas y eventos comparten estado y guardado.
+        AutoSaver = new AutoSaver(SaveStatus, SaveToDisk, "Regalos, metas y eventos");
+        AutoSaver.Track(Rows, IgnoreRowProperty);
         Load();
+    }
+
+    public SaveStatusViewModel SaveStatus { get; }
+
+    public AutoSaver AutoSaver { get; }
+
+    private static bool IgnoreRowProperty(string? name) =>
+        name is nameof(GiftRowViewModel.Thumb) or nameof(GiftRowViewModel.HasParams)
+            or nameof(GiftRowViewModel.ShowInstaKillHint) or nameof(GiftRowViewModel.EffectLabel);
+
+    /// <summary>Guardado desde un botón «Guardar»: muestra el error en un diálogo además de la etiqueta.</summary>
+    public bool SaveManual(string title)
+    {
+        if (AutoSaver.SaveNow())
+        {
+            return true;
+        }
+
+        _shell.Dialogs.Error(title, AutoSaver.LastError ?? "Error desconocido.");
+        return false;
     }
 
     public ObservableCollection<GiftRowViewModel> Rows { get; } = [];
@@ -39,6 +63,7 @@ public sealed partial class GiftsViewModel : ViewModelBase
     {
         try
         {
+            using var _ = AutoSaver.Suppress();
             _editor = new GiftFileEditor(_shell.Runtime.GiftsPath);
             _editor.Load();
             Rows.Clear();
@@ -58,7 +83,8 @@ public sealed partial class GiftsViewModel : ViewModelBase
         }
     }
 
-    public void SaveToDisk()
+    /// <summary>Escribe gifts.json. Lanza si falla; usa <see cref="AutoSaver"/> para guardar con estado visible.</summary>
+    private void SaveToDisk(bool automatic)
     {
         SyncEditorFromRows();
         _shell.Events?.ApplyToEditor(_editor);
@@ -74,7 +100,10 @@ public sealed partial class GiftsViewModel : ViewModelBase
         _shell.Studio.RefreshStats();
         _shell.Overlays.RefreshGifts(Models);
         _shell.Overlays.RefreshGoals(_shell.Runtime.Goals.Snapshots(), _shell.Prefs);
-        BridgeLog.Info("Regalos guardados.");
+        if (!automatic)
+        {
+            BridgeLog.Info("Regalos guardados.");
+        }
     }
 
     private void SyncEditorFromRows()
@@ -237,14 +266,7 @@ public sealed partial class GiftsViewModel : ViewModelBase
     [RelayCommand]
     private void Save()
     {
-        try
-        {
-            SaveToDisk();
-        }
-        catch (Exception ex)
-        {
-            _shell.Dialogs.Error("Regalos", ex.Message);
-        }
+        SaveManual("Regalos");
     }
 
     [RelayCommand]

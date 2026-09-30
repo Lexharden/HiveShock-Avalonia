@@ -16,7 +16,13 @@ public sealed partial class GoalsViewModel : ViewModelBase
         _shell = shell;
         _shell.Runtime.Goals.Changed += (_, _) =>
             Dispatcher.UIThread.Post(RefreshProgress);
+        // El progreso y el id se actualizan solos al guardar/jugar: no son ediciones del usuario.
+        _shell.Gifts.AutoSaver.Track(Rows, name =>
+            name is nameof(GoalRowViewModel.ProgressText) or nameof(GoalRowViewModel.Closed)
+                or nameof(GoalRowViewModel.GoalId));
     }
+
+    public SaveStatusViewModel SaveStatus => _shell.Gifts.SaveStatus;
 
     [ObservableProperty] private GoalRowViewModel? _selected;
 
@@ -29,6 +35,7 @@ public sealed partial class GoalsViewModel : ViewModelBase
 
     public void LoadFromEditor(GiftFileEditor editor)
     {
+        using var _ = _shell.Gifts.AutoSaver.Suppress();
         Rows.Clear();
         foreach (var goal in editor.Goals)
         {
@@ -115,6 +122,45 @@ public sealed partial class GoalsViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private async Task AddGiftFromCatalogAsync(GoalRowViewModel? row)
+    {
+        row ??= Selected;
+        if (row == null)
+        {
+            return;
+        }
+
+        _shell.Runtime.ReloadCatalog();
+        var list = _shell.Runtime.Catalog.ListSorted();
+        if (list.Count == 0)
+        {
+            _shell.Dialogs.Info("Catálogo", "El catálogo está vacío. Revisa que tiktok_gifts.json esté junto al programa o conecta en «Anotar regalos» durante un live.");
+            return;
+        }
+
+        var picked = await _shell.Dialogs.PickCatalogAsync(list);
+        if (picked == null)
+        {
+            return;
+        }
+
+        var name = string.IsNullOrWhiteSpace(picked.PrimaryName) ? picked.DisplayName : picked.PrimaryName;
+        var keys = (row.GiftsText ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+        if (keys.Any(k => string.Equals(k, name, StringComparison.OrdinalIgnoreCase) ||
+                          (!string.IsNullOrWhiteSpace(picked.Id) &&
+                           string.Equals(k, picked.Id, StringComparison.OrdinalIgnoreCase))))
+        {
+            return;
+        }
+
+        keys.Add(name);
+        row.GiftsText = string.Join(", ", keys);
+        Selected = row;
+    }
+
+    [RelayCommand]
     private void Remove()
     {
         if (Selected == null)
@@ -164,7 +210,7 @@ public sealed partial class GoalsViewModel : ViewModelBase
                 !_shell.Runtime.Goals.Snapshots().Any(s =>
                     string.Equals(s.Id, Selected.GoalId, StringComparison.OrdinalIgnoreCase)))
             {
-                _shell.Gifts.SaveToDisk();
+                _shell.Gifts.AutoSaver.SaveNow();
                 RefreshProgress();
             }
 
@@ -193,14 +239,7 @@ public sealed partial class GoalsViewModel : ViewModelBase
     [RelayCommand]
     private void Save()
     {
-        try
-        {
-            _shell.Gifts.SaveToDisk();
-        }
-        catch (Exception ex)
-        {
-            _shell.Dialogs.Error("Metas", ex.Message);
-        }
+        _shell.Gifts.SaveManual("Metas");
     }
 
     private static GoalSnapshot? Match(IReadOnlyList<GoalSnapshot> snaps, GoalRowViewModel row)
