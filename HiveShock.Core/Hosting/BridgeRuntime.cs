@@ -5,6 +5,7 @@ using HiveShock.Logging;
 using HiveShock.Networking;
 using HiveShock.Services;
 using HiveShock.Voice;
+using HiveShock.Zeldathon;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -41,6 +42,9 @@ public sealed class BridgeRuntime : IAsyncDisposable
     public OverlayNotifier Overlay { get; } = new();
     public GiftGoalBank Goals { get; } = new();
     public LivePortHub Ports { get; } = new();
+
+    /// <summary>Conexión con el servidor de Zeldathon (reloj oficial y telemetría). Vive fuera del puente.</summary>
+    public ZeldathonService Zeldathon { get; } = new();
 
     /// <summary>
     /// Smart TTS, de vida larga como Overlay/Goals. Null en plataformas sin implementación
@@ -589,6 +593,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         await StopAsync().ConfigureAwait(false);
         _events.EventReceived -= OnGameEvent;
         await _events.DisposeAsync().ConfigureAwait(false);
+        await Zeldathon.DisposeAsync().ConfigureAwait(false);
         Voice?.Dispose();
     }
 

@@ -12,6 +12,7 @@ public sealed class OverlayService
     private CounterOverlayWindow? _counter;
     private GiftAlertOverlayWindow? _gifts;
     private GoalOverlayWindow? _goals;
+    private TimerOverlayWindow? _timer;
     private bool _suppressClose;
 
     public Window? Owner { get; set; }
@@ -19,6 +20,7 @@ public sealed class OverlayService
     public event Action? CounterClosedByUser;
     public event Action? GiftsClosedByUser;
     public event Action? GoalsClosedByUser;
+    public event Action? TimerClosedByUser;
 
     public void ShowCounter(DeathCounter counter, string title, UiPreferences prefs)
     {
@@ -150,6 +152,7 @@ public sealed class OverlayService
         RefreshCounterScale(prefs);
         RefreshGiftsScale(prefs);
         RefreshGoalsScale(prefs);
+        RefreshTimer(prefs);
     }
 
     public void RefreshLook(UiPreferences prefs, DeathCounter counter, IEnumerable<EditableGift> gifts)
@@ -158,6 +161,7 @@ public sealed class OverlayService
         _counter?.Apply(counter, prefs.ResolveOverlayTitle());
         _gifts?.ApplyLook(prefs, prefs.ResolveOverlayScale(), gifts);
         _goals?.ApplyLook(prefs, prefs.ResolveOverlayScale());
+        _timer?.ApplyLook(prefs, prefs.ResolveOverlayScale());
     }
 
     public void ShowGoals(IEnumerable<GoalSnapshot> goals, UiPreferences prefs)
@@ -222,6 +226,53 @@ public sealed class OverlayService
     public void RefreshGoalsScale(UiPreferences prefs) =>
         _goals?.ApplyLook(prefs, prefs.ResolveOverlayScale());
 
+    public void ShowTimer(TimerSource source, UiPreferences prefs)
+    {
+        if (_timer == null)
+        {
+            _timer = new TimerOverlayWindow();
+            _timer.Closed += (_, _) =>
+            {
+                if (_timer != null)
+                {
+                    prefs.Timer.Left = _timer.Position.X;
+                    prefs.Timer.Top = _timer.Position.Y;
+                    prefs.Save();
+                }
+
+                _timer = null;
+                if (!_suppressClose)
+                {
+                    TimerClosedByUser?.Invoke();
+                }
+            };
+        }
+
+        Place(_timer, prefs.Timer.Left, prefs.Timer.Top);
+        _timer.Bind(source);
+        _timer.ApplyLook(prefs, prefs.ResolveOverlayScale());
+        _timer.Show();
+    }
+
+    public void HideTimer(UiPreferences prefs)
+    {
+        if (_timer == null)
+        {
+            return;
+        }
+
+        prefs.Timer.Left = _timer.Position.X;
+        prefs.Timer.Top = _timer.Position.Y;
+        prefs.Save();
+        _suppressClose = true;
+        _timer.Close();
+        _suppressClose = false;
+        _timer = null;
+    }
+
+    public void RefreshTimer(UiPreferences prefs) =>
+        _timer?.ApplyLook(prefs, prefs.ResolveOverlayScale());
+
     public void HighlightGift(string name, string? id) => _gifts?.Highlight(name, id);
 
     public void CloseAll(UiPreferences prefs)
@@ -230,6 +281,7 @@ public sealed class OverlayService
         HideCounter(prefs);
         HideGifts(prefs);
         HideGoals(prefs);
+        HideTimer(prefs);
         _suppressClose = false;
     }
 

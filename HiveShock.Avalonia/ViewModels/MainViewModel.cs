@@ -29,6 +29,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Runtime = BridgeRuntime.Create();
         AttachVoiceIfSupported();
         Prefs = UiPreferences.Load();
+        TimerSource = new TimerSource(Prefs, Runtime.Zeldathon);
         if (Application.Current != null)
         {
             ThemeManager.Apply(Application.Current, Prefs.ResolveTheme(), Prefs.FollowsSystem);
@@ -71,6 +72,10 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         {
             Studio.ShowGoalsOnStream = false;
         };
+        Overlays.TimerClosedByUser += () =>
+        {
+            Studio.ShowTimerOnStream = false;
+        };
 
         Runtime.DeathsChanged += (_, _) => Dispatch(() =>
         {
@@ -86,11 +91,15 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         BridgeLog.Logged += OnLogged;
         BridgeLog.Init();
         BridgeLog.Info($"UI lista · perfil {Runtime.Profile.DisplayName}");
+        Runtime.Zeldathon.AutoConnectIfConfigured();
         RefreshStatus();
     }
 
     public BridgeRuntime Runtime { get; }
     public UiPreferences Prefs { get; }
+
+    /// <summary>Lo que muestra el cronómetro en pantalla (reloj oficial o local).</summary>
+    public TimerSource TimerSource { get; }
     public DialogService Dialogs { get; }
     public OverlayService Overlays { get; }
 
@@ -173,6 +182,11 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         if (Prefs.GoalOverlayEnabled)
         {
             Overlays.ShowGoals(Runtime.Goals.Snapshots(), Prefs);
+        }
+
+        if (Prefs.Timer.Enabled)
+        {
+            Overlays.ShowTimer(TimerSource, Prefs);
         }
     }
 
@@ -617,6 +631,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
         _closing = true;
         Gifts.AutoSaver.FlushIfDirty();
+        TimerSource.PersistLocal();
         Studio.PersistDeath();
         Overlays.CloseAll(Prefs);
         Runtime.Overlay.GiftReceived -= OnOverlayGift;

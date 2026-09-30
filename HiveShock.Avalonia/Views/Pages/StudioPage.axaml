@@ -114,6 +114,8 @@
                     <CheckBox Content="Mostrar alertas en pantalla" IsChecked="{Binding ShowGiftsOnStream}" />
                     <CheckBox Content="Mostrar metas en pantalla" IsChecked="{Binding ShowGoalsOnStream}"
                               Margin="0,6,0,0" />
+                    <CheckBox Content="Mostrar cronómetro en pantalla" IsChecked="{Binding ShowTimerOnStream}"
+                              Margin="0,6,0,0" />
                     <CheckBox Content="Mostrar contador en pantalla" IsChecked="{Binding ShowCounterOnStream}"
                               IsVisible="{Binding SupportsDeath}" Margin="0,6,0,0" />
                     <DockPanel Margin="0,12,0,8">

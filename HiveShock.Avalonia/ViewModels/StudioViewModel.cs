@@ -51,6 +51,7 @@ public sealed partial class StudioViewModel : ViewModelBase
     [ObservableProperty] private bool _showCounterOnStream;
     [ObservableProperty] private bool _showGiftsOnStream;
     [ObservableProperty] private bool _showGoalsOnStream;
+    [ObservableProperty] private bool _showTimerOnStream;
     [ObservableProperty] private double _overlayScale = 1.5;
     [ObservableProperty] private string _counterTitleText = "";
     [ObservableProperty] private string _giftsTitleText = "Regalos";
@@ -471,6 +472,7 @@ public sealed partial class StudioViewModel : ViewModelBase
         ShowCounterOnStream = _shell.Prefs.DeathOverlayEnabled;
         ShowGiftsOnStream = _shell.Prefs.GiftOverlayEnabled;
         ShowGoalsOnStream = _shell.Prefs.GoalOverlayEnabled;
+        ShowTimerOnStream = _shell.Prefs.Timer.Enabled;
         OverlayScale = _shell.Prefs.ResolveOverlayScale();
         var resolvedTitle = _shell.Prefs.ResolveOverlayTitle();
         CounterTitleText = resolvedTitle;
@@ -627,6 +629,25 @@ public sealed partial class StudioViewModel : ViewModelBase
         else
         {
             _shell.Overlays.HideGoals(_shell.Prefs);
+        }
+    }
+
+    partial void OnShowTimerOnStreamChanged(bool value)
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        _shell.Prefs.Timer.Enabled = value;
+        _shell.Prefs.Save();
+        if (value)
+        {
+            _shell.Overlays.ShowTimer(_shell.TimerSource, _shell.Prefs);
+        }
+        else
+        {
+            _shell.Overlays.HideTimer(_shell.Prefs);
         }
     }
 
