@@ -95,6 +95,12 @@ public sealed class ZeldathonClient : IAsyncDisposable
     /// <summary>El servidor rechazó un mensaje: (tipo del mensaje o "", código, texto legible).</summary>
     public event Action<string, string, string>? MessageRejected;
 
+    /// <summary>
+    /// Respuesta del servidor a un mensaje con id: ACK, TIME_APPLIED o ERROR. Para quien necesita saber
+    /// qué pasó con un mensaje concreto (p. ej. las donaciones pendientes).
+    /// </summary>
+    public event Action<ZeldathonInbound>? Replied;
+
     public bool IsRunning => _run is { IsCompleted: false };
 
     public void Start(Uri uri, string token)
@@ -275,6 +281,17 @@ public sealed class ZeldathonClient : IAsyncDisposable
             case ZeldathonInboundKind.Ack:
                 Interlocked.Increment(ref _acked);
                 Forget(msg.Id);
+                Replied?.Invoke(msg);
+                return false;
+            case ZeldathonInboundKind.TimeApplied:
+                if (msg.Clock != null)
+                {
+                    _clock.Update(msg.Clock);
+                }
+
+                Interlocked.Increment(ref _acked);
+                Forget(msg.Id);
+                Replied?.Invoke(msg);
                 return false;
             case ZeldathonInboundKind.ForceClose:
                 BridgeLog.Warn("Zeldathon: el tiempo del día se agotó, hay que cerrar el juego.");
@@ -302,6 +319,11 @@ public sealed class ZeldathonClient : IAsyncDisposable
         LastError = text;
         BridgeLog.Warn($"Zeldathon rechazó {(type.Length > 0 ? type : "un mensaje")}: {msg.Code} · {msg.Message}");
         MessageRejected?.Invoke(type, msg.Code, text);
+        if (msg.Id != null)
+        {
+            Replied?.Invoke(msg);
+        }
+
         if (msg.Code == "replaced")
         {
             SetState(ZeldathonConnectionState.Replaced);

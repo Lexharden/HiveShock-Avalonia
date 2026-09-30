@@ -161,4 +161,93 @@ public class ZeldathonE2ETests
 
         service.Disconnect();
     }
+
+    [Fact]
+    public async Task Donations_change_the_official_time_within_the_organizer_limits()
+    {
+        if (!Enabled)
+        {
+            return;
+        }
+
+        using var http = new HttpClient { BaseAddress = new Uri(Url!.TrimEnd('/') + "/") };
+        async Task<HttpResponseMessage> AdminCall(HttpMethod method, string path, object? body = null)
+        {
+            var req = new HttpRequestMessage(method, path);
+            if (body != null)
+            {
+                req.Content = JsonContent.Create(body);
+            }
+
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Admin);
+            return await http.SendAsync(req);
+        }
+
+        object Policy(bool enabled) => new
+        {
+            donationTime = new
+            {
+                enabled,
+                allowAdd = true,
+                allowRemove = true,
+                maxSecondsPerDonation = 600,
+                maxAddedSecondsPerDay = 3600,
+                maxRemovedSecondsPerDay = 3600,
+            },
+        };
+
+        (await AdminCall(HttpMethod.Put, "api/admin/event", new { status = "live" })).EnsureSuccessStatusCode();
+        (await AdminCall(HttpMethod.Put, "api/admin/event", Policy(true))).EnsureSuccessStatusCode();
+        (await AdminCall(HttpMethod.Post, "api/admin/racers/cuaco/actions/reset-day", new { reason = "e2e" })).EnsureSuccessStatusCode();
+
+        var settings = new ZeldathonSettings
+        {
+            Enabled = true,
+            ServerUrl = Url!,
+            Token = Token!,
+            Donations = new DonationTimeSettings
+            {
+                Enabled = true,
+                TikTok = new DonationTimeRule { Direction = DonationTimeDirection.Remove, Units = 1, Seconds = 2 },
+                Twitch = new DonationTimeRule { Units = 100, Seconds = 60 },
+            },
+        };
+        DonationJournal? disk = null;
+        await using var service = new ZeldathonService(
+            settings,
+            options: new ZeldathonClientOptions { HeartbeatInterval = TimeSpan.FromSeconds(2) },
+            loadDonations: () => null,
+            saveDonations: j => disk = j);
+        Assert.Null(service.Connect());
+        await WaitUntil(() => Task.FromResult(service.Clock.HasValue), "llega el reloj oficial");
+        await service.RefreshEventAsync();
+        Assert.Equal(600, service.Donations.Policy!.MaxSecondsPerDonation);
+
+        // 200 bits = +2 min; una racha de 5 Rosas = -10 s.
+        var before = service.Clock.RemainingMs();
+        Assert.True(service.Donations.OnTwitchBits("fan", 200));
+        await WaitUntil(() => Task.FromResult(service.Donations.AddedSeconds == 120), "el servidor aplica los bits");
+        Assert.InRange(service.Clock.RemainingMs() - before, 119_000, 120_500);
+        Assert.True(service.Donations.OnTikTokGift("fan", "Rose", 5, 5));
+        await WaitUntil(() => Task.FromResult(service.Donations.RemovedSeconds == 10), "el servidor aplica el regalo");
+        Assert.Equal(0, service.Donations.PendingCount);
+        Assert.Empty(disk!.Pending);
+
+        // Tope por donación del organizador: 50 000 bits pedirían 500 min; se aplican 10.
+        service.Donations.OnTwitchBits("whale", 50_000);
+        await WaitUntil(() => Task.FromResult(service.Donations.AddedSeconds == 720), "se aplica con el tope");
+        Assert.Contains("tope por donación", service.Donations.Recent[0].Status);
+
+        var panel = JsonNode.Parse(await (await AdminCall(HttpMethod.Get, "api/admin/donations?racer=cuaco")).Content.ReadAsStringAsync())!;
+        var recent = panel["recent"]!.AsArray();
+        Assert.True(recent.Count >= 3);
+        Assert.Equal(600, recent[0]!["appliedSeconds"]!.GetValue<long>());
+        Assert.Equal(50_000, recent[0]!["amount"]!.GetValue<long>());
+
+        // El organizador lo desactiva: HiveShock ya no envía nada.
+        (await AdminCall(HttpMethod.Put, "api/admin/event", Policy(false))).EnsureSuccessStatusCode();
+        await service.RefreshEventAsync();
+        Assert.False(service.Donations.OnTwitchBits("fan", 100));
+        (await AdminCall(HttpMethod.Put, "api/admin/event", Policy(true))).EnsureSuccessStatusCode();
+    }
 }

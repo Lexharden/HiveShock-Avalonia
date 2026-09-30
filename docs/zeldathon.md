@@ -70,6 +70,20 @@ piedras…), `upgrades` (campo → {nivel mínimo: id}), `bosses` (actor → id 
 (cómo se completa cada objetivo), `finishBoss` y `gameProcesses` (nombre del proceso para el cierre forzado).
 Si un perfil no trae el archivo se usa la copia de fábrica incluida en el programa.
 
+## Tiempo por donaciones
+Los regalos de TikTok (diamantes) y los bits de Twitch pueden **sumar o restar tiempo** del reloj oficial.
+
+* **El streamer** elige en la página Zeldathon, por plataforma: suman o restan, «cada N diamantes/bits = S segundos»,
+  un mínimo y un tope propio por donación (`Donations` en `.hiveshock-zeldathon.json`).
+* **El organizador** pone los límites en `/admin → Evento` (activar, sumar/restar, tope por donación, topes diarios por
+  corredor). HiveShock los lee de `/api/event` (`donationTime`) y no envía lo que no se permite; el servidor los aplica
+  siempre y responde `TIME_APPLIED` con lo aplicado de verdad. Todo queda en `/admin → Donaciones`.
+* Un combo de TikTok cuenta una vez al terminar (diamantes totales; si faltan, del catálogo × cantidad). Las fracciones
+  se acumulan por tarifa. En modo «Anotar regalos» no se envía nada.
+* Robustez: cada donación (`TIME_DONATION`, id `don-…`) se guarda en `.hiveshock-zeldathon-donations.json` hasta que
+  el servidor la confirma, y se reenvía con el mismo id al reconectar o reabrir HiveShock (el servidor guarda los ids y
+  nunca aplica dos veces). Un rechazo (`not_allowed`, `event_not_live`…) se muestra en la lista y no se reintenta.
+
 ## Pruebas
 * `dotnet test`: reloj, cliente (transporte falso), sesión, mapa, cierre del juego, cronómetro y reporte de stream.
 * De punta a punta contra un servidor real (solo si se definen las variables; usa una base de datos de desarrollo):

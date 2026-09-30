@@ -4,6 +4,17 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.2.0-zeldathon.2] - 2026-09-30
+
+Edición especial para los streamers de Zeldathon (no pública).
+
+### Tiempo por donaciones
+* **Los regalos de TikTok y los bits de Twitch pueden sumar o restar tiempo de la carrera.** En Zeldathon → «Tiempo por donaciones» eliges, para cada plataforma, si suman o restan y cuánto valen («cada 1 diamante = 1 segundo», «cada 100 bits = 60 segundos»), un mínimo para ignorar donaciones pequeñas y un tope propio por donación. Se ven ejemplos con tu tarifa.
+* Un combo de TikTok cuenta una vez con todos sus diamantes; si TikTok no manda el precio se toma del catálogo. Las fracciones no se pierden (diez Rosas a «cada 10 diamantes = 1 s» suman 1 s).
+* El servidor de la carrera aplica el cambio al reloj oficial dentro de los límites del organizador (activar, sumar/restar, tope por donación y topes diarios) y dice cuánto se aplicó de verdad; la página muestra las últimas donaciones y el total confirmado.
+* A prueba de cortes: cada donación se guarda en disco hasta que el servidor la confirma y se reenvía sola al reconectar o al volver a abrir HiveShock; el servidor nunca aplica dos veces la misma. Las pendientes de más de 12 h se descartan.
+* Los botones de prueba de regalos no cambian el tiempo: solo cuentan las donaciones reales del directo.
+
 ## [2.2.0-zeldathon.1] - 2026-09-30
 
 Edición especial para los streamers del evento Zeldathon. No es una versión pública: se entrega directamente a los participantes y no se publica en Releases.

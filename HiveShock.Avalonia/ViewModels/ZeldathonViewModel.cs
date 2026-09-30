@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -16,6 +17,9 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
         nameof(TimerFormatMs), nameof(TimerSize), nameof(ShowStatus), nameof(ShowReset), nameof(ShowBar),
         nameof(WarnMinutes), nameof(CriticalMinutes), nameof(NormalColor), nameof(WarnColor),
         nameof(CriticalColor), nameof(LocalCountdown), nameof(LocalStartMinutes),
+        nameof(DonationsEnabled), nameof(TikTokEnabled), nameof(TikTokRemove), nameof(TikTokUnits),
+        nameof(TikTokSeconds), nameof(TikTokMin), nameof(TikTokMax), nameof(TwitchEnabled), nameof(TwitchRemove),
+        nameof(TwitchUnits), nameof(TwitchSeconds), nameof(TwitchMin), nameof(TwitchMax),
     ];
 
     private readonly MainViewModel _shell;
@@ -39,10 +43,12 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
             LastNotice = message;
             _shell.Dialogs.Warn("Zeldathon", message);
         });
+        _service.Donations.Changed += () => Dispatcher.UIThread.Post(RefreshDonations);
         _tick = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _tick.Tick += (_, _) => RefreshLive();
         _tick.Start();
         RefreshStatus();
+        RefreshDonations();
     }
 
     public SaveStatusViewModel SaveStatus { get; }
@@ -86,6 +92,41 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
     [ObservableProperty] private string _localText = "00:00:00";
     [ObservableProperty] private string _localToggleLabel = "Iniciar";
 
+    // ---- tiempo por donaciones ----
+    [ObservableProperty] private bool _donationsEnabled;
+    [ObservableProperty] private bool _tikTokEnabled = true;
+    [ObservableProperty] private bool _tikTokRemove;
+    [ObservableProperty] private int _tikTokUnits = 1;
+    [ObservableProperty] private int _tikTokSeconds = 1;
+    [ObservableProperty] private int _tikTokMin = 1;
+    [ObservableProperty] private int _tikTokMax;
+    [ObservableProperty] private bool _twitchEnabled = true;
+    [ObservableProperty] private bool _twitchRemove;
+    [ObservableProperty] private int _twitchUnits = 1;
+    [ObservableProperty] private int _twitchSeconds = 1;
+    [ObservableProperty] private int _twitchMin = 1;
+    [ObservableProperty] private int _twitchMax;
+    [ObservableProperty] private string _donationPolicyText = "";
+    [ObservableProperty] private string _donationPolicyWarning = "";
+    [ObservableProperty] private string _tikTokExample = "";
+    [ObservableProperty] private string _twitchExample = "";
+    [ObservableProperty] private string _donationStatusText = "";
+
+    /// <summary>Últimas donaciones y qué hizo el servidor con cada una.</summary>
+    public ObservableCollection<DonationRowView> DonationRecent { get; } = [];
+
+    public bool TikTokAdd
+    {
+        get => !TikTokRemove;
+        set => TikTokRemove = !value;
+    }
+
+    public bool TwitchAdd
+    {
+        get => !TwitchRemove;
+        set => TwitchRemove = !value;
+    }
+
     public bool TimerIsOfficial
     {
         get => !TimerIsLocal;
@@ -125,8 +166,26 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
         CriticalColor = t.CriticalColor;
         LocalCountdown = t.LocalCountdown;
         LocalStartMinutes = t.LocalStartMinutes;
+        var d = s.Donations ?? new DonationTimeSettings();
+        DonationsEnabled = d.Enabled;
+        (TikTokEnabled, TikTokRemove, TikTokUnits, TikTokSeconds, TikTokMin, TikTokMax) = Read(d.TikTok);
+        (TwitchEnabled, TwitchRemove, TwitchUnits, TwitchSeconds, TwitchMin, TwitchMax) = Read(d.Twitch);
         _loading = false;
     }
+
+    private static (bool, bool, int, int, int, int) Read(DonationTimeRule r) =>
+        (r.Enabled, r.Direction == DonationTimeDirection.Remove, Math.Max(1, r.Units), Math.Max(1, r.Seconds),
+            Math.Max(1, r.MinUnits), Math.Max(0, r.MaxSecondsPerDonation));
+
+    private static DonationTimeRule Rule(bool enabled, bool remove, int units, int seconds, int min, int max) => new()
+    {
+        Enabled = enabled,
+        Direction = remove ? DonationTimeDirection.Remove : DonationTimeDirection.Add,
+        Units = Math.Clamp(units, 1, 1_000_000),
+        Seconds = Math.Clamp(seconds, 1, 86_400),
+        MinUnits = Math.Clamp(min, 1, 1_000_000),
+        MaxSecondsPerDonation = Math.Clamp(max, 0, 172_800),
+    };
 
     /// <summary>Pasa lo editado a los ajustes vivos (el overlay lo refleja al instante) y lo escribe a disco.</summary>
     private void SaveAll()
@@ -157,6 +216,12 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
         t.CriticalColor = NormalizeColor(CriticalColor);
         t.LocalCountdown = LocalCountdown;
         t.LocalStartMinutes = Math.Max(1, LocalStartMinutes);
+        s.Donations = new DonationTimeSettings
+        {
+            Enabled = DonationsEnabled,
+            TikTok = Rule(TikTokEnabled, TikTokRemove, TikTokUnits, TikTokSeconds, TikTokMin, TikTokMax),
+            Twitch = Rule(TwitchEnabled, TwitchRemove, TwitchUnits, TwitchSeconds, TwitchMin, TwitchMax),
+        };
     }
 
     /// <summary>Cada cambio se ve al momento en el overlay (aunque el disco espere al guardado automático).</summary>
@@ -179,6 +244,18 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
         {
             OnPropertyChanged(nameof(TimerFormatHms));
         }
+
+        if (e.PropertyName == nameof(TikTokRemove))
+        {
+            OnPropertyChanged(nameof(TikTokAdd));
+        }
+
+        if (e.PropertyName == nameof(TwitchRemove))
+        {
+            OnPropertyChanged(nameof(TwitchAdd));
+        }
+
+        RefreshDonations();
     }
 
     [RelayCommand]
@@ -274,6 +351,76 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsRunning));
     }
 
+    /// <summary>Límites del organizador, ejemplos con la tarifa elegida, totales y últimas donaciones.</summary>
+    private void RefreshDonations()
+    {
+        var reporter = _service.Donations;
+        var policy = reporter.Policy;
+        var settings = _service.Settings.Donations ?? new DonationTimeSettings();
+
+        DonationPolicyText = policy switch
+        {
+            null => "Los límites del organizador se leen al conectar con el servidor.",
+            { Enabled: false } => "El organizador desactivó el tiempo por donaciones: no cambiarán el tiempo de nadie.",
+            _ => $"El organizador permite que las donaciones {(policy.AllowAdd && policy.AllowRemove ? "sumen y resten" : policy.AllowAdd ? "solo sumen" : policy.AllowRemove ? "solo resten" : "no cambien")} tiempo · " +
+                 $"hasta {DonationTimeCalculator.Format(policy.MaxSecondsPerDonation)} por donación · al día hasta " +
+                 $"+{DonationTimeCalculator.Format(policy.MaxAddedSecondsPerDay)} / −{DonationTimeCalculator.Format(policy.MaxRemovedSecondsPerDay)}.",
+        };
+
+        var blocked = new List<string>();
+        if (policy != null && settings.Enabled)
+        {
+            if (settings.TikTok.Enabled && !policy.Allows(settings.TikTok.Direction))
+            {
+                blocked.Add("TikTok");
+            }
+
+            if (settings.Twitch.Enabled && !policy.Allows(settings.Twitch.Direction))
+            {
+                blocked.Add("Twitch");
+            }
+        }
+
+        DonationPolicyWarning = blocked.Count == 0
+            ? ""
+            : $"Con lo que eligiste para {string.Join(" y ", blocked)} el organizador no aplica nada: cambia «suman / restan».";
+
+        TikTokExample = Examples(settings.TikTok, policy, [(1, "1 diamante"), (100, "100"), (29_999, "29 999 (León)")]);
+        TwitchExample = Examples(settings.Twitch, policy, [(100, "100 bits"), (500, "500"), (5_000, "5 000")]);
+
+        var pending = reporter.PendingCount;
+        DonationStatusText = !settings.Enabled
+            ? "Desactivado: las donaciones no cambian tu tiempo."
+            : !_service.Settings.HasCredentials
+                ? "Falta conectar con el servidor de la carrera (arriba)."
+                : $"En esta sesión: +{DonationTimeCalculator.Format(reporter.AddedSeconds)} / −{DonationTimeCalculator.Format(reporter.RemovedSeconds)} confirmados" +
+                  (pending > 0 ? $" · {pending} por confirmar (se reenvían solos)" : "");
+
+        DonationRecent.Clear();
+        foreach (var entry in reporter.Recent.Take(12))
+        {
+            DonationRecent.Add(DonationRowView.From(entry));
+        }
+    }
+
+    private static string Examples(DonationTimeRule rule, DonationTimePolicy? policy, (long Amount, string Label)[] samples)
+    {
+        if (!rule.Enabled)
+        {
+            return "No cambian el tiempo.";
+        }
+
+        var sign = rule.Direction == DonationTimeDirection.Add ? 1 : -1;
+        return "Ejemplos: " + string.Join(" · ", samples.Select(x =>
+        {
+            var seconds = DonationTimeCalculator.Preview(rule, x.Amount);
+            var capped = policy is { MaxSecondsPerDonation: > 0 } && seconds > policy.MaxSecondsPerDonation
+                ? $" (tope del organizador: {DonationTimeCalculator.Format(policy.MaxSecondsPerDonation)})"
+                : "";
+            return seconds == 0 ? $"{x.Label} → nada" : $"{x.Label} → {DonationTimeReporter.Signed(sign * seconds)}{capped}";
+        }));
+    }
+
     private void RefreshLive()
     {
         var shown = _shell.TimerSource.CurrentOfficial();
@@ -300,5 +447,24 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
         }
 
         return global::Avalonia.Media.Color.TryParse(text, out _) ? text.ToUpperInvariant() : "";
+    }
+}
+
+/// <summary>Una línea de la lista de donaciones de la página.</summary>
+public sealed record DonationRowView(string Text, string Result, bool IsBad)
+{
+    public static DonationRowView From(DonationTimeEntry e)
+    {
+        var who = string.IsNullOrWhiteSpace(e.Viewer) ? "" : $" · {e.Viewer}";
+        var platform = e.Platform == DonationPlatform.TikTok ? "TikTok" : "Twitch";
+        var time = e.AppliedSeconds is { } applied
+            ? DonationTimeReporter.Signed(applied)
+            : e.RequestedSeconds != 0 ? DonationTimeReporter.Signed(e.RequestedSeconds) : "";
+        var bad = e.Status.StartsWith("Rechazado", StringComparison.Ordinal) ||
+                  e.Status.StartsWith("No enviado", StringComparison.Ordinal);
+        return new DonationRowView(
+            $"{e.AtUtc.ToLocalTime():HH:mm:ss} · {platform} · {e.What}{who}",
+            time.Length > 0 ? $"{time} · {e.Status}" : e.Status,
+            bad);
     }
 }

@@ -228,6 +228,9 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
+        // Zeldathon: los bits pueden sumar o restar tiempo de la carrera (según la tarifa del streamer).
+        _zeldathon?.Donations.OnTwitchBits(Viewer(user), bits);
+
         _voice?.Enqueue(new TtsMessage(LivePortIds.Twitch, Viewer(user), "", DateTime.UtcNow)
         {
             Kind = TtsMessageKind.Bits,
@@ -374,6 +377,8 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
+        ReportDonationTime(user, giftLabel, id, repeat, diamonds);
+
         _voice?.Enqueue(new TtsMessage(LivePortIds.TikTok, Viewer(user), name, DateTime.UtcNow)
         {
             Kind = TtsMessageKind.Gift,
@@ -429,6 +434,25 @@ public sealed class LiveEffectRouter : IDisposable
                 : $"Regalo {giftLabel} x{repeat}";
             _ = _dispatcher.EnqueueAsync(match.EffectId, user, reason, ct, paramOverrides: match.Params);
         }
+    }
+
+    /// <summary>
+    /// Zeldathon: el regalo (el combo entero, una vez) puede sumar o restar tiempo de la carrera. Si
+    /// TikTok no mandó el precio se toma del catálogo (diamantes por unidad × cantidad).
+    /// </summary>
+    private void ReportDonationTime(string user, string giftLabel, string id, int repeat, long diamonds)
+    {
+        if (_zeldathon == null)
+        {
+            return;
+        }
+
+        if (diamonds <= 0 && _catalog.Find(id)?.Diamonds is > 0 and var each)
+        {
+            diamonds = (long)each * Math.Max(1, repeat);
+        }
+
+        _zeldathon.Donations.OnTikTokGift(Viewer(user), giftLabel, repeat, diamonds);
     }
 
     private void LogUnmapped(string name, string id, long diamonds, int repeat)

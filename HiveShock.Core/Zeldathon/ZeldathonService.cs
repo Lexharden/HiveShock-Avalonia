@@ -25,7 +25,9 @@ public sealed class ZeldathonService : IAsyncDisposable
         IZeldathonTransportFactory? factory = null,
         ZeldathonClientOptions? options = null,
         Func<Uri, CancellationToken, Task<string>>? fetch = null,
-        IProcessControl? processes = null)
+        IProcessControl? processes = null,
+        Func<DonationJournal?>? loadDonations = null,
+        Action<DonationJournal>? saveDonations = null)
     {
         Settings = settings ?? ZeldathonSettings.Load();
         Clock = new ZeldathonClock();
@@ -47,6 +49,15 @@ public sealed class ZeldathonService : IAsyncDisposable
         Client.MessageRejected += (type, code, _) => Session.OnRejected(type, code);
         Clock.Changed += Session.Reconcile;
 
+        Donations = new DonationTimeReporter(
+            () => Settings.Donations ?? new DonationTimeSettings(),
+            () => Settings.Enabled && Settings.HasCredentials,
+            Client.Send,
+            loadDonations,
+            saveDonations);
+        Client.Connected += Donations.OnConnected;
+        Client.Replied += Donations.OnReply;
+
         _processes = processes ?? new SystemProcessControl();
         Closer = new GameCloser(
             ct => RequestGameQuit?.Invoke(ct) ?? Task.CompletedTask,
@@ -62,6 +73,9 @@ public sealed class ZeldathonService : IAsyncDisposable
 
     /// <summary>Directo y espectadores del corredor → STREAM_STATE.</summary>
     public StreamReporter Stream { get; }
+
+    /// <summary>Regalos de TikTok y bits de Twitch → tiempo de la carrera (TIME_DONATION).</summary>
+    public DonationTimeReporter Donations { get; }
 
     /// <summary>Dice si TikTok o Twitch están en directo. La pone quien conoce los canales del live.</summary>
     public Func<bool> IsBroadcasting { get; set; } = () => false;
@@ -253,6 +267,11 @@ public sealed class ZeldathonService : IAsyncDisposable
             if (root.TryGetProperty("status", out var st) && st.ValueKind == JsonValueKind.String)
             {
                 EventStatus = st.GetString() ?? "";
+            }
+
+            if (root.TryGetProperty("donationTime", out var donation))
+            {
+                Donations.Policy = DonationTimePolicy.FromJson(donation);
             }
 
             if (root.TryGetProperty("rules", out var rules) &&

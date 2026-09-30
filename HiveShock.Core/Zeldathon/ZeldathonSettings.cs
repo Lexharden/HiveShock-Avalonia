@@ -20,6 +20,9 @@ public sealed class ZeldathonSettings
     /// <summary>Conecta sola al abrir HiveShock si hay URL y token.</summary>
     public bool AutoConnect { get; set; } = true;
 
+    /// <summary>Tiempo por donaciones: cuánto suman o restan los regalos de TikTok y los bits de Twitch.</summary>
+    public DonationTimeSettings Donations { get; set; } = new();
+
     public static ZeldathonSettings Load() =>
         UserDataStore.Load<ZeldathonSettings>(FileName) ?? new ZeldathonSettings();
 

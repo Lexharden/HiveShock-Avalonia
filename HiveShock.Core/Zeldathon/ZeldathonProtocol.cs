@@ -11,6 +11,8 @@ public enum ZeldathonInboundKind
     Clock,
     Error,
     ForceClose,
+    /// <summary>Respuesta a TIME_DONATION: cuánto tiempo se aplicó de verdad (y el reloj nuevo).</summary>
+    TimeApplied,
 }
 
 public sealed record ZeldathonInbound(
@@ -18,7 +20,10 @@ public sealed record ZeldathonInbound(
     string? Id = null,
     ZeldathonClockSnapshot? Clock = null,
     string Code = "",
-    string Message = "");
+    string Message = "",
+    long RequestedSeconds = 0,
+    long AppliedSeconds = 0,
+    string LimitedBy = "");
 
 /// <summary>Un mensaje hacia el servidor. <see cref="Json"/> ya lleva <c>type</c> e <c>id</c>.</summary>
 public sealed record ZeldathonOutbound(string Type, string Id, string Json);
@@ -49,6 +54,49 @@ public static class ZeldathonProtocol
     public static ZeldathonOutbound Heartbeat(string id, bool? gameRunning) =>
         Message("HEARTBEAT", id, gameRunning is { } running ? new JsonObject { ["gameRunning"] = running } : null);
 
+    /// <summary>
+    /// Tiempo por una donación (lo suma o resta el servidor dentro de los límites del organizador).
+    /// El id debe ser estable: el servidor lo guarda y nunca aplica dos veces el mismo.
+    /// </summary>
+    public static ZeldathonOutbound TimeDonation(
+        string id,
+        long deltaSeconds,
+        DonationPlatform platform,
+        long amount,
+        string? gift = null,
+        int? giftCount = null,
+        string? viewer = null)
+    {
+        var source = new JsonObject
+        {
+            ["platform"] = platform == DonationPlatform.TikTok ? "tiktok" : "twitch",
+            ["currency"] = platform == DonationPlatform.TikTok ? "diamonds" : "bits",
+            ["amount"] = amount,
+        };
+        if (Clip(gift) is { } g)
+        {
+            source["gift"] = g;
+        }
+
+        if (giftCount is > 0)
+        {
+            source["giftCount"] = giftCount.Value;
+        }
+
+        if (Clip(viewer) is { } v)
+        {
+            source["viewer"] = v;
+        }
+
+        return Message("TIME_DONATION", id, new JsonObject { ["deltaSeconds"] = deltaSeconds, ["source"] = source });
+    }
+
+    private static string? Clip(string? text)
+    {
+        var t = (text ?? "").Trim();
+        return t.Length == 0 ? null : t.Length > MaxTextLength ? t[..MaxTextLength] : t;
+    }
+
     public static ZeldathonInbound Parse(string text)
     {
         try
@@ -74,6 +122,14 @@ public static class ZeldathonProtocol
                     return new ZeldathonInbound(ZeldathonInboundKind.Error, id, null, Str(root, "code"), Str(root, "message"));
                 case "CLOCK" when root.TryGetProperty("clock", out var clock) && TryClock(clock, out var snap):
                     return new ZeldathonInbound(ZeldathonInboundKind.Clock, id, snap);
+                case "TIME_APPLIED":
+                    return new ZeldathonInbound(
+                        ZeldathonInboundKind.TimeApplied,
+                        id,
+                        root.TryGetProperty("clock", out var c) && TryClock(c, out var s) ? s : null,
+                        RequestedSeconds: Long(root, "requestedSeconds"),
+                        AppliedSeconds: Long(root, "appliedSeconds"),
+                        LimitedBy: Str(root, "limitedBy"));
                 default:
                     return new ZeldathonInbound(ZeldathonInboundKind.Unknown, id);
             }
@@ -104,6 +160,7 @@ public static class ZeldathonProtocol
         "exhausted" => "Se acabó el tiempo de hoy.",
         "replaced" => "Otra conexión con tu token tomó el lugar de esta.",
         "unknown_racer" => "El token no corresponde a ningún corredor.",
+        "not_allowed" => "El organizador no permite esto en la carrera.",
         "invalid" => string.IsNullOrWhiteSpace(message) ? "El servidor rechazó un dato." : message,
         _ => string.IsNullOrWhiteSpace(message) ? code : message,
     };
@@ -124,6 +181,9 @@ public static class ZeldathonProtocol
             Date(Str(el, "serverTimeUtc")));
         return true;
     }
+
+    private static long Long(JsonElement el, string name) =>
+        el.TryGetProperty(name, out var v) && v.TryGetInt64(out var n) ? n : 0;
 
     private static string Str(JsonElement el, string name) =>
         el.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";

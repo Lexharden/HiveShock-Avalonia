@@ -61,6 +61,81 @@
                 </StackPanel>
             </Border>
 
+            <TextBlock Classes="sectionTitle" Text="TIEMPO POR DONACIONES" />
+            <Border Classes="card" Margin="0,0,0,16">
+                <StackPanel>
+                    <CheckBox Content="Las donaciones cambian mi tiempo de la carrera" IsChecked="{Binding DonationsEnabled}"
+                              FontWeight="SemiBold" />
+                    <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,6"
+                               Text="Tú eliges cuánto vale cada diamante de TikTok o bit de Twitch y si suma o resta. El servidor de la carrera aplica el cambio al reloj oficial dentro de los límites del organizador; si se corta la conexión, las donaciones esperan y se envían solas al volver." />
+                    <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding DonationPolicyText}" />
+                    <TextBlock Classes="error" TextWrapping="Wrap" Text="{Binding DonationPolicyWarning}"
+                               IsVisible="{Binding DonationPolicyWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+                    <StackPanel IsEnabled="{Binding DonationsEnabled}">
+                        <CheckBox Content="Regalos de TikTok (diamantes)" IsChecked="{Binding TikTokEnabled}"
+                                  FontWeight="SemiBold" Margin="0,12,0,4" />
+                        <StackPanel IsEnabled="{Binding TikTokEnabled}" Margin="24,0,0,0">
+                            <WrapPanel>
+                                <RadioButton Classes="chip" Content="Suman tiempo" IsChecked="{Binding TikTokAdd}" GroupName="TikTokDirection" />
+                                <RadioButton Classes="chip" Content="Restan tiempo" IsChecked="{Binding TikTokRemove}" GroupName="TikTokDirection" />
+                            </WrapPanel>
+                            <WrapPanel Margin="0,8,0,0">
+                                <TextBlock Text="Cada" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <NumericUpDown Value="{Binding TikTokUnits}" Minimum="1" Maximum="1000000" FormatString="0" Width="130" />
+                                <TextBlock Text="diamantes =" VerticalAlignment="Center" Margin="8,0" />
+                                <NumericUpDown Value="{Binding TikTokSeconds}" Minimum="1" Maximum="86400" FormatString="0" Width="130" />
+                                <TextBlock Text="segundos" VerticalAlignment="Center" Margin="8,0,0,0" />
+                            </WrapPanel>
+                            <Grid ColumnDefinitions="*,12,*" RowDefinitions="Auto,Auto" Margin="0,8,0,0">
+                                <TextBlock Classes="fieldLabel" Text="Ignorar regalos de menos de (diamantes)" TextWrapping="Wrap" />
+                                <NumericUpDown Grid.Row="1" Value="{Binding TikTokMin}" Minimum="1" Maximum="1000000" FormatString="0" />
+                                <TextBlock Grid.Column="2" Classes="fieldLabel" Text="Máximo por regalo (segundos, 0 = sin tope)" TextWrapping="Wrap" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="2" Value="{Binding TikTokMax}" Minimum="0" Maximum="172800" FormatString="0" />
+                            </Grid>
+                            <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                       Text="{Binding TikTokExample}" />
+                        </StackPanel>
+                        <CheckBox Content="Bits de Twitch" IsChecked="{Binding TwitchEnabled}"
+                                  FontWeight="SemiBold" Margin="0,14,0,4" />
+                        <StackPanel IsEnabled="{Binding TwitchEnabled}" Margin="24,0,0,0">
+                            <WrapPanel>
+                                <RadioButton Classes="chip" Content="Suman tiempo" IsChecked="{Binding TwitchAdd}" GroupName="TwitchDirection" />
+                                <RadioButton Classes="chip" Content="Restan tiempo" IsChecked="{Binding TwitchRemove}" GroupName="TwitchDirection" />
+                            </WrapPanel>
+                            <WrapPanel Margin="0,8,0,0">
+                                <TextBlock Text="Cada" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <NumericUpDown Value="{Binding TwitchUnits}" Minimum="1" Maximum="1000000" FormatString="0" Width="130" />
+                                <TextBlock Text="bits =" VerticalAlignment="Center" Margin="8,0" />
+                                <NumericUpDown Value="{Binding TwitchSeconds}" Minimum="1" Maximum="86400" FormatString="0" Width="130" />
+                                <TextBlock Text="segundos" VerticalAlignment="Center" Margin="8,0,0,0" />
+                            </WrapPanel>
+                            <Grid ColumnDefinitions="*,12,*" RowDefinitions="Auto,Auto" Margin="0,8,0,0">
+                                <TextBlock Classes="fieldLabel" Text="Ignorar menos de (bits)" TextWrapping="Wrap" />
+                                <NumericUpDown Grid.Row="1" Value="{Binding TwitchMin}" Minimum="1" Maximum="1000000" FormatString="0" />
+                                <TextBlock Grid.Column="2" Classes="fieldLabel" Text="Máximo por donación (segundos, 0 = sin tope)" TextWrapping="Wrap" />
+                                <NumericUpDown Grid.Row="1" Grid.Column="2" Value="{Binding TwitchMax}" Minimum="0" Maximum="172800" FormatString="0" />
+                            </Grid>
+                            <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                       Text="{Binding TwitchExample}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <TextBlock FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding DonationStatusText}" Margin="0,14,0,4" />
+                    <ItemsControl ItemsSource="{Binding DonationRecent}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:DonationRowView">
+                                <StackPanel Margin="0,2">
+                                    <TextBlock FontSize="12" Text="{Binding Text}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock FontSize="12" Text="{Binding Result}" Foreground="{DynamicResource MutedBrush}"
+                                               Classes.error="{Binding IsBad}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
             <TextBlock Classes="sectionTitle" Text="CRONÓMETRO EN PANTALLA" />
             <Border Classes="card" Margin="0,0,0,16">
                 <StackPanel>
