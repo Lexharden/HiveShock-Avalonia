@@ -41,11 +41,11 @@ public static class GiftImageLoader
     {
         lock (Cache)
         {
-            foreach (var bmp in Cache.Values)
-            {
-                bmp.Dispose();
-            }
-
+            // No se hace Dispose() aquí: los Bitmap cacheados se comparten (sin ref-counting)
+            // con overlays y otras vistas que pueden seguir usándolos como Image.Source. Disponerlos
+            // aquí provoca "Cannot access a disposed object" en el overlay al siguiente render.
+            // Se sueltan las referencias y el recolector/finalizer de Avalonia libera el recurso
+            // nativo cuando de verdad ya nadie los usa.
             Cache.Clear();
         }
     }
