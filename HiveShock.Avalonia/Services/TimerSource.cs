@@ -23,10 +23,22 @@ public sealed class TimerSource
 
     public LocalStopwatch Local { get; }
 
+    /// <summary>Siempre el reloj oficial (lo que ve la página de Zeldathon), sin importar el modo elegido.</summary>
+    public TimerDisplay CurrentOfficial() =>
+        TimerDisplayBuilder.Official(_zeldathon.Clock, BuildOptions(), _zeldathon.State);
+
     public TimerDisplay Current()
     {
+        var options = BuildOptions();
+        return _prefs.Timer.IsLocal
+            ? TimerDisplayBuilder.Local(Local, options)
+            : TimerDisplayBuilder.Official(_zeldathon.Clock, options, _zeldathon.State);
+    }
+
+    private TimerDisplayOptions BuildOptions()
+    {
         var t = _prefs.Timer;
-        var options = new TimerDisplayOptions
+        return new TimerDisplayOptions
         {
             Label = t.Label,
             Format = t.Format,
@@ -36,9 +48,6 @@ public sealed class TimerSource
             LocalCountdown = t.LocalCountdown,
             LocalStartMinutes = t.LocalStartMinutes,
         };
-        return t.IsLocal
-            ? TimerDisplayBuilder.Local(Local, options)
-            : TimerDisplayBuilder.Official(_zeldathon.Clock, options, _zeldathon.State);
     }
 
     /// <summary>Guarda lo acumulado del cronómetro local (se restaura en pausa al volver a abrir).</summary>

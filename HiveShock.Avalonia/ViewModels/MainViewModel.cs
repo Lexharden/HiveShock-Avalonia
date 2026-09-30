@@ -46,6 +46,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         ProfileEditor = new ProfileEditorViewModel(this);
         TikTok = new TikTokViewModel(this);
         Twitch = new TwitchViewModel(this);
+        Zeldathon = new ZeldathonViewModel(this);
         SmartTts = new SmartTtsViewModel(this);
         Help = new HelpViewModel();
         About = new AboutViewModel();
@@ -111,6 +112,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public ProfileEditorViewModel ProfileEditor { get; }
     public TikTokViewModel TikTok { get; }
     public TwitchViewModel Twitch { get; }
+    public ZeldathonViewModel Zeldathon { get; }
     public SmartTtsViewModel SmartTts { get; }
     public HelpViewModel Help { get; }
     public AboutViewModel About { get; }
@@ -153,6 +155,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public bool IsStudioNav => CurrentPageKey == "studio";
     public bool IsTikTokNav => CurrentPageKey is "tiktok" or "gifts" or "catalog";
     public bool IsTwitchNav => CurrentPageKey == "twitch";
+    public bool IsZeldathonNav => CurrentPageKey == "zeldathon";
     public bool IsSmartTtsNav => CurrentPageKey == "voz";
     public bool IsHelpNav => CurrentPageKey == "help";
     public bool IsAboutNav => CurrentPageKey == "about";
@@ -266,6 +269,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         OnPropertyChanged(nameof(IsStudioNav));
         OnPropertyChanged(nameof(IsTikTokNav));
         OnPropertyChanged(nameof(IsTwitchNav));
+        OnPropertyChanged(nameof(IsZeldathonNav));
         OnPropertyChanged(nameof(IsSmartTtsNav));
         OnPropertyChanged(nameof(IsHelpNav));
         OnPropertyChanged(nameof(IsAboutNav));
@@ -438,6 +442,12 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         CurrentPageKey = "twitch";
     }
 
+    public void GoZeldathon()
+    {
+        CurrentPage = Zeldathon;
+        CurrentPageKey = "zeldathon";
+    }
+
     public void GoGifts(bool reload = true)
     {
         GoTikTok();
@@ -479,6 +489,9 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     [RelayCommand]
     private void NavTwitch() => GoTwitch();
+
+    [RelayCommand]
+    private void NavZeldathon() => GoZeldathon();
 
     [RelayCommand]
     private void NavSmartTts() => GoSmartTts();

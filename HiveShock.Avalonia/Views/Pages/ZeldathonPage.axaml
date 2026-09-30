@@ -1,0 +1,128 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ctl="using:HiveShock.Avalonia.Views.Controls"
+             xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+             x:Class="HiveShock.Avalonia.Views.Pages.ZeldathonPage"
+             x:DataType="vm:ZeldathonViewModel">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+            <TextBlock Classes="pageTitle" Text="Zeldathon" />
+            <TextBlock Classes="pageLead"
+                       Text="Conecta HiveShock con la carrera: el reloj oficial y tu progreso se sincronizan con la página." />
+            <ctl:SaveStatusChip DataContext="{Binding SaveStatus}" HorizontalAlignment="Left" Margin="0,0,0,12" />
+
+            <TextBlock Classes="sectionTitle" Text="CONEXIÓN" />
+            <Border Classes="card" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Classes="fieldLabel" Text="Dirección del servidor" />
+                    <TextBox Text="{Binding ServerUrl}" PlaceholderText="https://zeldathon.ejemplo.com" Margin="0,0,0,8" />
+                    <TextBlock Classes="fieldLabel" Text="Tu token de corredor" />
+                    <DockPanel Margin="0,0,0,4">
+                        <CheckBox DockPanel.Dock="Right" Content="Mostrar" IsChecked="{Binding ShowToken}"
+                                  Margin="8,0,0,0" />
+                        <TextBox Text="{Binding Token}" PasswordChar="•" RevealPassword="{Binding ShowToken}"
+                                 PlaceholderText="lo entrega el organizador" />
+                    </DockPanel>
+                    <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"
+                               Margin="0,0,0,10"
+                               Text="El token es solo tuyo: identifica tu partida en la carrera. No lo compartas ni lo muestres en directo." />
+                    <CheckBox Content="Conectar automáticamente al abrir HiveShock" IsChecked="{Binding AutoConnect}" />
+                    <WrapPanel Margin="0,10,0,0">
+                        <Button Classes="primary" Content="{Binding ConnectLabel}"
+                                Command="{Binding ToggleConnectionCommand}" MinWidth="140" />
+                        <TextBlock VerticalAlignment="Center" FontWeight="SemiBold"
+                                   Text="{Binding ConnectionText}"
+                                   Foreground="{DynamicResource MutedBrush}"
+                                   Classes.tone-connecting="{Binding ToneConnecting}"
+                                   Classes.tone-live="{Binding ToneLive}"
+                                   Classes.tone-error="{Binding ToneError}" />
+                    </WrapPanel>
+                    <TextBlock Classes="error" Text="{Binding LastError}" TextWrapping="Wrap"
+                               IsVisible="{Binding LastError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" Text="{Binding Traffic}"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Classes="sectionTitle" Text="RELOJ OFICIAL" />
+            <Border Classes="card" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="{Binding ClockText}" FontSize="44" FontWeight="Bold"
+                               FontFamily="Consolas, Menlo, Cascadia Mono, DejaVu Sans Mono, monospace" />
+                    <TextBlock Text="{Binding ClockStatus}" FontWeight="SemiBold"
+                               Foreground="{DynamicResource MutedBrush}" />
+                    <TextBlock Text="{Binding ResetText}" FontSize="12" Foreground="{DynamicResource MutedBrush}" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Classes="sectionTitle" Text="CRONÓMETRO EN PANTALLA" />
+            <Border Classes="card" Margin="0,0,0,16">
+                <StackPanel>
+                    <CheckBox Content="Mostrar cronómetro en pantalla" IsChecked="{Binding Studio.ShowTimerOnStream}" />
+                    <TextBlock Classes="fieldLabel" Text="Qué muestra" Margin="0,10,0,4" />
+                    <WrapPanel>
+                        <RadioButton Classes="chip" Content="Reloj oficial" IsChecked="{Binding TimerIsOfficial}"
+                                     GroupName="TimerMode" />
+                        <RadioButton Classes="chip" Content="Cronómetro manual" IsChecked="{Binding TimerIsLocal}"
+                                     GroupName="TimerMode" />
+                    </WrapPanel>
+
+                    <StackPanel IsVisible="{Binding TimerIsLocal}" Margin="0,10,0,0">
+                        <TextBlock Text="{Binding LocalText}" FontSize="30" FontWeight="SemiBold"
+                                   FontFamily="Consolas, Menlo, Cascadia Mono, DejaVu Sans Mono, monospace" />
+                        <WrapPanel>
+                            <Button Classes="primary" Content="{Binding LocalToggleLabel}"
+                                    Command="{Binding LocalToggleCommand}" MinWidth="110" />
+                            <Button Classes="secondary" Content="Poner a cero" Command="{Binding LocalResetCommand}" />
+                        </WrapPanel>
+                        <CheckBox Content="Cuenta atrás desde…" IsChecked="{Binding LocalCountdown}" />
+                        <DockPanel IsVisible="{Binding LocalCountdown}" Margin="0,4,0,0">
+                            <TextBlock Classes="fieldLabel" Text="Minutos" Width="80" VerticalAlignment="Center" />
+                            <NumericUpDown Value="{Binding LocalStartMinutes}" Minimum="1" Maximum="1440"
+                                           FormatString="0" Width="140" HorizontalAlignment="Left" />
+                        </DockPanel>
+                    </StackPanel>
+
+                    <TextBlock Classes="fieldLabel" Text="Título" Margin="0,12,0,4" />
+                    <TextBox Text="{Binding TimerLabel}" PlaceholderText="Tiempo restante" />
+
+                    <TextBlock Classes="fieldLabel" Text="Formato" Margin="0,12,0,4" />
+                    <WrapPanel>
+                        <RadioButton Classes="chip" Content="03:59:58" IsChecked="{Binding TimerFormatHms}" GroupName="TimerFormat" />
+                        <RadioButton Classes="chip" Content="239:58" IsChecked="{Binding TimerFormatMs}" GroupName="TimerFormat" />
+                    </WrapPanel>
+
+                    <TextBlock Classes="fieldLabel" Text="Tamaño del reloj" Margin="0,12,0,4" />
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Width="40" VerticalAlignment="Center"
+                                   Text="{Binding TimerSize, StringFormat={}{0:0}}" />
+                        <Slider Minimum="28" Maximum="140" TickFrequency="2" IsSnapToTickEnabled="True"
+                                Value="{Binding TimerSize}" />
+                    </DockPanel>
+
+                    <CheckBox Content="Mostrar estado (EN VIVO, PAUSADO…)" IsChecked="{Binding ShowStatus}" Margin="0,8,0,0" />
+                    <CheckBox Content="Mostrar cuánto falta para el reinicio del día" IsChecked="{Binding ShowReset}" />
+                    <CheckBox Content="Mostrar barra de tiempo usado" IsChecked="{Binding ShowBar}" />
+
+                    <TextBlock Classes="sectionTitle" Text="AVISOS DE COLOR" Margin="0,14,0,4" />
+                    <Grid ColumnDefinitions="*,12,*" RowDefinitions="Auto,Auto">
+                        <TextBlock Classes="fieldLabel" Text="Aviso a los (min)" />
+                        <NumericUpDown Grid.Row="1" Value="{Binding WarnMinutes}" Minimum="0" Maximum="600" FormatString="0" />
+                        <TextBlock Grid.Column="2" Classes="fieldLabel" Text="Crítico a los (min)" />
+                        <NumericUpDown Grid.Row="1" Grid.Column="2" Value="{Binding CriticalMinutes}" Minimum="0" Maximum="600" FormatString="0" />
+                    </Grid>
+                    <TextBlock Classes="fieldLabel" Text="Colores (#RRGGBB, vacío = tema)" Margin="0,12,0,4" />
+                    <Grid ColumnDefinitions="*,8,*,8,*">
+                        <TextBox Text="{Binding NormalColor}" PlaceholderText="Normal" />
+                        <TextBox Grid.Column="2" Text="{Binding WarnColor}" PlaceholderText="Aviso" />
+                        <TextBox Grid.Column="4" Text="{Binding CriticalColor}" PlaceholderText="Crítico" />
+                    </Grid>
+                    <Button Classes="secondary" Content="Restablecer aspecto" Command="{Binding ResetLookCommand}"
+                            Margin="0,12,0,0" HorizontalAlignment="Left" />
+                    <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,8,0,0"
+                               Text="Fondo, escala, alineación y colores generales se cambian en Inicio → Pantalla → Personalizar aspecto." />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

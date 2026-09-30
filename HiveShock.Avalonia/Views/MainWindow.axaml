@@ -173,6 +173,15 @@
                                 <TextBlock Text="Twitch" IsVisible="{Binding NavExpanded}" />
                             </Panel>
                         </Button>
+                        <Button Classes="nav" Classes.active="{Binding IsZeldathonNav}"
+                                Classes.compact="{Binding NavCollapsed}"
+                                Command="{Binding NavZeldathonCommand}" ToolTip.Tip="Zeldathon">
+                            <Panel>
+                                <TextBlock Text="Zt" HorizontalAlignment="Center"
+                                           IsVisible="{Binding NavCollapsed}" />
+                                <TextBlock Text="Zeldathon" IsVisible="{Binding NavExpanded}" />
+                            </Panel>
+                        </Button>
                         <Button Classes="nav" Classes.active="{Binding IsSmartTtsNav}"
                                 Classes.compact="{Binding NavCollapsed}"
                                 Command="{Binding NavSmartTtsCommand}" ToolTip.Tip="Voz (Alpha: en pruebas)">
