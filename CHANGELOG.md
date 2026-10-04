@@ -4,6 +4,16 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+### Moderación
+* **Pausa de emergencia** (botón en la barra de arriba y en Moderación): los espectadores dejan de activar efectos y metas, y lo que ya esperaba turno se descarta. El chat en voz alta, los avisos y el tiempo por donaciones de Zeldatón siguen. No se guarda: al abrir HiveShock siempre empieza reanudada. Las pruebas del streamer no se ven afectadas.
+* **Lista de bloqueo** (nueva página Moderación): ves quién activó efectos hace poco y lo bloqueas con un clic, o bloqueas por @usuario (TikTok o Twitch). Se reconoce por su **id**, así que cambiar de @usuario no lo libra, y otra persona que se quede con ese @usuario no queda bloqueada. Un bloqueado no activa efectos ni metas, no se lee su chat en voz alta, no cuenta como seguidor y sus regalos o bits no cambian el tiempo de la carrera.
+* **Anti-spam de seguir más difícil de esquivar**: el efecto de seguir se decide por el id de la persona (antes, en TikTok caía al nombre visible si faltaba el id, que cualquiera puede repetir y que se cambia). Cambiar de @usuario ya no permite repetir el efecto, y un evento sin id se reconoce por el @usuario recordado. Si la plataforma no manda ni id ni @usuario, el follow pasa sin recordarse (y se avisa una vez) en vez de bloquear a inocentes con el mismo nombre.
+
+### Cola de enemigos y entrega
+* **Los enemigos de los regalos ya no se pierden ni se borran para hacer sitio.** El juego (Shipwright) lleva un presupuesto de carga (`gRemote.HiveShock.MaxLoad`, 14 por defecto; cada enemigo pesa 1–4): los que no caben esperan en orden y entran conforme mueren otros, de uno en uno. La cola sobrevive a cambios de escena, los enemigos vivos te siguen a la siguiente escena, uno que se queda lejos se reubica junto a Link y la cola se guarda en disco (caduca a las 12 h).
+* **Reintentos si el juego está cerrado:** cada efecto se reintenta hasta `GAME_RETRY_SECONDS` (600 s por defecto; 0 = no reintentar) en vez de perderse. La pausa de emergencia sigue descartando lo pendiente.
+* Nuevos eventos del juego `spawn_queue` (cuántos esperan, cuántos viven y la carga; disponible en `BridgeRuntime.SpawnQueue`) y `spawn_rejected`, y acción `clear_queue`.
+
 ## [2.2.0-zeldathon.2] - 2026-09-30
 
 Edición especial para los streamers de Zeldatón (no pública).

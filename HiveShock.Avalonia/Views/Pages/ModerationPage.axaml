@@ -1,0 +1,106 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+             x:Class="HiveShock.Avalonia.Views.Pages.ModerationPage"
+             x:DataType="vm:ModerationViewModel">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+            <TextBlock Classes="pageTitle" Text="Moderación" />
+            <TextBlock Classes="pageLead"
+                       Text="Frena a los espectadores que abusan de los efectos. No cambia lo que ya tienes configurado." />
+
+            <TextBlock Classes="sectionTitle" Text="PAUSA DE EMERGENCIA" />
+            <Border Classes="card" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="{Binding PauseStatus}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <Button Classes="secondary" Classes.danger="{Binding IsPaused}"
+                            Content="{Binding PauseLabel}" Command="{Binding TogglePauseCommand}"
+                            HorizontalAlignment="Left" MinWidth="170" Margin="0,10,8,0" />
+                    <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,8,0,0"
+                               Text="Con la pausa, regalos, follows, likes, shares, bits y comandos de chat dejan de activar efectos y metas, y lo que ya esperaba turno se descarta. El chat en voz alta, los avisos y el tiempo por donaciones de Zeldatón siguen igual. La pausa no se guarda: al abrir HiveShock siempre empieza reanudada. También está en la barra de arriba." />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Classes="sectionTitle" Text="QUIÉN ACTIVÓ EFECTOS HACE POCO" />
+            <Border Classes="card" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"
+                               Text="Aparece quien hizo que se disparara un efecto (regalo, follow, comando…). Si alguien abusa, bloquéalo aquí: se reconoce por su id, aunque cambie de @usuario."
+                               Margin="0,0,0,8" />
+                    <TextBlock Text="Nadie todavía. Cuando haya actividad en el live aparecerá aquí."
+                               Foreground="{DynamicResource MutedBrush}"
+                               IsVisible="{Binding !HasRecent}" />
+                    <ItemsControl ItemsSource="{Binding Recent}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RecentViewerRow">
+                                <DockPanel Margin="0,4">
+                                    <Button DockPanel.Dock="Right" Classes="secondary" Content="Bloquear"
+                                            Margin="8,0,0,0" VerticalAlignment="Center"
+                                            IsVisible="{Binding CanBlock}"
+                                            CommandParameter="{Binding}"
+                                            Command="{Binding $parent[UserControl].((vm:ModerationViewModel)DataContext).BlockCommand}" />
+                                    <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="12"
+                                               Foreground="{DynamicResource MutedBrush}"
+                                               Text="{Binding BlockedText}"
+                                               IsVisible="{Binding !CanBlock}" />
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Detail}" FontSize="12"
+                                                   Foreground="{DynamicResource MutedBrush}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Classes="sectionTitle" Text="BLOQUEADOS" />
+            <Border Classes="card" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"
+                               Text="Un bloqueado no activa efectos ni metas, no se lee su chat en voz alta, no cuenta como seguidor y su regalo o sus bits no cambian el tiempo de la carrera. Sus regalos siguen apareciendo en el catálogo."
+                               Margin="0,0,0,8" />
+                    <TextBlock Text="No hay nadie bloqueado."
+                               Foreground="{DynamicResource MutedBrush}"
+                               IsVisible="{Binding !HasBlocked}" />
+                    <ItemsControl ItemsSource="{Binding Blocked}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:BlockedViewerRow">
+                                <DockPanel Margin="0,4">
+                                    <Button DockPanel.Dock="Right" Classes="secondary" Content="Desbloquear"
+                                            Margin="8,0,0,0" VerticalAlignment="Center"
+                                            CommandParameter="{Binding}"
+                                            Command="{Binding $parent[UserControl].((vm:ModerationViewModel)DataContext).UnblockCommand}" />
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Detail}" FontSize="12"
+                                                   Foreground="{DynamicResource MutedBrush}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Classes="fieldLabel" Text="Bloquear por @usuario" Margin="0,14,0,4" />
+                    <WrapPanel>
+                        <RadioButton Classes="chip" Content="TikTok" IsChecked="{Binding NewIsTikTok}" GroupName="ModerationPort" />
+                        <RadioButton Classes="chip" Content="Twitch" IsChecked="{Binding NewIsTwitch}" GroupName="ModerationPort" />
+                    </WrapPanel>
+                    <DockPanel Margin="0,6,0,0">
+                        <Button DockPanel.Dock="Right" Classes="primary" Content="Bloquear"
+                                Command="{Binding AddHandleCommand}" Margin="8,0,0,0" />
+                        <TextBox Text="{Binding NewHandle}" PlaceholderText="@usuario (o el enlace de su perfil de TikTok)" />
+                    </DockPanel>
+                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,4,0,0"
+                               Foreground="{DynamicResource MutedBrush}"
+                               IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

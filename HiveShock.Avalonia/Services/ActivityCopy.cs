@@ -8,6 +8,38 @@ public static class ActivityCopy
     {
         var m = entry.Message;
 
+        if (m.StartsWith("Bloqueado: ", StringComparison.Ordinal))
+        {
+            return "Se ignoraron eventos de gente bloqueada.";
+        }
+
+        if (m.StartsWith("Pausado: ", StringComparison.Ordinal))
+        {
+            return "Efectos en pausa: se ignoraron eventos de espectadores.";
+        }
+
+        if (m.StartsWith("Bloqueado ", StringComparison.Ordinal))
+        {
+            return $"Bloqueaste a {NameBeforeParen(m["Bloqueado ".Length..])}.";
+        }
+
+        if (m.StartsWith("Desbloqueado ", StringComparison.Ordinal))
+        {
+            return $"Desbloqueaste a {NameBeforeParen(m["Desbloqueado ".Length..])}.";
+        }
+
+        if (m.StartsWith("Efectos de espectadores ", StringComparison.Ordinal))
+        {
+            return m.Contains("pausados", StringComparison.Ordinal)
+                ? "Efectos de espectadores en pausa."
+                : "Efectos de espectadores reanudados.";
+        }
+
+        if (m.StartsWith("Descartado ", StringComparison.Ordinal))
+        {
+            return "Se descartó un efecto que esperaba turno: los efectos están en pausa.";
+        }
+
         if (m.StartsWith("Regalo ", StringComparison.Ordinal))
         {
             return FormatArrowLine(m["Regalo ".Length..], "envió");
@@ -192,6 +224,12 @@ public static class ActivityCopy
         }
 
         return null;
+    }
+
+    private static string NameBeforeParen(string text)
+    {
+        var paren = text.LastIndexOf(" (", StringComparison.Ordinal);
+        return (paren > 0 ? text[..paren] : text.TrimEnd('.')).Trim();
     }
 
     private static string FormatArrowLine(string rest, string verb)

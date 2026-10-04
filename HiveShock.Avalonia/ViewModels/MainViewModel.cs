@@ -47,6 +47,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         TikTok = new TikTokViewModel(this);
         Twitch = new TwitchViewModel(this);
         Zeldathon = new ZeldathonViewModel(this);
+        Moderation = new ModerationViewModel(this);
         SmartTts = new SmartTtsViewModel(this);
         Help = new HelpViewModel();
         About = new AboutViewModel();
@@ -89,6 +90,8 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         });
         Runtime.Overlay.GiftReceived += OnOverlayGift;
         Runtime.Ports.Changed += OnPortsChanged;
+        ViewerEffectsPaused = Runtime.Guard.IsPaused;
+        Runtime.Guard.PausedChanged += OnViewerPauseChanged;
         BridgeLog.Logged += OnLogged;
         BridgeLog.Init();
         BridgeLog.Info($"UI lista · perfil {Runtime.Profile.DisplayName}");
@@ -113,6 +116,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public TikTokViewModel TikTok { get; }
     public TwitchViewModel Twitch { get; }
     public ZeldathonViewModel Zeldathon { get; }
+    public ModerationViewModel Moderation { get; }
     public SmartTtsViewModel SmartTts { get; }
     public HelpViewModel Help { get; }
     public AboutViewModel About { get; }
@@ -151,11 +155,15 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private string _detailLogText = "";
     [ObservableProperty] private string _selectedThemeId = "system";
     [ObservableProperty] private bool _navExpanded = true;
+    [ObservableProperty] private bool _viewerEffectsPaused;
+
+    public string PauseButtonText => ViewerEffectsPaused ? "▶ Efectos en pausa · Reanudar" : "⏸ Pausar efectos";
 
     public bool IsStudioNav => CurrentPageKey == "studio";
     public bool IsTikTokNav => CurrentPageKey is "tiktok" or "gifts" or "catalog";
     public bool IsTwitchNav => CurrentPageKey == "twitch";
     public bool IsZeldathonNav => CurrentPageKey == "zeldathon";
+    public bool IsModerationNav => CurrentPageKey == "moderacion";
     public bool IsSmartTtsNav => CurrentPageKey == "voz";
     public bool IsHelpNav => CurrentPageKey == "help";
     public bool IsAboutNav => CurrentPageKey == "about";
@@ -270,6 +278,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         OnPropertyChanged(nameof(IsTikTokNav));
         OnPropertyChanged(nameof(IsTwitchNav));
         OnPropertyChanged(nameof(IsZeldathonNav));
+        OnPropertyChanged(nameof(IsModerationNav));
         OnPropertyChanged(nameof(IsSmartTtsNav));
         OnPropertyChanged(nameof(IsHelpNav));
         OnPropertyChanged(nameof(IsAboutNav));
@@ -448,6 +457,12 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         CurrentPageKey = "zeldathon";
     }
 
+    public void GoModeration()
+    {
+        CurrentPage = Moderation;
+        CurrentPageKey = "moderacion";
+    }
+
     public void GoGifts(bool reload = true)
     {
         GoTikTok();
@@ -494,6 +509,12 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     private void NavZeldathon() => GoZeldathon();
 
     [RelayCommand]
+    private void NavModeration() => GoModeration();
+
+    [RelayCommand]
+    private void ToggleViewerEffectsPause() => Runtime.Guard.SetPaused(!Runtime.Guard.IsPaused);
+
+    [RelayCommand]
     private void NavSmartTts() => GoSmartTts();
 
     [RelayCommand]
@@ -516,6 +537,10 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     [RelayCommand]
     private void ClearLog() => ClearActivity();
+
+    partial void OnViewerEffectsPausedChanged(bool value) => OnPropertyChanged(nameof(PauseButtonText));
+
+    private void OnViewerPauseChanged(bool paused) => Dispatch(() => ViewerEffectsPaused = paused);
 
     partial void OnNavExpandedChanged(bool value)
     {
@@ -649,6 +674,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Overlays.CloseAll(Prefs);
         Runtime.Overlay.GiftReceived -= OnOverlayGift;
         Runtime.Ports.Changed -= OnPortsChanged;
+        Runtime.Guard.PausedChanged -= OnViewerPauseChanged;
         BridgeLog.Logged -= OnLogged;
 
         try

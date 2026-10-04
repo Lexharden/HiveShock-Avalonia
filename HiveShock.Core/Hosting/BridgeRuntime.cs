@@ -43,6 +43,9 @@ public sealed class BridgeRuntime : IAsyncDisposable
     public GiftGoalBank Goals { get; } = new();
     public LivePortHub Ports { get; } = new();
 
+    /// <summary>Pausa de emergencia y lista de bloqueo de espectadores. Vive aunque se desconecte el puente.</summary>
+    public ViewerGuard Guard { get; } = new();
+
     /// <summary>Conexión con el servidor de Zeldatón (reloj oficial y telemetría). Vive fuera del puente.</summary>
     public ZeldathonService Zeldathon { get; } = new();
 
@@ -339,8 +342,32 @@ public sealed class BridgeRuntime : IAsyncDisposable
         Overlay.Notify(gift.Gift, gift.Id);
     }
 
+    /// <summary>Último estado de la cola de enemigos que reportó el juego (HiveShock en Shipwright).</summary>
+    public GameSpawnQueue SpawnQueue { get; private set; } = GameSpawnQueue.Empty;
+
+    /// <summary>Cambió <see cref="SpawnQueue"/> (llega desde el hilo del lector de eventos).</summary>
+    public event EventHandler? SpawnQueueChanged;
+
     private void OnGameEvent(object? sender, GameEventArgs e)
     {
+        if (string.Equals(e.Event, "spawn_queue", StringComparison.OrdinalIgnoreCase))
+        {
+            if (e.Data is { } queueData && GameSpawnQueue.TryParse(queueData, out var queue))
+            {
+                SpawnQueue = queue;
+                SpawnQueueChanged?.Invoke(this, EventArgs.Empty);
+            }
+
+            return;
+        }
+
+        if (string.Equals(e.Event, "spawn_rejected", StringComparison.OrdinalIgnoreCase))
+        {
+            var action = e.Data is { } rejected && rejected.TryGetProperty("action", out var a) ? a.GetString() : null;
+            BridgeLog.Warn($"El juego rechazó un spawn ({action ?? "?"}): la cola de enemigos está llena.");
+            return;
+        }
+
         // Telemetría para Zeldatón (escena, ítems, jefes, stats…); los eventos de muerte los ignora.
         Zeldathon.Session.OnGameEvent(e.Event, e.Data);
 
@@ -490,6 +517,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         builder.Services.AddSingleton(Overlay);
         builder.Services.AddSingleton(Goals);
         builder.Services.AddSingleton(Ports);
+        builder.Services.AddSingleton(Guard);
         if (Voice != null)
         {
             builder.Services.AddSingleton(Voice);

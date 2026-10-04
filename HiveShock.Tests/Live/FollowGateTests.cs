@@ -147,4 +147,89 @@ public class FollowGateTests
         Assert.Equal(FollowAdmitKind.Allowed, gate.TryAdmit(K("0")));
         Assert.Equal(FollowAdmitKind.Duplicate, gate.TryAdmit(K(FollowGate.MaxTracked.ToString())));
     }
+
+    private static ViewerIdentity Viewer(string? id, string? handle, string name = "", string port = "tiktok") =>
+        new(port, id, handle, name);
+
+    [Fact]
+    public void Admit_recognises_the_same_person_by_id_even_after_a_rename()
+    {
+        using var gate = Make(new Disk());
+        Assert.Equal(FollowAdmitKind.Allowed, gate.Admit(Viewer("42", "ana"), "streamer"));
+        Assert.Equal(FollowAdmitKind.Duplicate, gate.Admit(Viewer("42", "ana"), "streamer"));
+        Assert.Equal(FollowAdmitKind.Duplicate, gate.Admit(Viewer("42", "ana_nueva"), "streamer"));
+        Assert.Equal(FollowAdmitKind.Duplicate, gate.Admit(Viewer("42", null), "streamer"));
+    }
+
+    [Fact]
+    public void Admit_recognises_an_event_without_id_through_the_remembered_handle()
+    {
+        using var gate = Make(new Disk());
+        gate.Admit(Viewer("42", "ana"), "streamer");
+
+        Assert.Equal(FollowAdmitKind.Duplicate, gate.Admit(Viewer(null, "ana"), "streamer"));
+    }
+
+    [Fact]
+    public void Admit_a_different_person_who_took_the_old_handle_is_a_new_follower()
+    {
+        using var gate = Make(new Disk());
+        gate.Admit(Viewer("42", "ana"), "streamer");
+
+        // El id manda: otro id con el mismo @usuario no es un duplicado (sería un falso positivo).
+        Assert.Equal(FollowAdmitKind.Allowed, gate.Admit(Viewer("99", "ana"), "streamer"));
+        Assert.Equal(FollowAdmitKind.Duplicate, gate.Admit(Viewer("99", "ana"), "streamer"));
+    }
+
+    [Fact]
+    public void Admit_with_only_a_handle_still_blocks_repeats()
+    {
+        using var gate = Make(new Disk());
+        Assert.Equal(FollowAdmitKind.Allowed, gate.Admit(Viewer(null, "Ana"), "streamer"));
+        Assert.Equal(FollowAdmitKind.Duplicate, gate.Admit(Viewer(null, "@ana"), "streamer"));
+    }
+
+    [Fact]
+    public void Admit_with_only_a_nickname_lets_it_through_without_remembering_anyone()
+    {
+        using var gate = Make(new Disk());
+
+        Assert.Equal(FollowAdmitKind.Unidentified, gate.Admit(Viewer(null, null, "Maria"), "streamer"));
+        Assert.Equal(FollowAdmitKind.Unidentified, gate.Admit(Viewer(null, null, "Maria"), "streamer"));
+        Assert.Equal(0, gate.Count);
+    }
+
+    [Fact]
+    public void Admit_still_honours_history_saved_with_the_old_id_only_keys()
+    {
+        // Entradas guardadas antes: "puerto:canal:id" (y "puerto:canal:usuario" cuando no había id).
+        var disk = new Disk { Data = new Dictionary<string, long> { [K("42")] = 1, [K("vieja")] = 1 } };
+        using var gate = Make(disk);
+
+        Assert.Equal(FollowAdmitKind.Duplicate, gate.Admit(Viewer("42", "otro"), "streamer"));
+        Assert.Equal(FollowAdmitKind.Duplicate, gate.Admit(Viewer(null, "vieja"), "streamer"));
+    }
+
+    [Fact]
+    public void Admit_keeps_channels_and_ports_apart()
+    {
+        using var gate = Make(new Disk());
+        gate.Admit(Viewer("42", "ana"), "streamer");
+
+        Assert.Equal(FollowAdmitKind.Allowed, gate.Admit(Viewer("42", "ana"), "otro"));
+        Assert.Equal(FollowAdmitKind.Allowed, gate.Admit(Viewer("42", "ana", port: "twitch"), "streamer"));
+    }
+
+    [Fact]
+    public void Admit_remembered_alias_is_persisted()
+    {
+        var disk = new Disk();
+        using (var gate = Make(disk))
+        {
+            gate.Admit(Viewer("42", "ana"), "streamer");
+        }
+
+        using var again = Make(disk);
+        Assert.Equal(FollowAdmitKind.Duplicate, again.Admit(Viewer(null, "ana"), "streamer"));
+    }
 }

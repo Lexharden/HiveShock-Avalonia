@@ -25,6 +25,8 @@ namespace TikTokLive.Helpers
         public string GiftName { get; set; } = "";
         public long DiamondsPerGift { get; set; }
         public string ViewerName { get; set; } = "";
+        /// <summary>Quien envió el combo (id y @usuario), para poder aplicarle el bloqueo al cerrarlo por timeout.</summary>
+        public UserIdentity? User { get; set; }
         public int TotalGiftCount { get; set; }
         public long TotalDiamondCount { get; set; }
     }
@@ -58,6 +60,7 @@ namespace TikTokLive.Helpers
             public string GiftName = "";
             public long DiamondsPerGift;
             public string ViewerName = "";
+            public UserIdentity? User;
             public int LastRepeatCount;
             /// <summary>Regalos de envíos anteriores del mismo GroupId (conteo reiniciado por TikTok).</summary>
             public int Banked;
@@ -127,6 +130,7 @@ namespace TikTokLive.Helpers
                     DiamondsPerGift = diamondPer,
                     ViewerName = msg.User?.Nickname is { Length: > 0 } nick ? nick
                         : msg.User?.UniqueId is { Length: > 0 } uid ? uid : "",
+                    User = msg.User ?? prev?.User,
                     LastRepeatCount = count,
                     Banked = banked,
                     LastMsgId = msgId != 0 ? msgId : prev?.LastMsgId ?? 0,
@@ -185,6 +189,7 @@ namespace TikTokLive.Helpers
                     GiftName = s.GiftName,
                     DiamondsPerGift = s.DiamondsPerGift,
                     ViewerName = s.ViewerName,
+                    User = s.User,
                     TotalGiftCount = s.Banked + s.LastRepeatCount,
                     TotalDiamondCount = s.DiamondsPerGift * (s.Banked + s.LastRepeatCount),
                 });

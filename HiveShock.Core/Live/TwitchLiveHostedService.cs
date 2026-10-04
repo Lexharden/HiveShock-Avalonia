@@ -10,17 +10,20 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
     private readonly BridgeOptions _options;
     private readonly LiveEffectRouter _router;
     private readonly LivePortHub _hub;
+    private readonly ViewerGuard _guard;
     private readonly SmartVoiceManager? _voice;
 
     public TwitchLiveHostedService(
         BridgeOptions options,
         LiveEffectRouter router,
         LivePortHub hub,
+        ViewerGuard guard,
         SmartVoiceManager? voice = null)
     {
         _options = options;
         _router = router;
         _hub = hub;
+        _guard = guard;
         _voice = voice;
     }
 
@@ -122,22 +125,28 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
             clientId,
             access,
             userId,
-            (chatter, chatterId, text, roles) =>
+            (viewer, text, roles) =>
             {
-                _router.HandleChat(chatter, chatterId, text, ct, LivePortIds.Twitch);
-                if (chatterId == userId)
+                // Bloqueado: ni comandos ni lectura en voz alta.
+                if (_guard.IsBlocked(viewer))
+                {
+                    return;
+                }
+
+                _router.HandleChat(viewer, text, ct);
+                if (viewer.UserId == userId)
                 {
                     roles |= ChatterRoles.Broadcaster;
                 }
 
-                _voice?.Enqueue(new TtsMessage(LivePortIds.Twitch, chatter, text, DateTime.UtcNow)
+                _voice?.Enqueue(new TtsMessage(LivePortIds.Twitch, viewer.Label, text, DateTime.UtcNow)
                 {
                     Roles = roles,
-                    SpeakerKey = chatterId,
+                    SpeakerKey = viewer.StableKey,
                 });
             },
-            (user, followerId) => _router.HandleFollow(user, followerId, ct, LivePortIds.Twitch),
-            (user, bits) => _router.HandleCheer(user, bits, ct),
+            viewer => _router.HandleFollow(viewer, ct),
+            (viewer, bits) => _router.HandleCheer(viewer, bits, ct),
             () =>
             {
                 onLive();

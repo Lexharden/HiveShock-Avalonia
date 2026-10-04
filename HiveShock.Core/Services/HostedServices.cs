@@ -142,6 +142,7 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
     private readonly GiftCatalogStore _catalog;
     private readonly LiveEffectRouter _router;
     private readonly LivePortHub _hub;
+    private readonly ViewerGuard _guard;
     private readonly SmartVoiceManager? _voice;
     private readonly HiveShock.Zeldathon.ZeldathonService? _zeldathon;
 #if DEBUG
@@ -153,6 +154,7 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         GiftCatalogStore catalog,
         LiveEffectRouter router,
         LivePortHub hub,
+        ViewerGuard guard,
         SmartVoiceManager? voice = null,
         HiveShock.Zeldathon.ZeldathonService? zeldathon = null
 #if DEBUG
@@ -165,6 +167,7 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         _catalog = catalog;
         _router = router;
         _hub = hub;
+        _guard = guard;
         _voice = voice;
 #if DEBUG
         _diagnostics = diagnostics;
@@ -303,19 +306,24 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         client.OnRoomUserSeq += room => _zeldathon?.Stream.SetViewers(room.ViewerCount);
         client.OnGift += gift => _router.HandleTikTokGift(gift, ct);
         client.OnLike += like =>
-            _router.HandleLike(ViewerName(like.User), like.LikeCount > 0 ? like.LikeCount : 1, ct);
-        client.OnFollow += social => _router.HandleFollow(
-            ViewerName(social.User), LiveEffectRouter.TikTokFollowerId(social.User), ct, LivePortIds.TikTok);
-        client.OnShare += social => _router.HandleShare(ViewerName(social.User), ct);
+            _router.HandleLike(ViewerIdentity.TikTok(like.User), like.LikeCount > 0 ? like.LikeCount : 1, ct);
+        client.OnFollow += social => _router.HandleFollow(ViewerIdentity.TikTok(social.User), ct);
+        client.OnShare += social => _router.HandleShare(ViewerIdentity.TikTok(social.User), ct);
         client.OnChat += chat =>
         {
-            var viewer = ViewerName(chat.User);
+            var viewer = ViewerIdentity.TikTok(chat.User);
+            // Bloqueado: ni comandos ni lectura en voz alta.
+            if (_guard.IsBlocked(viewer))
+            {
+                return;
+            }
+
             var comment = chat.Comment ?? "";
-            _router.HandleChat(viewer, LiveEffectRouter.TikTokStableId(chat.User), comment, ct, LivePortIds.TikTok);
-            _voice?.Enqueue(new TtsMessage(LivePortIds.TikTok, viewer, comment, DateTime.UtcNow)
+            _router.HandleChat(viewer, comment, ct);
+            _voice?.Enqueue(new TtsMessage(LivePortIds.TikTok, ViewerName(chat.User), comment, DateTime.UtcNow)
             {
                 Roles = TikTokRoles(chat),
-                SpeakerKey = LiveEffectRouter.TikTokStableId(chat.User),
+                SpeakerKey = viewer.StableKey,
             });
         };
 

@@ -19,15 +19,20 @@ public sealed class LiveEffectRouter : IDisposable
     private readonly EffectDispatcher _dispatcher;
     private readonly OverlayNotifier _overlay;
     private readonly GiftGoalBank _goals;
+    private readonly ViewerGuard _guard;
     private readonly SmartVoiceManager? _voice;
     private readonly GiftStreakTracker _streaks = new();
     private readonly object _streakGate = new();
     private readonly Timer _streakFlushTimer;
     private readonly ChatCommandGate _chatGate = new();
     private readonly FollowGate _followGate;
+    private readonly bool _ownsFollowGate;
     private readonly Zeldathon.ZeldathonService? _zeldathon;
     private long _followIgnored;
     private long _followIgnoredLogTicks;
+    private long _guardDenied;
+    private long _guardDeniedLogTicks;
+    private int _followUnidentifiedWarned;
     private readonly ConcurrentDictionary<string, byte> _seenUnmapped = new();
     private long _likeBucket;
 
@@ -39,8 +44,10 @@ public sealed class LiveEffectRouter : IDisposable
         EffectDispatcher dispatcher,
         OverlayNotifier overlay,
         GiftGoalBank goals,
+        ViewerGuard guard,
         SmartVoiceManager? voice = null,
-        Zeldathon.ZeldathonService? zeldathon = null)
+        Zeldathon.ZeldathonService? zeldathon = null,
+        FollowGate? followGate = null)
     {
         _options = options;
         _effects = effects;
@@ -49,9 +56,11 @@ public sealed class LiveEffectRouter : IDisposable
         _dispatcher = dispatcher;
         _overlay = overlay;
         _goals = goals;
+        _guard = guard;
         _voice = voice;
         _zeldathon = zeldathon;
-        _followGate = new FollowGate();
+        _ownsFollowGate = followGate == null;
+        _followGate = followGate ?? new FollowGate();
         _streakFlushTimer = new Timer(
             _ => FlushStaleStreaks(),
             null,
@@ -62,11 +71,15 @@ public sealed class LiveEffectRouter : IDisposable
     public void Dispose()
     {
         _streakFlushTimer.Dispose();
-        _followGate.Dispose();
+        if (_ownsFollowGate)
+        {
+            _followGate.Dispose();
+        }
     }
 
-    public void HandleChat(string user, string? stableId, string text, CancellationToken ct, string portId)
+    public void HandleChat(ViewerIdentity viewerId, string text, CancellationToken ct)
     {
+        var portId = viewerId.PortId;
         _zeldathon?.CountChat();
         if (_options.CaptureOnly)
         {
@@ -107,8 +120,13 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
-        var viewer = Viewer(user);
-        var key = ChatCommandGate.ViewerKey(portId, stableId);
+        var viewer = Viewer(viewerId.Label);
+        if (!Admit(viewerId, $"Chat {prefix}{command}"))
+        {
+            return;
+        }
+
+        var key = ChatCommandGate.ViewerKey(portId, viewerId.StableKey);
         var admit = _chatGate.TryAdmit(key, cfg.CooldownSec, cfg.GlobalGapSec, _dispatcher.PendingChat);
         if (!admit.Allowed)
         {
@@ -120,40 +138,42 @@ public sealed class LiveEffectRouter : IDisposable
         _ = _dispatcher.EnqueueAsync(effectId, viewer, $"Chat {prefix}{command}", ct, fromChat: true);
     }
 
-    /// <summary>Id para el anti-spam de follow: el numérico no cambia aunque el usuario cambie de @.</summary>
-    public static string TikTokFollowerId(UserIdentity? user)
+    /// <summary>
+    /// Pregunta al guardián si este espectador puede activar un efecto (y lo anota para poder bloquearlo
+    /// desde Moderación). Falso si está bloqueado o los efectos están en pausa.
+    /// </summary>
+    private bool Admit(ViewerIdentity viewer, string what)
     {
-        if (user is { UserId: > 0 })
+        var verdict = _guard.Check(viewer, what);
+        if (verdict == ViewerVerdict.Allowed)
         {
-            return user.UserId.ToString();
+            return true;
         }
 
-        return user?.UniqueId is { Length: > 0 } uid ? uid : "";
+        NoteDenied(verdict, viewer, what, record: false);
+        return false;
     }
 
-    public static string TikTokStableId(UserIdentity? user)
+    /// <summary>El log se agrupa (una línea cada 5 s con el total) para que un spam no lo inunde.</summary>
+    private void NoteDenied(ViewerVerdict verdict, ViewerIdentity viewer, string what, bool record = true)
     {
-        if (user?.UniqueId is { Length: > 0 } uid)
+        if (record)
         {
-            return uid;
+            _guard.Record(viewer, what, verdict);
         }
 
-        if (user?.DisplayId is { Length: > 0 } display)
+        var count = Interlocked.Increment(ref _guardDenied);
+        var now = Environment.TickCount64;
+        var last = Interlocked.Read(ref _guardDeniedLogTicks);
+        if (now - last < 5_000 || Interlocked.CompareExchange(ref _guardDeniedLogTicks, now, last) != last)
         {
-            return display;
+            return;
         }
 
-        if (user is { UserId: > 0 })
-        {
-            return user.UserId.ToString();
-        }
-
-        if (user?.Nickname is { Length: > 0 } nick)
-        {
-            return nick;
-        }
-
-        return "anon";
+        Interlocked.Exchange(ref _guardDenied, 0);
+        BridgeLog.Info(verdict == ViewerVerdict.Blocked
+            ? $"Bloqueado: {count} evento(s) de espectadores bloqueados ignorados (último: {viewer.Label}, {what})"
+            : $"Pausado: {count} evento(s) ignorados con los efectos en pausa (último: {viewer.Label}, {what})");
     }
 
     private static void LogChatDenied(ChatAdmitResult admit, string viewer, string prefix, string command)
@@ -173,27 +193,39 @@ public sealed class LiveEffectRouter : IDisposable
         BridgeLog.Info("Chat saturado, se omiten comandos");
     }
 
-    /// <param name="followerId">Id estable del usuario (no el nombre visible); vacío si no se conoce.</param>
-    public void HandleFollow(string user, string followerId, CancellationToken ct, string portId)
+    public void HandleFollow(ViewerIdentity viewerId, CancellationToken ct)
     {
         if (_options.CaptureOnly)
         {
             return;
         }
 
-        var isTwitch = string.Equals(portId, LivePortIds.Twitch, StringComparison.OrdinalIgnoreCase);
+        // Bloqueado: ni efecto, ni voz, ni se anota como seguidor.
+        if (_guard.IsBlocked(viewerId))
+        {
+            NoteDenied(ViewerVerdict.Blocked, viewerId, "Follow");
+            return;
+        }
+
+        var isTwitch = string.Equals(viewerId.PortId, LivePortIds.Twitch, StringComparison.OrdinalIgnoreCase);
+        var user = Viewer(viewerId.Label);
         if (_gifts.Snapshot.Follow.OncePerUser)
         {
+            // Aunque los efectos estén en pausa se anota: seguir y dejar de seguir durante la pausa no
+            // debe valer un efecto al reanudar.
             var channel = isTwitch ? _options.TwitchUserLogin : _options.TikTokUniqueId;
-            var id = string.IsNullOrWhiteSpace(followerId) ? user : followerId;
-            if (_followGate.TryAdmit(FollowGate.Key(portId, channel, id)) == FollowAdmitKind.Duplicate)
+            switch (_followGate.Admit(viewerId, channel))
             {
-                LogFollowIgnored();
-                return;
+                case FollowAdmitKind.Duplicate:
+                    LogFollowIgnored();
+                    return;
+                case FollowAdmitKind.Unidentified:
+                    WarnFollowUnidentified(viewerId);
+                    break;
             }
         }
 
-        _voice?.Enqueue(new TtsMessage(portId, Viewer(user), "", DateTime.UtcNow) { Kind = TtsMessageKind.Follow, SpeakerKey = user });
+        _voice?.Enqueue(new TtsMessage(viewerId.PortId, user, "", DateTime.UtcNow) { Kind = TtsMessageKind.Follow, SpeakerKey = viewerId.StableKey });
 
         var effect = isTwitch
             ? _gifts.Snapshot.TwitchFollow.Effect
@@ -203,8 +235,24 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
-        BridgeLog.Info($"Follow {Viewer(user)} -> {effect}");
-        _ = _dispatcher.EnqueueAsync(effect, Viewer(user), "Follow", ct);
+        if (!Admit(viewerId, "Follow"))
+        {
+            return;
+        }
+
+        BridgeLog.Info($"Follow {user} -> {effect}");
+        _ = _dispatcher.EnqueueAsync(effect, user, "Follow", ct);
+    }
+
+    /// <summary>Sin id ni @usuario no se puede recordar a nadie: el aviso sale una vez para no inundar el log.</summary>
+    private void WarnFollowUnidentified(ViewerIdentity viewer)
+    {
+        if (Interlocked.Exchange(ref _followUnidentifiedWarned, 1) == 0)
+        {
+            BridgeLog.Warn(
+                $"Follow de {viewer.Label} sin id ni @usuario: no se puede evitar que repita el efecto. " +
+                "Avisa si pasa seguido.");
+        }
     }
 
     /// <summary>Un follow repetido no dispara nada; el log se agrupa para no inundar la actividad.</summary>
@@ -221,20 +269,29 @@ public sealed class LiveEffectRouter : IDisposable
         BridgeLog.Info($"Follow repetido ignorado (ya disparó antes) · {count} en total");
     }
 
-    public void HandleCheer(string user, int bits, CancellationToken ct)
+    public void HandleCheer(ViewerIdentity viewerId, int bits, CancellationToken ct)
     {
         if (_options.CaptureOnly || bits <= 0)
         {
             return;
         }
 
-        // Zeldatón: los bits pueden sumar o restar tiempo de la carrera (según la tarifa del streamer).
-        _zeldathon?.Donations.OnTwitchBits(Viewer(user), bits);
+        // Bloqueado: nada de lo suyo cuenta (ni efecto, ni voz, ni tiempo de la carrera).
+        if (_guard.IsBlocked(viewerId))
+        {
+            NoteDenied(ViewerVerdict.Blocked, viewerId, $"Bits x{bits}");
+            return;
+        }
 
-        _voice?.Enqueue(new TtsMessage(LivePortIds.Twitch, Viewer(user), "", DateTime.UtcNow)
+        var viewer = viewerId.IsIdentified || viewerId.Name.Length > 0 ? Viewer(viewerId.Label) : "Anónimo";
+
+        // Zeldatón: los bits pueden sumar o restar tiempo de la carrera (según la tarifa del streamer).
+        _zeldathon?.Donations.OnTwitchBits(viewer, bits);
+
+        _voice?.Enqueue(new TtsMessage(LivePortIds.Twitch, viewer, "", DateTime.UtcNow)
         {
             Kind = TtsMessageKind.Bits,
-            SpeakerKey = user,
+            SpeakerKey = viewerId.StableKey,
             Count = bits,
         });
 
@@ -246,17 +303,16 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
-        var viewer = Viewer(user);
-        if (string.IsNullOrEmpty(viewer))
+        if (!Admit(viewerId, $"Bits x{bits}"))
         {
-            viewer = "Anónimo";
+            return;
         }
 
         BridgeLog.Info($"Bits {viewer} x{bits} -> {match.Effect}");
         _ = _dispatcher.EnqueueAsync(match.Effect, viewer, $"Bits x{bits}", ct);
     }
 
-    public void HandleShare(string user, CancellationToken ct)
+    public void HandleShare(ViewerIdentity viewerId, CancellationToken ct)
     {
         if (_options.CaptureOnly)
         {
@@ -269,11 +325,17 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
-        BridgeLog.Info($"Share {Viewer(user)} -> {effect}");
-        _ = _dispatcher.EnqueueAsync(effect, Viewer(user), "Share", ct);
+        if (!Admit(viewerId, "Share"))
+        {
+            return;
+        }
+
+        var user = Viewer(viewerId.Label);
+        BridgeLog.Info($"Share {user} -> {effect}");
+        _ = _dispatcher.EnqueueAsync(effect, user, "Share", ct);
     }
 
-    public void HandleLike(string user, int likeCount, CancellationToken ct)
+    public void HandleLike(ViewerIdentity viewerId, int likeCount, CancellationToken ct)
     {
         if (_options.CaptureOnly)
         {
@@ -282,6 +344,13 @@ public sealed class LiveEffectRouter : IDisposable
 
         var cfg = _gifts.Snapshot.Likes;
         if (cfg.Every <= 0 || string.IsNullOrWhiteSpace(cfg.Effect))
+        {
+            return;
+        }
+
+        // Los likes son de a cientos por segundo: no se anotan uno a uno, solo cuando llegan a disparar.
+        // Bloqueado o en pausa, ni siquiera suman al contador (si no, saldría todo junto al reanudar).
+        if (_guard.Evaluate(viewerId) != ViewerVerdict.Allowed)
         {
             return;
         }
@@ -298,8 +367,10 @@ public sealed class LiveEffectRouter : IDisposable
 
             if (Interlocked.CompareExchange(ref _likeBucket, current - cfg.Every, current) == current)
             {
-                BridgeLog.Info($"Likes {Viewer(user)} x{cfg.Every} -> {cfg.Effect}");
-                _ = _dispatcher.EnqueueAsync(cfg.Effect, Viewer(user), $"{cfg.Every} likes", ct);
+                var user = Viewer(viewerId.Label);
+                _guard.Record(viewerId, $"{cfg.Every} likes", ViewerVerdict.Allowed);
+                BridgeLog.Info($"Likes {user} x{cfg.Every} -> {cfg.Effect}");
+                _ = _dispatcher.EnqueueAsync(cfg.Effect, user, $"{cfg.Every} likes", ct);
             }
         }
     }
@@ -341,7 +412,7 @@ public sealed class LiveEffectRouter : IDisposable
         var repeat = Math.Max(1, streak.TotalGiftCount);
         var diamonds = streak.TotalDiamondCount;
 
-        ProcessFinalGift(user, name, id, repeat, diamonds, ct);
+        ProcessFinalGift(ViewerIdentity.TikTok(gift.User), user, name, id, repeat, diamonds, ct);
     }
 
     private void FlushStaleStreaks()
@@ -358,6 +429,7 @@ public sealed class LiveEffectRouter : IDisposable
                 $"Combo sin cierre de TikTok (timeout): {p.ViewerName} " +
                 $"{(!string.IsNullOrWhiteSpace(p.GiftName) ? p.GiftName : p.GiftId.ToString())} x{p.TotalGiftCount}");
             ProcessFinalGift(
+                ViewerIdentity.TikTok(p.User),
                 p.ViewerName,
                 p.GiftName,
                 p.GiftId != 0 ? p.GiftId.ToString() : "",
@@ -367,13 +439,27 @@ public sealed class LiveEffectRouter : IDisposable
         }
     }
 
-    private void ProcessFinalGift(string user, string name, string id, int repeat, long diamonds, CancellationToken ct)
+    private void ProcessFinalGift(
+        ViewerIdentity viewerId,
+        string user,
+        string name,
+        string id,
+        int repeat,
+        long diamonds,
+        CancellationToken ct)
     {
         var giftLabel = !string.IsNullOrWhiteSpace(name) ? name : id;
 
         if (_options.CaptureOnly)
         {
             BridgeLog.Info($"Capturado {user} {giftLabel} x{repeat}");
+            return;
+        }
+
+        // Bloqueado: nada de lo suyo cuenta (ni efecto, ni meta, ni voz, ni tiempo de la carrera).
+        if (_guard.IsBlocked(viewerId))
+        {
+            NoteDenied(ViewerVerdict.Blocked, viewerId, $"Regalo {giftLabel} x{repeat}");
             return;
         }
 
@@ -386,6 +472,12 @@ public sealed class LiveEffectRouter : IDisposable
             Count = repeat,
             Diamonds = diamonds,
         });
+
+        // En pausa el regalo se reconoce (voz, tiempo de la carrera) pero no suma a metas ni activa efectos.
+        if (!Admit(viewerId, $"Regalo {giftLabel} x{repeat}"))
+        {
+            return;
+        }
 
         var tick = _goals.Contribute(name, id, repeat);
         if (tick != null)

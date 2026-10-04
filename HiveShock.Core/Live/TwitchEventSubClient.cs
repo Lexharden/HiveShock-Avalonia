@@ -15,9 +15,9 @@ public sealed class TwitchEventSubClient
         string clientId,
         string accessToken,
         string userId,
-        Action<string, string, string, ChatterRoles> onChat,
-        Action<string, string> onFollow,
-        Action<string, int> onCheer,
+        Action<ViewerIdentity, string, ChatterRoles> onChat,
+        Action<ViewerIdentity> onFollow,
+        Action<ViewerIdentity, int> onCheer,
         Action connected,
         CancellationToken ct)
     {
@@ -109,9 +109,9 @@ public sealed class TwitchEventSubClient
 
     private static void HandleNotification(
         JsonElement root,
-        Action<string, string, string, ChatterRoles> onChat,
-        Action<string, string> onFollow,
-        Action<string, int> onCheer)
+        Action<ViewerIdentity, string, ChatterRoles> onChat,
+        Action<ViewerIdentity> onFollow,
+        Action<ViewerIdentity, int> onCheer)
     {
         var subType = root.GetProperty("metadata").TryGetProperty("subscription_type", out var st)
             ? st.GetString()
@@ -124,13 +124,7 @@ public sealed class TwitchEventSubClient
 
         if (string.Equals(subType, "channel.chat.message", StringComparison.OrdinalIgnoreCase))
         {
-            var user = evt.TryGetProperty("chatter_user_name", out var n) ? n.GetString() ?? "" : "";
-            var userId = evt.TryGetProperty("chatter_user_id", out var id) ? id.GetString() ?? "" : "";
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                userId = user;
-            }
-
+            var viewer = ReadViewer(evt, "chatter_user_id", "chatter_user_login", "chatter_user_name");
             var text = "";
             if (evt.TryGetProperty("message", out var message) &&
                 message.TryGetProperty("text", out var t))
@@ -138,15 +132,13 @@ public sealed class TwitchEventSubClient
                 text = t.GetString() ?? "";
             }
 
-            onChat(user, userId, text, ReadChatterRoles(evt));
+            onChat(viewer, text, ReadChatterRoles(evt));
             return;
         }
 
         if (string.Equals(subType, "channel.follow", StringComparison.OrdinalIgnoreCase))
         {
-            var user = evt.TryGetProperty("user_name", out var n) ? n.GetString() ?? "" : "";
-            var followerId = evt.TryGetProperty("user_id", out var uid) ? uid.GetString() ?? "" : "";
-            onFollow(user, followerId);
+            onFollow(ReadViewer(evt, "user_id", "user_login", "user_name"));
             return;
         }
 
@@ -165,19 +157,19 @@ public sealed class TwitchEventSubClient
 
             var anonymous = evt.TryGetProperty("is_anonymous", out var anon) &&
                             anon.ValueKind == JsonValueKind.True;
-            var user = "";
-            if (!anonymous)
-            {
-                user = evt.TryGetProperty("user_name", out var n) ? n.GetString() ?? "" : "";
-                if (string.IsNullOrWhiteSpace(user) && evt.TryGetProperty("user_login", out var login))
-                {
-                    user = login.GetString() ?? "";
-                }
-            }
-
-            onCheer(user, bits);
+            onCheer(
+                anonymous
+                    ? ViewerIdentity.Twitch(null, null, null)
+                    : ReadViewer(evt, "user_id", "user_login", "user_name"),
+                bits);
         }
     }
+
+    private static ViewerIdentity ReadViewer(JsonElement evt, string idProp, string loginProp, string nameProp) =>
+        ViewerIdentity.Twitch(ReadString(evt, idProp), ReadString(evt, loginProp), ReadString(evt, nameProp));
+
+    private static string ReadString(JsonElement evt, string prop) =>
+        evt.TryGetProperty(prop, out var el) && el.ValueKind == JsonValueKind.String ? el.GetString() ?? "" : "";
 
     /// <summary>badges[].set_id de channel.chat.message → roles (founder cuenta como suscriptor).</summary>
     private static ChatterRoles ReadChatterRoles(JsonElement evt)

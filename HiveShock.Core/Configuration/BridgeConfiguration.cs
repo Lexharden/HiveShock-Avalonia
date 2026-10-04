@@ -37,6 +37,12 @@ public sealed class BridgeOptions
     public string? ProfileId { get; set; }
     /// <summary>Pausa mínima entre envíos TCP al juego (ms). 0 = sin pacing.</summary>
     public int EffectGapMs { get; set; } = 300;
+    /// <summary>
+    /// Cuánto insistir en entregar un efecto si el juego no está disponible (cerrado, cargando, reiniciando) antes
+    /// de darlo por perdido. Cero = no reintentar. Los efectos esperan en orden: un regalo pagado no se pierde por
+    /// un cierre breve del juego.
+    /// </summary>
+    public TimeSpan GameRetryWindow { get; set; } = TimeSpan.FromMinutes(10);
 
     public static BridgeOptions FromEnvironmentAndArgs(string[] args)
     {
@@ -75,6 +81,7 @@ public sealed class BridgeOptions
             DevMode = dev,
             ProfileId = string.IsNullOrWhiteSpace(profile) ? null : profile.Trim(),
             EffectGapMs = Math.Clamp(EnvInt("EFFECT_GAP_MS", 300), 0, 5000),
+            GameRetryWindow = TimeSpan.FromSeconds(Math.Clamp(EnvInt("GAME_RETRY_SECONDS", 600), 0, 3600)),
         };
     }
 

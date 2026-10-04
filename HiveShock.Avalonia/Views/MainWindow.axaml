@@ -37,6 +37,12 @@
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
                             HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="12">
+                    <Button Classes="secondary" Classes.danger="{Binding ViewerEffectsPaused}"
+                            Margin="0" Padding="12,7" VerticalAlignment="Center"
+                            Command="{Binding ToggleViewerEffectsPauseCommand}"
+                            ToolTip.Tip="Pausa de emergencia: los espectadores dejan de activar efectos en el juego. El chat en voz alta y el tiempo de la carrera siguen. Se reanuda sola al reabrir HiveShock.">
+                        <TextBlock Text="{Binding PauseButtonText}" FontWeight="SemiBold" FontSize="12" />
+                    </Button>
                     <ComboBox Width="150"
                               ItemsSource="{Binding ThemeOptions}"
                               SelectedItem="{Binding SelectedTheme}">
@@ -180,6 +186,15 @@
                                 <TextBlock Text="Zt" HorizontalAlignment="Center"
                                            IsVisible="{Binding NavCollapsed}" />
                                 <TextBlock Text="Zeldatón" IsVisible="{Binding NavExpanded}" />
+                            </Panel>
+                        </Button>
+                        <Button Classes="nav" Classes.active="{Binding IsModerationNav}"
+                                Classes.compact="{Binding NavCollapsed}"
+                                Command="{Binding NavModerationCommand}" ToolTip.Tip="Moderación">
+                            <Panel>
+                                <TextBlock Text="Md" HorizontalAlignment="Center"
+                                           IsVisible="{Binding NavCollapsed}" />
+                                <TextBlock Text="Moderación" IsVisible="{Binding NavExpanded}" />
                             </Panel>
                         </Button>
                         <Button Classes="nav" Classes.active="{Binding IsSmartTtsNav}"
