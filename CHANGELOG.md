@@ -4,6 +4,10 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.2.0-zeldathon.3] - 2026-10-04
+
+Edición especial para los streamers de Zeldatón (no pública). Suma la moderación de espectadores, la cola de enemigos sin pérdidas y el aviso animado del cronómetro.
+
 ### Moderación
 * **Pausa de emergencia** (botón en la barra de arriba y en Moderación): los espectadores dejan de activar efectos y metas, y lo que ya esperaba turno se descarta. El chat en voz alta, los avisos y el tiempo por donaciones de Zeldatón siguen. No se guarda: al abrir HiveShock siempre empieza reanudada. Las pruebas del streamer no se ven afectadas.
 * **Lista de bloqueo** (nueva página Moderación): ves quién activó efectos hace poco y lo bloqueas con un clic, o bloqueas por @usuario (TikTok o Twitch). Se reconoce por su **id**, así que cambiar de @usuario no lo libra, y otra persona que se quede con ese @usuario no queda bloqueada. Un bloqueado no activa efectos ni metas, no se lee su chat en voz alta, no cuenta como seguidor y sus regalos o bits no cambian el tiempo de la carrera.
