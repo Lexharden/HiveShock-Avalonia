@@ -18,9 +18,12 @@ public sealed class TimerSource
     {
         _prefs = prefs;
         _zeldathon = zeldathon;
-        Local = new LocalStopwatch(prefs.Timer.LocalElapsedMs);
-        _zeldathon.Donations.Applied += Deltas.Add;
+        Local = new LocalStopwatch(prefs.Timer.LocalElapsedMs, offsetMs: prefs.Timer.LocalOffsetMs);
+        _zeldathon.Donations.Applied += OnServerDonationApplied;
+        _zeldathon.Donations.LocalTimer = new LocalTimerHook(() => _prefs.Timer.IsLocal, ApplyLocalDonation);
     }
+
+    private readonly object _localGate = new();
 
     /// <summary>Cambios del reloj oficial por donaciones, para la animación del cronómetro.</summary>
     public TimeDeltaFeed Deltas { get; } = new();
@@ -30,6 +33,9 @@ public sealed class TimerSource
     /// <summary>Siempre el reloj oficial (lo que ve la página de Zeldatón), sin importar el modo elegido.</summary>
     public TimerDisplay CurrentOfficial() =>
         TimerDisplayBuilder.Official(_zeldathon.Clock, BuildOptions(), _zeldathon.State);
+
+    /// <summary>Siempre el cronómetro manual, con lo que sumaron o restaron las donaciones.</summary>
+    public TimerDisplay CurrentLocal() => TimerDisplayBuilder.Local(Local, BuildOptions());
 
     public TimerDisplay Current()
     {
@@ -58,7 +64,41 @@ public sealed class TimerSource
     public void PersistLocal()
     {
         _prefs.Timer.LocalElapsedMs = Local.ElapsedMs;
+        _prefs.Timer.LocalOffsetMs = Local.OffsetMs;
         _prefs.Save();
+    }
+
+    /// <summary>
+    /// El servidor confirma cambios del reloj oficial. Con el cronómetro manual en pantalla no se anima
+    /// (ese ya se anima al aplicarle la donación), así no salen dos avisos por la misma donación.
+    /// </summary>
+    private void OnServerDonationApplied(DonationTimeApplied applied)
+    {
+        if (!_prefs.Timer.IsLocal)
+        {
+            Deltas.Add(applied);
+        }
+    }
+
+    /// <summary>
+    /// Una donación suma o resta al cronómetro manual (esté corriendo o en pausa). El número mostrado nunca
+    /// baja de cero: si la resta lo pasaría, solo se descuenta lo que queda. Devuelve los segundos que de
+    /// verdad cambió y anima el aviso con ese valor.
+    /// </summary>
+    private long ApplyLocalDonation(long requestedSeconds)
+    {
+        long changeMs;
+        var wantedMs = requestedSeconds * 1000;
+        lock (_localGate)
+        {
+            var current = TimerDisplayBuilder.LocalValueMs(Local, BuildOptions());
+            changeMs = Math.Max(0, current + wantedMs) - current;
+            Local.Adjust(changeMs);
+        }
+
+        var applied = (long)Math.Round(changeMs / 1000.0, MidpointRounding.AwayFromZero);
+        Deltas.Push(applied, limited: changeMs != wantedMs);
+        return applied;
     }
 
     /// <summary>Verde si suma tiempo, rojo si resta.</summary>

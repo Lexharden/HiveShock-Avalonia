@@ -91,6 +91,9 @@ Los regalos de TikTok (diamantes) y los bits de Twitch pueden **sumar o restar t
 * En el cronómetro en pantalla (reloj oficial) sale un aviso «+1:30» / «−0:30» cuando el servidor confirma el cambio
   (`TIME_APPLIED`, con los segundos que aplicó de verdad). `TimeDeltaFeed` junta las ráfagas (1,5 s) en un cambio neto
   y descarta confirmaciones de hace más de 90 s; no lleva nombres de espectadores. Opciones en la página Zeldatón.
+* Con el **cronómetro manual** en pantalla, la tarifa del streamer se aplica directo a ese cronómetro
+  (`LocalStopwatch.Adjust`), sin pasar por el servidor ni por los topes del organizador y aunque no haya conexión. No baja de
+  cero; el aviso lleva lo que de verdad cambió. Si además hay conexión, la donación también se envía al servidor como siempre.
 * Robustez: cada donación (`TIME_DONATION`, id `don-…`) se guarda en `.hiveshock-zeldathon-donations.json` hasta que
   el servidor la confirma, y se reenvía con el mismo id al reconectar o reabrir HiveShock (el servidor guarda los ids y
   nunca aplica dos veces). Un rechazo (`not_allowed`, `event_not_live`…) se muestra en la lista y no se reintenta.

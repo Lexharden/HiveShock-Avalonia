@@ -4,6 +4,10 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+### Cronómetro manual
+* **Las donaciones también suman o restan al cronómetro manual**, igual que al reloj oficial: con tu tarifa (diamantes de TikTok y bits de Twitch), esté corriendo o en pausa, con el mismo aviso animado «+1:30» / «−0:30». Funciona aunque no estés conectado al servidor de la carrera; no pasa por los topes del organizador. El tiempo mostrado nunca baja de cero (si la resta lo pasaría, solo descuenta lo que queda). Con cuenta atrás cambia el tiempo que queda; hacia arriba, el número. «Poner a cero» borra también lo que sumaron o restaron, y se recuerda al volver a abrir HiveShock.
+* La página Zeldatón muestra el valor real del cronómetro manual (antes, con cuenta atrás, mostraba lo transcurrido).
+
 ## [2.2.0-zeldathon.3] - 2026-10-04
 
 Edición especial para los streamers de Zeldatón (no pública). Suma la moderación de espectadores, la cola de enemigos sin pérdidas y el aviso animado del cronómetro.

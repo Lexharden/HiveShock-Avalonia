@@ -67,7 +67,7 @@
                     <CheckBox Content="Las donaciones cambian mi tiempo de la carrera" IsChecked="{Binding DonationsEnabled}"
                               FontWeight="SemiBold" />
                     <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,6"
-                               Text="Tú eliges cuánto vale cada diamante de TikTok o bit de Twitch y si suma o resta. El servidor de la carrera aplica el cambio al reloj oficial dentro de los límites del organizador; si se corta la conexión, las donaciones esperan y se envían solas al volver." />
+                               Text="Tú eliges cuánto vale cada diamante de TikTok o bit de Twitch y si suma o resta. El servidor de la carrera aplica el cambio al reloj oficial dentro de los límites del organizador; si se corta la conexión, las donaciones esperan y se envían solas al volver. Con el cronómetro manual, el cambio se aplica directo a ese cronómetro (sin servidor ni topes del organizador)." />
                     <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding DonationPolicyText}" />
                     <TextBlock Classes="error" TextWrapping="Wrap" Text="{Binding DonationPolicyWarning}"
                                IsVisible="{Binding DonationPolicyWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
@@ -156,6 +156,8 @@
                                     Command="{Binding LocalToggleCommand}" MinWidth="110" />
                             <Button Classes="secondary" Content="Poner a cero" Command="{Binding LocalResetCommand}" />
                         </WrapPanel>
+                        <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"
+                                   Text="Si activaste las donaciones, suman o restan aquí según tu tarifa, esté corriendo o en pausa. El tiempo no baja de cero. «Poner a cero» también borra lo que sumaron o restaron." />
                         <CheckBox Content="Cuenta atrás desde…" IsChecked="{Binding LocalCountdown}" />
                         <DockPanel IsVisible="{Binding LocalCountdown}" Margin="0,4,0,0">
                             <TextBlock Classes="fieldLabel" Text="Minutos" Width="80" VerticalAlignment="Center" />
@@ -189,7 +191,7 @@
                     <CheckBox Content="Mostrar «+1:30» / «−0:30» bajo el reloj cuando una donación cambia el tiempo"
                               IsChecked="{Binding ShowDelta}" />
                     <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"
-                               Text="Solo con el reloj oficial. Sale cuando el servidor confirma el cambio, con lo que aplicó de verdad. Varias donaciones seguidas se juntan en un solo aviso. No muestra nombres de espectadores. Si la opción está activa, el cronómetro reserva una línea bajo el reloj." />
+                               Text="Con el reloj oficial sale cuando el servidor confirma el cambio, con lo que aplicó de verdad; con el cronómetro manual, al aplicarse. Varias donaciones seguidas se juntan en un solo aviso. No muestra nombres de espectadores. Si la opción está activa, el cronómetro reserva una línea bajo el reloj." />
                     <Grid ColumnDefinitions="*,12,*" RowDefinitions="Auto,Auto" Margin="0,8,0,0"
                           IsEnabled="{Binding ShowDelta}">
                         <TextBlock Classes="fieldLabel" Text="Color al sumar (#RRGGBB)" />
@@ -202,7 +204,7 @@
                         <Button Classes="secondary" Content="Probar −1:00" Command="{Binding PreviewDeltaRemoveCommand}" />
                     </WrapPanel>
                     <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"
-                               Text="Las pruebas solo muestran la animación: no cambian el reloj. Necesitas tener activado «Mostrar cronómetro en pantalla» y el reloj oficial." />
+                               Text="Las pruebas solo muestran la animación: no cambian el reloj. Necesitas tener activado «Mostrar cronómetro en pantalla»." />
 
                     <TextBlock Classes="sectionTitle" Text="AVISOS DE COLOR" Margin="0,14,0,4" />
                     <Grid ColumnDefinitions="*,12,*" RowDefinitions="Auto,Auto">

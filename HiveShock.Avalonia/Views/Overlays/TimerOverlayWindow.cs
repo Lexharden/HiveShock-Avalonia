@@ -145,8 +145,8 @@ public sealed class TimerOverlayWindow : Window
         RenderDelta();
     });
 
-    /// <summary>Con el reloj oficial y la opción activa se reserva la fila del rótulo.</summary>
-    private bool ShowDeltaRow => _look.Timer.ShowDelta && !_look.Timer.IsLocal;
+    /// <summary>Con la opción activa se reserva la fila del rótulo (reloj oficial y cronómetro manual).</summary>
+    private bool ShowDeltaRow => _look.Timer.ShowDelta;
 
     public void ApplyLook(UiPreferences prefs, double scale)
     {

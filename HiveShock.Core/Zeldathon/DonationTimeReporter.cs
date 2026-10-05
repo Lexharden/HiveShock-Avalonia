@@ -39,6 +39,13 @@ public sealed record DonationTimeEntry(
     long? AppliedSeconds,
     string Status);
 
+/// <summary>
+/// El cronómetro manual de la pantalla. <see cref="IsActive"/> dice si es el que se está usando y
+/// <see cref="Apply"/> le suma (o resta) los segundos y devuelve los que de verdad cambió (el cronómetro
+/// no baja de cero).
+/// </summary>
+public sealed record LocalTimerHook(Func<bool> IsActive, Func<long, long> Apply);
+
 /// <summary>El servidor aplicó una donación al reloj oficial. <see cref="Seconds"/> es lo aplicado de verdad (con signo).</summary>
 public sealed record DonationTimeApplied(long Seconds, long RequestedSeconds, string LimitedBy, DateTime CreatedUtc);
 
@@ -96,6 +103,12 @@ public sealed class DonationTimeReporter
     /// Llega ya con el reloj oficial actualizado. Puede venir de cualquier hilo.
     /// </summary>
     public event Action<DonationTimeApplied>? Applied;
+
+    /// <summary>
+    /// Cronómetro manual. Si está en uso, cada donación con tarifa se aplica también a él, esté o no conectado el
+    /// servidor de la carrera: no hay topes del organizador ni confirmación, solo la tarifa del streamer.
+    /// </summary>
+    public LocalTimerHook? LocalTimer { get; set; }
 
     /// <summary>Límites del organizador según /api/event (null = aún no se saben; el servidor decide).</summary>
     public DonationTimePolicy? Policy
@@ -157,7 +170,7 @@ public sealed class DonationTimeReporter
     private bool OnDonation(DonationPlatform platform, string? viewer, long amount, string? gift, int? count)
     {
         var settings = _settings();
-        if (!settings.Enabled || !_active() || amount <= 0)
+        if (!settings.Enabled || amount <= 0)
         {
             return false;
         }
@@ -168,11 +181,20 @@ public sealed class DonationTimeReporter
             return false;
         }
 
+        var localTimer = LocalTimer is { } hook && hook.IsActive() ? hook : null;
+        var server = _active();
+        if (!server && localTimer == null)
+        {
+            return false;
+        }
+
         var what = Describe(platform, amount, gift, count);
-        PendingDonation pending;
+        PendingDonation? pending = null;
+        long signedSeconds;
         lock (_gate)
         {
-            if (_policy != null && !_policy.Allows(rule.Direction))
+            var organizerAllows = true;
+            if (server && _policy != null && !_policy.Allows(rule.Direction))
             {
                 var why = !_policy.Enabled
                     ? "el organizador desactivó el tiempo por donaciones"
@@ -185,7 +207,13 @@ public sealed class DonationTimeReporter
                 }
 
                 Remember(new DonationTimeEntry("", _utcNow(), platform, what, viewer ?? "", 0, null, $"No enviado: {why}"));
-                return false;
+                if (localTimer == null)
+                {
+                    return false;
+                }
+
+                // El organizador manda sobre su reloj oficial, no sobre tu cronómetro manual.
+                organizerAllows = false;
             }
 
             var carryKey = $"{platform}|{rule.Signature}";
@@ -199,34 +227,85 @@ public sealed class DonationTimeReporter
                 return false;
             }
 
-            pending = new PendingDonation
+            signedSeconds = rule.Direction == DonationTimeDirection.Add ? seconds : -seconds;
+            if (server && organizerAllows)
             {
-                Id = "don-" + Guid.NewGuid().ToString("N"),
-                CreatedUtc = _utcNow(),
-                DeltaSeconds = rule.Direction == DonationTimeDirection.Add ? seconds : -seconds,
-                Platform = platform,
-                Amount = amount,
-                Gift = gift,
-                GiftCount = count,
-                Viewer = viewer,
-            };
-            _journal.Pending.Add(pending);
-            if (_journal.Pending.Count > MaxPending)
-            {
-                var dropped = _journal.Pending.Count - MaxPending;
-                _journal.Pending.RemoveRange(0, dropped);
-                BridgeLog.Warn($"Zeldatón: {dropped} donaciones sin confirmar se descartaron (demasiadas pendientes).");
+                pending = new PendingDonation
+                {
+                    Id = "don-" + Guid.NewGuid().ToString("N"),
+                    CreatedUtc = _utcNow(),
+                    DeltaSeconds = signedSeconds,
+                    Platform = platform,
+                    Amount = amount,
+                    Gift = gift,
+                    GiftCount = count,
+                    Viewer = viewer,
+                };
+                _journal.Pending.Add(pending);
+                if (_journal.Pending.Count > MaxPending)
+                {
+                    var dropped = _journal.Pending.Count - MaxPending;
+                    _journal.Pending.RemoveRange(0, dropped);
+                    BridgeLog.Warn($"Zeldatón: {dropped} donaciones sin confirmar se descartaron (demasiadas pendientes).");
+                }
+
+                Remember(new DonationTimeEntry(pending.Id, pending.CreatedUtc, platform, what, viewer ?? "", pending.DeltaSeconds, null, "Enviando…"));
             }
 
             // Primero a disco: si HiveShock se cierra ahora, se reenvía al volver a abrirlo.
             _save(_journal);
-            Remember(new DonationTimeEntry(pending.Id, pending.CreatedUtc, platform, what, viewer ?? "", pending.DeltaSeconds, null, "Enviando…"));
         }
 
-        BridgeLog.Info($"Zeldatón: {what} de {(string.IsNullOrWhiteSpace(viewer) ? "alguien" : viewer)} → {Signed(pending.DeltaSeconds)}");
-        _send(pending.ToMessage());
+        var who = string.IsNullOrWhiteSpace(viewer) ? "alguien" : viewer;
+        if (pending != null)
+        {
+            BridgeLog.Info($"Zeldatón: {what} de {who} → {Signed(pending.DeltaSeconds)}");
+            _send(pending.ToMessage());
+        }
+
+        if (localTimer != null)
+        {
+            ApplyToLocalTimer(localTimer, platform, what, viewer, signedSeconds);
+        }
+
         Changed?.Invoke();
         return true;
+    }
+
+    /// <summary>Suma o resta al cronómetro manual y lo deja en la lista de la página.</summary>
+    private void ApplyToLocalTimer(LocalTimerHook timer, DonationPlatform platform, string what, string? viewer, long requested)
+    {
+        long applied;
+        try
+        {
+            applied = timer.Apply(requested);
+        }
+        catch (Exception ex)
+        {
+            BridgeLog.Warn($"Cronómetro manual: no se pudo aplicar la donación ({ex.Message})");
+            return;
+        }
+
+        var status = applied == requested
+            ? "Aplicado al cronómetro manual"
+            : applied == 0
+                ? "Sin efecto: el cronómetro manual ya está en cero"
+                : "Limitado: el cronómetro manual llegó a cero";
+        BridgeLog.Info(
+            $"Cronómetro manual: {what} de {(string.IsNullOrWhiteSpace(viewer) ? "alguien" : viewer)} → {Signed(applied)}");
+        lock (_gate)
+        {
+            if (applied > 0)
+            {
+                AddedSeconds += applied;
+            }
+            else if (applied < 0)
+            {
+                RemovedSeconds -= applied;
+            }
+
+            Remember(new DonationTimeEntry("", _utcNow(), platform, what, viewer ?? "", requested, applied, status));
+        }
     }
 
     /// <summary>Conexión nueva con el servidor: reenvía todo lo pendiente con sus mismos ids.</summary>

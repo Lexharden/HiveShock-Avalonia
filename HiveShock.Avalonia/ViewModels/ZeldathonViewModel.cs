@@ -406,12 +406,16 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
         TwitchExample = Examples(settings.Twitch, policy, [(100, "100 bits"), (500, "500"), (5_000, "5 000")]);
 
         var pending = reporter.PendingCount;
+        var totals = $"+{DonationTimeCalculator.Format(reporter.AddedSeconds)} / −{DonationTimeCalculator.Format(reporter.RemovedSeconds)}";
         DonationStatusText = !settings.Enabled
             ? "Desactivado: las donaciones no cambian tu tiempo."
-            : !_service.Settings.HasCredentials
-                ? "Falta conectar con el servidor de la carrera (arriba)."
-                : $"En esta sesión: +{DonationTimeCalculator.Format(reporter.AddedSeconds)} / −{DonationTimeCalculator.Format(reporter.RemovedSeconds)} confirmados" +
-                  (pending > 0 ? $" · {pending} por confirmar (se reenvían solos)" : "");
+            : _shell.Prefs.Timer.IsLocal
+                ? $"En esta sesión: {totals} aplicados a tu cronómetro manual" +
+                  (pending > 0 ? $" · {pending} por confirmar en el servidor (se reenvían solos)" : "")
+                : !_service.Settings.HasCredentials
+                    ? "Falta conectar con el servidor de la carrera (arriba)."
+                    : $"En esta sesión: {totals} confirmados" +
+                      (pending > 0 ? $" · {pending} por confirmar (se reenvían solos)" : "");
 
         DonationRecent.Clear();
         foreach (var entry in reporter.Recent.Take(12))
@@ -446,7 +450,7 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
         ResetText = shown.ResetText;
 
         var sw = _shell.TimerSource.Local;
-        LocalText = TimerDisplayBuilder.FormatTime(sw.ElapsedMs, "hms", roundUp: false);
+        LocalText = _shell.TimerSource.CurrentLocal().TimeText;
         LocalToggleLabel = sw.IsRunning ? "Pausar" : "Iniciar";
     }
 

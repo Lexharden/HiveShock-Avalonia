@@ -130,4 +130,91 @@ public class TimerDisplayTests
         sw.Reset();
         Assert.Equal(0, sw.ElapsedMs);
     }
+
+    [Fact]
+    public void Local_stopwatch_counting_up_shows_what_donations_added_or_removed()
+    {
+        var t = new Ticker();
+        var sw = new LocalStopwatch(10_000, () => t.Ms);
+        var up = new TimerDisplayOptions();
+
+        sw.Adjust(30_000);
+        Assert.Equal("00:00:40", TimerDisplayBuilder.Local(sw, up).TimeText);
+
+        sw.Adjust(-100_000); // no baja de cero
+        Assert.Equal("00:00:00", TimerDisplayBuilder.Local(sw, up).TimeText);
+        Assert.Equal(0, TimerDisplayBuilder.LocalValueMs(sw, up));
+    }
+
+    [Fact]
+    public void Local_countdown_shows_the_remaining_time_with_the_donation_adjustment()
+    {
+        var t = new Ticker();
+        var sw = new LocalStopwatch(0, () => t.Ms);
+        var down = new TimerDisplayOptions { LocalCountdown = true, LocalStartMinutes = 2 };
+        sw.Start();
+        t.Ms = 5_000;
+
+        Assert.Equal("00:01:55", TimerDisplayBuilder.Local(sw, down).TimeText);
+        sw.Adjust(60_000); // suma 1 min: queda más tiempo
+        Assert.Equal("00:02:55", TimerDisplayBuilder.Local(sw, down).TimeText);
+        sw.Adjust(-120_000); // resta 2 min
+        Assert.Equal("00:00:55", TimerDisplayBuilder.Local(sw, down).TimeText);
+        Assert.Equal(55_000, TimerDisplayBuilder.LocalValueMs(sw, down));
+
+        t.Ms = 70_000; // sigue corriendo: el ajuste no se pierde
+        Assert.Equal("TIEMPO", TimerDisplayBuilder.Local(sw, down).StatusText);
+        Assert.Equal(0, TimerDisplayBuilder.LocalValueMs(sw, down));
+    }
+
+    [Fact]
+    public void Local_countdown_bar_follows_the_adjusted_remaining_time()
+    {
+        var t = new Ticker();
+        var sw = new LocalStopwatch(0, () => t.Ms);
+        var down = new TimerDisplayOptions { LocalCountdown = true, LocalStartMinutes = 2 };
+
+        Assert.Equal(0, TimerDisplayBuilder.Local(sw, down).UsedFraction, 3);
+        sw.Adjust(-60_000);
+        Assert.Equal(0.5, TimerDisplayBuilder.Local(sw, down).UsedFraction, 3);
+        sw.Adjust(120_000); // más tiempo que al empezar: la barra no pasa de vacía
+        Assert.Equal(0, TimerDisplayBuilder.Local(sw, down).UsedFraction, 3);
+    }
+
+    [Fact]
+    public void Stopwatch_adjustment_works_paused_or_running_and_reset_clears_it()
+    {
+        var t = new Ticker();
+        var sw = new LocalStopwatch(0, () => t.Ms);
+
+        sw.Adjust(5_000); // en pausa
+        sw.Start();
+        t.Ms = 2_000;
+        sw.Adjust(1_000); // corriendo
+        Assert.Equal(6_000, sw.OffsetMs);
+        Assert.Equal(2_000, sw.ElapsedMs); // el tiempo transcurrido no se toca
+
+        sw.Pause();
+        sw.Reset();
+        Assert.Equal(0, sw.OffsetMs);
+        Assert.Equal(0, sw.ElapsedMs);
+    }
+
+    [Fact]
+    public void Stopwatch_restores_its_saved_offset()
+    {
+        var sw = new LocalStopwatch(4_000, () => 0, offsetMs: -1_500);
+
+        Assert.Equal(4_000, sw.ElapsedMs);
+        Assert.Equal(-1_500, sw.OffsetMs);
+    }
+
+    [Fact]
+    public void Stopwatch_adjustments_from_many_threads_are_all_counted()
+    {
+        var sw = new LocalStopwatch();
+        Parallel.For(0, 1000, _ => sw.Adjust(10));
+
+        Assert.Equal(10_000, sw.OffsetMs);
+    }
 }

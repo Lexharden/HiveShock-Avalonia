@@ -148,6 +148,154 @@ public class DonationTimeReporterTests
         Assert.Equal(30, again.AddedSeconds);
     }
 
+    private sealed class FakeLocalTimer
+    {
+        public bool Active = true;
+        public long Limit = long.MaxValue; // lo máximo que puede cambiar (el cronómetro no baja de cero)
+        public List<long> Requests { get; } = [];
+
+        public LocalTimerHook Hook => new(() => Active, requested =>
+        {
+            Requests.Add(requested);
+            return requested < 0 ? Math.Max(requested, -Limit) : requested;
+        });
+    }
+
+    [Fact]
+    public void With_the_manual_timer_a_donation_is_applied_locally_even_without_the_server()
+    {
+        _active = false; // sin conexión con la carrera
+        var timer = new FakeLocalTimer();
+        var reporter = Reporter();
+        reporter.LocalTimer = timer.Hook;
+
+        Assert.True(reporter.OnTikTokGift("fan", "Rose", 5, 50));
+
+        Assert.Equal([50L], timer.Requests);
+        Assert.Empty(_sent);
+        Assert.Equal(0, reporter.PendingCount);
+        Assert.Equal(50, reporter.AddedSeconds);
+        var entry = Assert.Single(reporter.Recent);
+        Assert.Equal(50, entry.AppliedSeconds);
+        Assert.Equal("Aplicado al cronómetro manual", entry.Status);
+    }
+
+    [Fact]
+    public void Without_server_and_without_the_manual_timer_nothing_happens()
+    {
+        _active = false;
+        var timer = new FakeLocalTimer { Active = false };
+        var reporter = Reporter();
+        reporter.LocalTimer = timer.Hook;
+
+        Assert.False(reporter.OnTikTokGift("fan", "Rose", 1, 50));
+
+        Assert.Empty(timer.Requests);
+        Assert.Empty(_sent);
+    }
+
+    [Fact]
+    public void With_server_and_manual_timer_the_donation_goes_to_both()
+    {
+        var timer = new FakeLocalTimer();
+        var reporter = Reporter();
+        reporter.LocalTimer = timer.Hook;
+
+        Assert.True(reporter.OnTwitchBits("fan", 30));
+
+        Assert.Equal([30L], timer.Requests);
+        Assert.Equal("TIME_DONATION", Assert.Single(_sent).Type);
+        Assert.Equal(1, reporter.PendingCount);
+    }
+
+    [Fact]
+    public void The_organizer_policy_does_not_limit_the_manual_timer()
+    {
+        var timer = new FakeLocalTimer();
+        var reporter = Reporter();
+        reporter.LocalTimer = timer.Hook;
+        reporter.Policy = new DonationTimePolicy(true, AllowAdd: false, AllowRemove: true, 0, 0, 0);
+
+        Assert.True(reporter.OnTwitchBits("fan", 30)); // suma, y el organizador no lo permite
+
+        Assert.Equal([30L], timer.Requests);
+        Assert.Empty(_sent); // al servidor no se manda
+        Assert.Equal(0, reporter.PendingCount);
+        Assert.Contains(reporter.Recent, e => e.Status.StartsWith("No enviado", StringComparison.Ordinal));
+        Assert.Contains(reporter.Recent, e => e.Status == "Aplicado al cronómetro manual");
+    }
+
+    [Fact]
+    public void Removing_time_sends_a_negative_amount_to_the_manual_timer()
+    {
+        _active = false;
+        _settings.Twitch = new DonationTimeRule { Direction = DonationTimeDirection.Remove, Units = 1, Seconds = 2 };
+        var timer = new FakeLocalTimer();
+        var reporter = Reporter();
+        reporter.LocalTimer = timer.Hook;
+
+        reporter.OnTwitchBits("fan", 10);
+
+        Assert.Equal([-20L], timer.Requests);
+        Assert.Equal(20, reporter.RemovedSeconds);
+    }
+
+    [Fact]
+    public void When_the_manual_timer_hits_zero_the_donation_is_limited_and_counts_what_really_changed()
+    {
+        _active = false;
+        _settings.Twitch = new DonationTimeRule { Direction = DonationTimeDirection.Remove, Units = 1, Seconds = 1 };
+        var timer = new FakeLocalTimer { Limit = 12 };
+        var reporter = Reporter();
+        reporter.LocalTimer = timer.Hook;
+
+        reporter.OnTwitchBits("fan", 30);
+        timer.Limit = 0;
+        reporter.OnTwitchBits("fan", 5);
+
+        Assert.Equal(12, reporter.RemovedSeconds);
+        var recent = reporter.Recent; // la más reciente primero
+        Assert.Equal("Sin efecto: el cronómetro manual ya está en cero", recent[0].Status);
+        Assert.Equal("Limitado: el cronómetro manual llegó a cero", recent[1].Status);
+        Assert.Equal(-12, recent[1].AppliedSeconds);
+    }
+
+    [Fact]
+    public void The_manual_timer_respects_the_disabled_settings_the_minimum_and_keeps_fractions()
+    {
+        _active = false;
+        var timer = new FakeLocalTimer();
+        var reporter = Reporter();
+        reporter.LocalTimer = timer.Hook;
+
+        _settings.Enabled = false;
+        Assert.False(reporter.OnTwitchBits("fan", 100));
+        _settings.Enabled = true;
+        _settings.Twitch = new DonationTimeRule { Enabled = false };
+        Assert.False(reporter.OnTwitchBits("fan", 100));
+
+        _settings.Twitch = new DonationTimeRule { Units = 10, Seconds = 1, MinUnits = 1 };
+        for (var i = 0; i < 9; i++)
+        {
+            Assert.False(reporter.OnTwitchBits("fan", 1)); // aún no llega a un segundo
+        }
+
+        Assert.True(reporter.OnTwitchBits("fan", 1));
+        Assert.Equal([1L], timer.Requests);
+    }
+
+    [Fact]
+    public void A_failure_in_the_manual_timer_does_not_break_the_donation_flow()
+    {
+        var reporter = Reporter();
+        reporter.LocalTimer = new LocalTimerHook(() => true, _ => throw new InvalidOperationException("boom"));
+
+        var sent = reporter.OnTwitchBits("fan", 30); // no lanza
+
+        Assert.True(sent);
+        Assert.Single(_sent); // al servidor sí llegó
+    }
+
     [Fact]
     public void The_applied_event_carries_what_the_server_really_applied_not_what_was_asked()
     {

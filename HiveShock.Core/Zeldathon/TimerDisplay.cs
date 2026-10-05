@@ -102,16 +102,32 @@ public static class TimerDisplayBuilder
         return new TimerDisplay(label, text, statusText, tone, resetText, used);
     }
 
+    /// <summary>
+    /// Lo que muestra el cronómetro manual, en ms: lo transcurrido (hacia arriba) o lo que queda (cuenta atrás),
+    /// ya con lo que sumaron o restaron las donaciones. Nunca baja de cero.
+    /// </summary>
+    public static long LocalValueMs(LocalStopwatch stopwatch, TimerDisplayOptions opt)
+    {
+        var elapsed = stopwatch.ElapsedMs;
+        var offset = stopwatch.OffsetMs;
+        if (!opt.LocalCountdown)
+        {
+            return Math.Max(0, elapsed + offset);
+        }
+
+        return Math.Max(0, Math.Max(1, opt.LocalStartMinutes) * 60_000L - elapsed + offset);
+    }
+
     public static TimerDisplay Local(LocalStopwatch stopwatch, TimerDisplayOptions opt)
     {
         var label = string.IsNullOrWhiteSpace(opt.Label) ? "Cronómetro" : opt.Label.Trim();
-        var elapsed = stopwatch.ElapsedMs;
+        var shownMs = LocalValueMs(stopwatch, opt);
         if (!opt.LocalCountdown)
         {
             var status = stopwatch.IsRunning ? "CORRIENDO" : "PAUSADO";
             return new TimerDisplay(
                 label,
-                FormatTime(elapsed, opt.Format, roundUp: false),
+                FormatTime(shownMs, opt.Format, roundUp: false),
                 status,
                 stopwatch.IsRunning ? TimerTone.Normal : TimerTone.Paused,
                 "",
@@ -119,8 +135,8 @@ public static class TimerDisplayBuilder
         }
 
         var total = Math.Max(1, opt.LocalStartMinutes) * 60_000L;
-        var remaining = Math.Max(0, total - elapsed);
-        var used = Math.Clamp(elapsed / (double)total, 0, 1);
+        var remaining = shownMs;
+        var used = Math.Clamp(1.0 - remaining / (double)total, 0, 1);
         if (remaining == 0)
         {
             return new TimerDisplay(label, FormatTime(0, opt.Format, true), "TIEMPO", TimerTone.Exhausted, "", 1);

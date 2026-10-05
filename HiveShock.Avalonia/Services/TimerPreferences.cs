@@ -47,6 +47,9 @@ public sealed class TimerPreferences
     /// <summary>Tiempo acumulado del cronómetro local al cerrar (se restaura en pausa).</summary>
     public long LocalElapsedMs { get; set; }
 
+    /// <summary>Lo que las donaciones sumaron o restaron al cronómetro manual (se restaura al volver a abrir).</summary>
+    public long LocalOffsetMs { get; set; }
+
     public bool IsLocal => string.Equals(Mode, "local", StringComparison.OrdinalIgnoreCase);
 
     public double ResolveTimeSize() =>
