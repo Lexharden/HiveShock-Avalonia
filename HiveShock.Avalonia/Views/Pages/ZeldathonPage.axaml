@@ -185,6 +185,25 @@
                     <CheckBox Content="Mostrar cuánto falta para el reinicio del día" IsChecked="{Binding ShowReset}" />
                     <CheckBox Content="Mostrar barra de tiempo usado" IsChecked="{Binding ShowBar}" />
 
+                    <TextBlock Classes="sectionTitle" Text="AVISO AL CAMBIAR EL TIEMPO" Margin="0,14,0,4" />
+                    <CheckBox Content="Mostrar «+1:30» / «−0:30» bajo el reloj cuando una donación cambia el tiempo"
+                              IsChecked="{Binding ShowDelta}" />
+                    <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"
+                               Text="Solo con el reloj oficial. Sale cuando el servidor confirma el cambio, con lo que aplicó de verdad. Varias donaciones seguidas se juntan en un solo aviso. No muestra nombres de espectadores. Si la opción está activa, el cronómetro reserva una línea bajo el reloj." />
+                    <Grid ColumnDefinitions="*,12,*" RowDefinitions="Auto,Auto" Margin="0,8,0,0"
+                          IsEnabled="{Binding ShowDelta}">
+                        <TextBlock Classes="fieldLabel" Text="Color al sumar (#RRGGBB)" />
+                        <TextBox Grid.Row="1" Text="{Binding DeltaAddColor}" PlaceholderText="#5BD68A" />
+                        <TextBlock Grid.Column="2" Classes="fieldLabel" Text="Color al restar (#RRGGBB)" />
+                        <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding DeltaRemoveColor}" PlaceholderText="#E07A7A" />
+                    </Grid>
+                    <WrapPanel Margin="0,8,0,0" IsEnabled="{Binding ShowDelta}">
+                        <Button Classes="secondary" Content="Probar +1:00" Command="{Binding PreviewDeltaAddCommand}" />
+                        <Button Classes="secondary" Content="Probar −1:00" Command="{Binding PreviewDeltaRemoveCommand}" />
+                    </WrapPanel>
+                    <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"
+                               Text="Las pruebas solo muestran la animación: no cambian el reloj. Necesitas tener activado «Mostrar cronómetro en pantalla» y el reloj oficial." />
+
                     <TextBlock Classes="sectionTitle" Text="AVISOS DE COLOR" Margin="0,14,0,4" />
                     <Grid ColumnDefinitions="*,12,*" RowDefinitions="Auto,Auto">
                         <TextBlock Classes="fieldLabel" Text="Aviso a los (min)" />

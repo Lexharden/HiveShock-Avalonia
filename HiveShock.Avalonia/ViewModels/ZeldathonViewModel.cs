@@ -17,6 +17,7 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
         nameof(TimerFormatMs), nameof(TimerSize), nameof(ShowStatus), nameof(ShowReset), nameof(ShowBar),
         nameof(WarnMinutes), nameof(CriticalMinutes), nameof(NormalColor), nameof(WarnColor),
         nameof(CriticalColor), nameof(LocalCountdown), nameof(LocalStartMinutes),
+        nameof(ShowDelta), nameof(DeltaAddColor), nameof(DeltaRemoveColor),
         nameof(DonationsEnabled), nameof(TikTokEnabled), nameof(TikTokRemove), nameof(TikTokUnits),
         nameof(TikTokSeconds), nameof(TikTokMin), nameof(TikTokMax), nameof(TwitchEnabled), nameof(TwitchRemove),
         nameof(TwitchUnits), nameof(TwitchSeconds), nameof(TwitchMin), nameof(TwitchMax),
@@ -87,6 +88,9 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
     [ObservableProperty] private string _normalColor = "";
     [ObservableProperty] private string _warnColor = "#EBA00A";
     [ObservableProperty] private string _criticalColor = "#E07A7A";
+    [ObservableProperty] private bool _showDelta = true;
+    [ObservableProperty] private string _deltaAddColor = "#5BD68A";
+    [ObservableProperty] private string _deltaRemoveColor = "#E07A7A";
     [ObservableProperty] private bool _localCountdown;
     [ObservableProperty] private int _localStartMinutes = 240;
     [ObservableProperty] private string _localText = "00:00:00";
@@ -164,6 +168,9 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
         NormalColor = t.NormalColor;
         WarnColor = t.WarnColor;
         CriticalColor = t.CriticalColor;
+        ShowDelta = t.ShowDelta;
+        DeltaAddColor = t.DeltaAddColor;
+        DeltaRemoveColor = t.DeltaRemoveColor;
         LocalCountdown = t.LocalCountdown;
         LocalStartMinutes = t.LocalStartMinutes;
         var d = s.Donations ?? new DonationTimeSettings();
@@ -214,6 +221,9 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
         t.NormalColor = NormalizeColor(NormalColor);
         t.WarnColor = NormalizeColor(WarnColor);
         t.CriticalColor = NormalizeColor(CriticalColor);
+        t.ShowDelta = ShowDelta;
+        t.DeltaAddColor = NormalizeColor(DeltaAddColor);
+        t.DeltaRemoveColor = NormalizeColor(DeltaRemoveColor);
         t.LocalCountdown = LocalCountdown;
         t.LocalStartMinutes = Math.Max(1, LocalStartMinutes);
         s.Donations = new DonationTimeSettings
@@ -284,6 +294,13 @@ public sealed partial class ZeldathonViewModel : ViewModelBase
         AutoSaver.NotifyChanged();
         _shell.Overlays.RefreshTimer(_shell.Prefs);
     }
+
+    /// <summary>Muestra la animación sin tocar el reloj de verdad (los regalos de prueba no cambian el tiempo).</summary>
+    [RelayCommand]
+    private void PreviewDeltaAdd() => _shell.TimerSource.Deltas.Push(60, limited: false);
+
+    [RelayCommand]
+    private void PreviewDeltaRemove() => _shell.TimerSource.Deltas.Push(-60, limited: false);
 
     [RelayCommand]
     private void LocalToggle()

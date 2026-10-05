@@ -39,6 +39,9 @@ public sealed record DonationTimeEntry(
     long? AppliedSeconds,
     string Status);
 
+/// <summary>El servidor aplicó una donación al reloj oficial. <see cref="Seconds"/> es lo aplicado de verdad (con signo).</summary>
+public sealed record DonationTimeApplied(long Seconds, long RequestedSeconds, string LimitedBy, DateTime CreatedUtc);
+
 /// <summary>
 /// Tiempo por donaciones: convierte regalos de TikTok (diamantes) y bits de Twitch en segundos con la
 /// tarifa del streamer y los manda al servidor de Zeldatón (TIME_DONATION), que es quien decide.
@@ -87,6 +90,12 @@ public sealed class DonationTimeReporter
 
     /// <summary>Algo cambió (nueva donación, confirmación, rechazo): para refrescar la pantalla.</summary>
     public event Action? Changed;
+
+    /// <summary>
+    /// El servidor aplicó una donación y cambió el reloj (no se dispara con rechazos, repetidas ni cambios de 0 s).
+    /// Llega ya con el reloj oficial actualizado. Puede venir de cualquier hilo.
+    /// </summary>
+    public event Action<DonationTimeApplied>? Applied;
 
     /// <summary>Límites del organizador según /api/event (null = aún no se saben; el servidor decide).</summary>
     public DonationTimePolicy? Policy
@@ -253,6 +262,7 @@ public sealed class DonationTimeReporter
             return;
         }
 
+        DonationTimeApplied? applied = null;
         lock (_gate)
         {
             var index = _journal.Pending.FindIndex(p => p.Id == reply.Id);
@@ -265,12 +275,12 @@ public sealed class DonationTimeReporter
             _journal.Pending.RemoveAt(index);
             _save(_journal);
 
-            long? applied = null;
+            long? appliedSeconds = null;
             string status;
             switch (reply.Kind)
             {
                 case ZeldathonInboundKind.TimeApplied:
-                    applied = reply.AppliedSeconds;
+                    appliedSeconds = reply.AppliedSeconds;
                     status = LimitText(reply.LimitedBy, reply.AppliedSeconds);
                     break;
                 case ZeldathonInboundKind.Ack:
@@ -283,19 +293,28 @@ public sealed class DonationTimeReporter
                     break;
             }
 
-            if (applied is > 0)
+            if (appliedSeconds is > 0)
             {
-                AddedSeconds += applied.Value;
+                AddedSeconds += appliedSeconds.Value;
             }
-            else if (applied is < 0)
+            else if (appliedSeconds is < 0)
             {
-                RemovedSeconds -= applied.Value;
+                RemovedSeconds -= appliedSeconds.Value;
             }
 
-            Update(p, applied, status);
+            if (appliedSeconds is { } change and not 0)
+            {
+                applied = new DonationTimeApplied(change, p.DeltaSeconds, reply.LimitedBy, p.CreatedUtc);
+            }
+
+            Update(p, appliedSeconds, status);
         }
 
         Changed?.Invoke();
+        if (applied != null)
+        {
+            Applied?.Invoke(applied);
+        }
     }
 
     /// <summary>"Rose x5 (5 diamantes)", "100 bits".</summary>

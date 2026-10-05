@@ -149,6 +149,72 @@ public class DonationTimeReporterTests
     }
 
     [Fact]
+    public void The_applied_event_carries_what_the_server_really_applied_not_what_was_asked()
+    {
+        var reporter = Reporter();
+        var events = new List<DonationTimeApplied>();
+        reporter.Applied += events.Add;
+        reporter.OnTwitchBits("fan", 100);
+        var id = _sent[0].Id;
+
+        reporter.OnReply(Applied(id, requested: 100, applied: 60, limitedBy: "daily_limit"));
+
+        var e = Assert.Single(events);
+        Assert.Equal(60, e.Seconds);
+        Assert.Equal(100, e.RequestedSeconds);
+        Assert.Equal("daily_limit", e.LimitedBy);
+        Assert.Equal(_now, e.CreatedUtc);
+    }
+
+    [Fact]
+    public void The_applied_event_keeps_the_sign_when_time_is_removed()
+    {
+        _settings.Twitch = new DonationTimeRule { Direction = DonationTimeDirection.Remove, Units = 1, Seconds = 1 };
+        var reporter = Reporter();
+        var events = new List<DonationTimeApplied>();
+        reporter.Applied += events.Add;
+        reporter.OnTwitchBits("fan", 45);
+
+        reporter.OnReply(Applied(_sent[0].Id, requested: -45, applied: -45));
+
+        Assert.Equal(-45, Assert.Single(events).Seconds);
+    }
+
+    [Fact]
+    public void The_applied_event_is_not_raised_for_rejections_repeats_zero_or_other_messages()
+    {
+        var reporter = Reporter();
+        var events = new List<DonationTimeApplied>();
+        reporter.Applied += events.Add;
+        reporter.OnTwitchBits("a", 100);
+        reporter.OnTwitchBits("b", 100);
+        reporter.OnTwitchBits("c", 100);
+        var (a, b, c) = (_sent[0].Id, _sent[1].Id, _sent[2].Id);
+
+        reporter.OnReply(new ZeldathonInbound(ZeldathonInboundKind.Error, a, Code: "event_not_live"));
+        reporter.OnReply(new ZeldathonInbound(ZeldathonInboundKind.Ack, b)); // ya aplicado antes
+        reporter.OnReply(Applied(c, requested: 100, applied: 0, limitedBy: "daily_limit")); // tope diario: sin efecto
+        reporter.OnReply(Applied("hb-1", 0, 5)); // no es una donación
+
+        Assert.Empty(events);
+    }
+
+    [Fact]
+    public void The_applied_event_is_raised_once_even_if_the_same_confirmation_arrives_twice()
+    {
+        var reporter = Reporter();
+        var events = new List<DonationTimeApplied>();
+        reporter.Applied += events.Add;
+        reporter.OnTwitchBits("fan", 100);
+        var id = _sent[0].Id;
+
+        reporter.OnReply(Applied(id, 100, 100));
+        reporter.OnReply(Applied(id, 100, 100));
+
+        Assert.Single(events);
+    }
+
+    [Fact]
     public void Replies_settle_each_donation_and_explain_what_happened()
     {
         var reporter = Reporter();

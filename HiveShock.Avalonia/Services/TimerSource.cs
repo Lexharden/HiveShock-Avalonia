@@ -19,7 +19,11 @@ public sealed class TimerSource
         _prefs = prefs;
         _zeldathon = zeldathon;
         Local = new LocalStopwatch(prefs.Timer.LocalElapsedMs);
+        _zeldathon.Donations.Applied += Deltas.Add;
     }
+
+    /// <summary>Cambios del reloj oficial por donaciones, para la animación del cronómetro.</summary>
+    public TimeDeltaFeed Deltas { get; } = new();
 
     public LocalStopwatch Local { get; }
 
@@ -55,6 +59,15 @@ public sealed class TimerSource
     {
         _prefs.Timer.LocalElapsedMs = Local.ElapsedMs;
         _prefs.Save();
+    }
+
+    /// <summary>Verde si suma tiempo, rojo si resta.</summary>
+    public Color DeltaColor(long seconds)
+    {
+        var t = _prefs.Timer;
+        return seconds >= 0
+            ? OverlayLook.Parse(t.DeltaAddColor, Color.Parse("#5BD68A"))
+            : OverlayLook.Parse(t.DeltaRemoveColor, Colors.IndianRed);
     }
 
     public Color ToneColor(TimerTone tone)

@@ -34,6 +34,12 @@ public sealed class TimerPreferences
     public string PausedColor { get; set; } = "";
     public string OfflineColor { get; set; } = "";
 
+    /// <summary>Rótulo animado «+1:30» / «−0:30» bajo el reloj cuando una donación cambia el tiempo (solo reloj oficial).</summary>
+    public bool ShowDelta { get; set; } = true;
+
+    public string DeltaAddColor { get; set; } = "#5BD68A";
+    public string DeltaRemoveColor { get; set; } = "#E07A7A";
+
     /// <summary>Cronómetro local: sube desde cero (false) o baja desde <see cref="LocalStartMinutes"/> (true).</summary>
     public bool LocalCountdown { get; set; }
     public int LocalStartMinutes { get; set; } = 240;
@@ -62,5 +68,8 @@ public sealed class TimerPreferences
         ExhaustedColor = "#E07A7A";
         PausedColor = "";
         OfflineColor = "";
+        ShowDelta = true;
+        DeltaAddColor = "#5BD68A";
+        DeltaRemoveColor = "#E07A7A";
     }
 }

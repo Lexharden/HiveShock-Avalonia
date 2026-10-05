@@ -52,6 +52,16 @@ public static class TimerDisplayBuilder
         return $"{total / 3600:00}:{total % 3600 / 60:00}:{total % 60:00}";
     }
 
+    /// <summary>"+1:30", "−0:30", "+1:05:00": el cambio de reloj con signo (menos tipográfico para restar).</summary>
+    public static string FormatDelta(long seconds)
+    {
+        var total = Math.Abs(seconds);
+        var sign = seconds < 0 ? "−" : "+";
+        return total >= 3600
+            ? $"{sign}{total / 3600}:{total % 3600 / 60:00}:{total % 60:00}"
+            : $"{sign}{total / 60}:{total % 60:00}";
+    }
+
     public static TimerDisplay Official(ZeldathonClock clock, TimerDisplayOptions opt, ZeldathonConnectionState connection)
     {
         var label = string.IsNullOrWhiteSpace(opt.Label) ? "Tiempo restante" : opt.Label.Trim();
