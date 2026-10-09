@@ -34,7 +34,7 @@ public sealed record ViewerIdentity
     /// <summary>Hay algo con lo que reconocer a la persona (id o @usuario).</summary>
     public bool IsIdentified => HasId || Handle.Length > 0;
 
-    /// <summary>Clave para limitar por persona (enfriamiento, voz): id, si no @usuario y, al final, el nombre.</summary>
+    /// <summary>Clave para limitar por persona (enfriamiento): id, si no @usuario y, al final, el nombre.</summary>
     public string StableKey => HasId ? UserId : Handle.Length > 0 ? Handle : Name;
 
     /// <summary>Cómo nombrarlo en pantalla y en el log.</summary>

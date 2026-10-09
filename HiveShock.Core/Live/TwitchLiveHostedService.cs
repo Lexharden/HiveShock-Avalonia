@@ -1,6 +1,5 @@
 using HiveShock.Configuration;
 using HiveShock.Logging;
-using HiveShock.Voice;
 using Microsoft.Extensions.Hosting;
 
 namespace HiveShock.Live;
@@ -11,20 +10,17 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
     private readonly LiveEffectRouter _router;
     private readonly LivePortHub _hub;
     private readonly ViewerGuard _guard;
-    private readonly SmartVoiceManager? _voice;
 
     public TwitchLiveHostedService(
         BridgeOptions options,
         LiveEffectRouter router,
         LivePortHub hub,
-        ViewerGuard guard,
-        SmartVoiceManager? voice = null)
+        ViewerGuard guard)
     {
         _options = options;
         _router = router;
         _hub = hub;
         _guard = guard;
-        _voice = voice;
     }
 
     public string Id => LivePortIds.Twitch;
@@ -125,25 +121,15 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
             clientId,
             access,
             userId,
-            (viewer, text, roles) =>
+            (viewer, text) =>
             {
-                // Bloqueado: ni comandos ni lectura en voz alta.
+                // Bloqueado: ni comandos.
                 if (_guard.IsBlocked(viewer))
                 {
                     return;
                 }
 
                 _router.HandleChat(viewer, text, ct);
-                if (viewer.UserId == userId)
-                {
-                    roles |= ChatterRoles.Broadcaster;
-                }
-
-                _voice?.Enqueue(new TtsMessage(LivePortIds.Twitch, viewer.Label, text, DateTime.UtcNow)
-                {
-                    Roles = roles,
-                    SpeakerKey = viewer.StableKey,
-                });
             },
             viewer => _router.HandleFollow(viewer, ct),
             (viewer, bits) => _router.HandleCheer(viewer, bits, ct),

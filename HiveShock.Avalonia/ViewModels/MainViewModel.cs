@@ -6,8 +6,6 @@ using HiveShock.Avalonia.Services;
 using HiveShock.Avalonia.Themes;
 using HiveShock.Hosting;
 using HiveShock.Logging;
-using HiveShock.Voice;
-using HiveShock.Voice.Piper;
 
 namespace HiveShock.Avalonia.ViewModels;
 
@@ -27,7 +25,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Dialogs = dialogs;
         Overlays = overlays;
         Runtime = BridgeRuntime.Create();
-        AttachVoiceIfSupported();
         Prefs = UiPreferences.Load();
         TimerSource = new TimerSource(Prefs, Runtime.Zeldathon);
         if (Application.Current != null)
@@ -48,7 +45,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Twitch = new TwitchViewModel(this);
         Zeldathon = new ZeldathonViewModel(this);
         Moderation = new ModerationViewModel(this);
-        SmartTts = new SmartTtsViewModel(this);
         Help = new HelpViewModel();
         About = new AboutViewModel();
         Events.LoadFromEditor(Gifts.Editor);
@@ -117,7 +113,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public TwitchViewModel Twitch { get; }
     public ZeldathonViewModel Zeldathon { get; }
     public ModerationViewModel Moderation { get; }
-    public SmartTtsViewModel SmartTts { get; }
     public HelpViewModel Help { get; }
     public AboutViewModel About { get; }
 
@@ -164,7 +159,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public bool IsTwitchNav => CurrentPageKey == "twitch";
     public bool IsZeldathonNav => CurrentPageKey == "zeldathon";
     public bool IsModerationNav => CurrentPageKey == "moderacion";
-    public bool IsSmartTtsNav => CurrentPageKey == "voz";
     public bool IsHelpNav => CurrentPageKey == "help";
     public bool IsAboutNav => CurrentPageKey == "about";
     public bool CanInteract => !IsBusy;
@@ -279,14 +273,8 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         OnPropertyChanged(nameof(IsTwitchNav));
         OnPropertyChanged(nameof(IsZeldathonNav));
         OnPropertyChanged(nameof(IsModerationNav));
-        OnPropertyChanged(nameof(IsSmartTtsNav));
         OnPropertyChanged(nameof(IsHelpNav));
         OnPropertyChanged(nameof(IsAboutNav));
-        if (value != "voz")
-        {
-            // La prueba de micrófono solo tiene sentido con el medidor a la vista.
-            SmartTts.StopMicTest();
-        }
     }
 
     public async Task ToggleConnectionAsync()
@@ -348,47 +336,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
             IsBusy = false;
             RefreshStatus();
         }
-    }
-
-    /// <summary>
-    /// Arma Smart TTS con las implementaciones concretas de escritorio (viven en
-    /// HiveShock.Desktop) y lo conecta a Runtime. Solo existe en la compilación
-    /// net10.0-windows10.0.19041.0 (HIVESHOCK_WINDOWS_DESKTOP): es el único TFM que
-    /// referencia HiveShock.Desktop, porque NAudio/SharpHook solo exponen WASAPI/WinMM/
-    /// Media Foundation bajo un TFM Windows-versionado. En la compilación net10.0 normal
-    /// (Mac/Linux, y Windows sin -f) este método es un no-op y Runtime.Voice queda en
-    /// null; la página "Voz" lo muestra como no disponible en vez de intentar algo que
-    /// no existe en ese binario.
-    /// </summary>
-    private void AttachVoiceIfSupported()
-    {
-#if HIVESHOCK_WINDOWS_DESKTOP
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
-        try
-        {
-            var settings = TtsSettings.Load();
-            // Orden = preferencia y orden de respaldo: Edge (más natural) → Piper (natural, sin
-            // internet, si está instalado) → Windows (siempre disponible).
-            var engines = new TtsEngineRegistry([new EdgeTtsEngine(), new PiperTtsEngine(), new WindowsTtsEngine()]);
-            var voice = new SmartVoiceManager(
-                new WindowsMicrophoneCapture(),
-                engines,
-                new WindowsAudioPlayer(),
-                new SharpHookGlobalHotkeyListener(),
-                new VoiceActivityDetector(),
-                settings);
-            Runtime.AttachVoice(voice);
-        }
-        catch (Exception ex)
-        {
-            // Sin voz la app sigue siendo útil: la página "Voz" queda como no disponible.
-            BridgeLog.Error($"Smart TTS no se pudo iniciar: {ex.Message}");
-        }
-#endif
     }
 
     private static string FriendlyStartError(string message)
@@ -478,12 +425,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         GoTikTok();
     }
 
-    public void GoSmartTts()
-    {
-        CurrentPage = SmartTts;
-        CurrentPageKey = "voz";
-    }
-
     public void GoHelp()
     {
         CurrentPage = Help;
@@ -513,9 +454,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     [RelayCommand]
     private void ToggleViewerEffectsPause() => Runtime.Guard.SetPaused(!Runtime.Guard.IsPaused);
-
-    [RelayCommand]
-    private void NavSmartTts() => GoSmartTts();
 
     [RelayCommand]
     private void ToggleNav() => NavExpanded = !NavExpanded;

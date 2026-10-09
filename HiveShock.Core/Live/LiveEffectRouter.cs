@@ -3,7 +3,6 @@ using HiveShock.Configuration;
 using HiveShock.Hosting;
 using HiveShock.Logging;
 using HiveShock.Networking;
-using HiveShock.Voice;
 using TikTokLive.Helpers;
 using TikTokLive.Proto;
 
@@ -20,7 +19,6 @@ public sealed class LiveEffectRouter : IDisposable
     private readonly OverlayNotifier _overlay;
     private readonly GiftGoalBank _goals;
     private readonly ViewerGuard _guard;
-    private readonly SmartVoiceManager? _voice;
     private readonly GiftStreakTracker _streaks = new();
     private readonly object _streakGate = new();
     private readonly Timer _streakFlushTimer;
@@ -45,7 +43,6 @@ public sealed class LiveEffectRouter : IDisposable
         OverlayNotifier overlay,
         GiftGoalBank goals,
         ViewerGuard guard,
-        SmartVoiceManager? voice = null,
         Zeldathon.ZeldathonService? zeldathon = null,
         FollowGate? followGate = null)
     {
@@ -57,7 +54,6 @@ public sealed class LiveEffectRouter : IDisposable
         _overlay = overlay;
         _goals = goals;
         _guard = guard;
-        _voice = voice;
         _zeldathon = zeldathon;
         _ownsFollowGate = followGate == null;
         _followGate = followGate ?? new FollowGate();
@@ -200,7 +196,7 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
-        // Bloqueado: ni efecto, ni voz, ni se anota como seguidor.
+        // Bloqueado: ni efecto, ni se anota como seguidor.
         if (_guard.IsBlocked(viewerId))
         {
             NoteDenied(ViewerVerdict.Blocked, viewerId, "Follow");
@@ -224,8 +220,6 @@ public sealed class LiveEffectRouter : IDisposable
                     break;
             }
         }
-
-        _voice?.Enqueue(new TtsMessage(viewerId.PortId, user, "", DateTime.UtcNow) { Kind = TtsMessageKind.Follow, SpeakerKey = viewerId.StableKey });
 
         var effect = isTwitch
             ? _gifts.Snapshot.TwitchFollow.Effect
@@ -276,7 +270,7 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
-        // Bloqueado: nada de lo suyo cuenta (ni efecto, ni voz, ni tiempo de la carrera).
+        // Bloqueado: nada de lo suyo cuenta (ni efecto, ni meta).
         if (_guard.IsBlocked(viewerId))
         {
             NoteDenied(ViewerVerdict.Blocked, viewerId, $"Bits x{bits}");
@@ -287,13 +281,6 @@ public sealed class LiveEffectRouter : IDisposable
 
         // Zeldatón: los bits pueden sumar o restar tiempo de la carrera (según la tarifa del streamer).
         _zeldathon?.Donations.OnTwitchBits(viewer, bits);
-
-        _voice?.Enqueue(new TtsMessage(LivePortIds.Twitch, viewer, "", DateTime.UtcNow)
-        {
-            Kind = TtsMessageKind.Bits,
-            SpeakerKey = viewerId.StableKey,
-            Count = bits,
-        });
 
         var match = _gifts.Snapshot.TwitchBits
             .Where(b => bits >= b.Min && !string.IsNullOrWhiteSpace(b.Effect))
@@ -456,7 +443,7 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
-        // Bloqueado: nada de lo suyo cuenta (ni efecto, ni meta, ni voz, ni tiempo de la carrera).
+        // Bloqueado: nada de lo suyo cuenta (ni efecto, ni meta).
         if (_guard.IsBlocked(viewerId))
         {
             NoteDenied(ViewerVerdict.Blocked, viewerId, $"Regalo {giftLabel} x{repeat}");
@@ -465,15 +452,7 @@ public sealed class LiveEffectRouter : IDisposable
 
         ReportDonationTime(user, giftLabel, id, repeat, diamonds);
 
-        _voice?.Enqueue(new TtsMessage(LivePortIds.TikTok, Viewer(user), name, DateTime.UtcNow)
-        {
-            Kind = TtsMessageKind.Gift,
-            SpeakerKey = user,
-            Count = repeat,
-            Diamonds = diamonds,
-        });
-
-        // En pausa el regalo se reconoce (voz, tiempo de la carrera) pero no suma a metas ni activa efectos.
+        // En pausa el regalo se reconoce pero no suma a metas ni activa efectos.
         if (!Admit(viewerId, $"Regalo {giftLabel} x{repeat}"))
         {
             return;

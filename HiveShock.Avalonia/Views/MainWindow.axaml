@@ -40,7 +40,7 @@
                     <Button Classes="secondary" Classes.danger="{Binding ViewerEffectsPaused}"
                             Margin="0" Padding="12,7" VerticalAlignment="Center"
                             Command="{Binding ToggleViewerEffectsPauseCommand}"
-                            ToolTip.Tip="Pausa de emergencia: los espectadores dejan de activar efectos en el juego. El chat en voz alta y el tiempo de la carrera siguen. Se reanuda sola al reabrir HiveShock.">
+                            ToolTip.Tip="Pausa de emergencia: los espectadores dejan de activar efectos en el juego. Se reanuda sola al reabrir HiveShock.">
                         <TextBlock Text="{Binding PauseButtonText}" FontWeight="SemiBold" FontSize="12" />
                     </Button>
                     <ComboBox Width="150"
@@ -195,20 +195,6 @@
                                 <TextBlock Text="Md" HorizontalAlignment="Center"
                                            IsVisible="{Binding NavCollapsed}" />
                                 <TextBlock Text="Moderación" IsVisible="{Binding NavExpanded}" />
-                            </Panel>
-                        </Button>
-                        <Button Classes="nav" Classes.active="{Binding IsSmartTtsNav}"
-                                Classes.compact="{Binding NavCollapsed}"
-                                Command="{Binding NavSmartTtsCommand}" ToolTip.Tip="Voz (Alpha: en pruebas)">
-                            <Panel>
-                                <TextBlock Text="Vz" HorizontalAlignment="Center"
-                                           IsVisible="{Binding NavCollapsed}" />
-                                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding NavExpanded}">
-                                    <TextBlock Text="Voz" VerticalAlignment="Center" />
-                                    <Border Classes="alphaBadge">
-                                        <TextBlock Text="ALPHA" />
-                                    </Border>
-                                </StackPanel>
                             </Panel>
                         </Button>
                     </StackPanel>

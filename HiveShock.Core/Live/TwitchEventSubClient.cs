@@ -3,7 +3,6 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using HiveShock.Logging;
-using HiveShock.Voice;
 
 namespace HiveShock.Live;
 
@@ -15,7 +14,7 @@ public sealed class TwitchEventSubClient
         string clientId,
         string accessToken,
         string userId,
-        Action<ViewerIdentity, string, ChatterRoles> onChat,
+        Action<ViewerIdentity, string> onChat,
         Action<ViewerIdentity> onFollow,
         Action<ViewerIdentity, int> onCheer,
         Action connected,
@@ -109,7 +108,7 @@ public sealed class TwitchEventSubClient
 
     private static void HandleNotification(
         JsonElement root,
-        Action<ViewerIdentity, string, ChatterRoles> onChat,
+        Action<ViewerIdentity, string> onChat,
         Action<ViewerIdentity> onFollow,
         Action<ViewerIdentity, int> onCheer)
     {
@@ -132,7 +131,7 @@ public sealed class TwitchEventSubClient
                 text = t.GetString() ?? "";
             }
 
-            onChat(viewer, text, ReadChatterRoles(evt));
+            onChat(viewer, text);
             return;
         }
 
@@ -170,31 +169,6 @@ public sealed class TwitchEventSubClient
 
     private static string ReadString(JsonElement evt, string prop) =>
         evt.TryGetProperty(prop, out var el) && el.ValueKind == JsonValueKind.String ? el.GetString() ?? "" : "";
-
-    /// <summary>badges[].set_id de channel.chat.message → roles (founder cuenta como suscriptor).</summary>
-    private static ChatterRoles ReadChatterRoles(JsonElement evt)
-    {
-        var roles = ChatterRoles.None;
-        if (!evt.TryGetProperty("badges", out var badges) || badges.ValueKind != JsonValueKind.Array)
-        {
-            return roles;
-        }
-
-        foreach (var badge in badges.EnumerateArray())
-        {
-            var set = badge.TryGetProperty("set_id", out var s) ? s.GetString() : null;
-            roles |= set switch
-            {
-                "broadcaster" => ChatterRoles.Broadcaster,
-                "moderator" => ChatterRoles.Moderator,
-                "vip" => ChatterRoles.Vip,
-                "subscriber" or "founder" => ChatterRoles.Subscriber,
-                _ => ChatterRoles.None,
-            };
-        }
-
-        return roles;
-    }
 
     private static async Task SubscribeAsync(
         string clientId,

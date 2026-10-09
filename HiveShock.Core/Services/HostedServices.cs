@@ -3,7 +3,6 @@ using HiveShock.Hosting;
 using HiveShock.Live;
 using HiveShock.Logging;
 using HiveShock.Networking;
-using HiveShock.Voice;
 using Microsoft.Extensions.Hosting;
 using TikTokLive;
 using TikTokLive.Proto;
@@ -143,7 +142,6 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
     private readonly LiveEffectRouter _router;
     private readonly LivePortHub _hub;
     private readonly ViewerGuard _guard;
-    private readonly SmartVoiceManager? _voice;
     private readonly HiveShock.Zeldathon.ZeldathonService? _zeldathon;
 #if DEBUG
     private readonly HiveShock.Live.LiveDiagnosticSink? _diagnostics;
@@ -155,7 +153,6 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         LiveEffectRouter router,
         LivePortHub hub,
         ViewerGuard guard,
-        SmartVoiceManager? voice = null,
         HiveShock.Zeldathon.ZeldathonService? zeldathon = null
 #if DEBUG
         , HiveShock.Live.LiveDiagnosticSink? diagnostics = null
@@ -168,7 +165,6 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         _router = router;
         _hub = hub;
         _guard = guard;
-        _voice = voice;
 #if DEBUG
         _diagnostics = diagnostics;
 #endif
@@ -312,7 +308,7 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         client.OnChat += chat =>
         {
             var viewer = ViewerIdentity.TikTok(chat.User);
-            // Bloqueado: ni comandos ni lectura en voz alta.
+            // Bloqueado: ni comandos.
             if (_guard.IsBlocked(viewer))
             {
                 return;
@@ -320,11 +316,6 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
 
             var comment = chat.Comment ?? "";
             _router.HandleChat(viewer, comment, ct);
-            _voice?.Enqueue(new TtsMessage(LivePortIds.TikTok, ViewerName(chat.User), comment, DateTime.UtcNow)
-            {
-                Roles = TikTokRoles(chat),
-                SpeakerKey = viewer.StableKey,
-            });
         };
 
 #if DEBUG
@@ -335,32 +326,4 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
 
         await client.RunAsync(ct).ConfigureAwait(false);
     }
-
-    private ChatterRoles TikTokRoles(WebcastChatMessage chat)
-    {
-        var roles = ChatterRoles.None;
-        var context = chat.UserIdentity;
-        var own = (_options.TikTokUniqueId ?? "").Trim().TrimStart('@');
-        if (context?.IsAnchor == true ||
-            (own.Length > 0 && string.Equals(own, chat.User?.UniqueId, StringComparison.OrdinalIgnoreCase)))
-        {
-            roles |= ChatterRoles.Broadcaster;
-        }
-
-        if (context?.IsModeratorOfAnchor == true)
-        {
-            roles |= ChatterRoles.Moderator;
-        }
-
-        if (context?.IsSubscriberOfAnchor == true)
-        {
-            roles |= ChatterRoles.Subscriber;
-        }
-
-        return roles;
-    }
-
-    private static string ViewerName(UserIdentity? user) =>
-        user?.Nickname is { Length: > 0 } nick ? nick :
-        user?.UniqueId is { Length: > 0 } uid ? uid : "";
 }

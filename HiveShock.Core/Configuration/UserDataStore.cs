@@ -5,7 +5,7 @@ using HiveShock.Logging;
 namespace HiveShock.Configuration;
 
 /// <summary>
-/// Guardado redundante de los datos del usuario (preferencias, contador de muertes, voz).
+/// Guardado redundante de los datos del usuario (preferencias, contador de muertes).
 /// Antes vivían solo junto al .exe: una actualización que reemplaza la carpeta (o el
 /// HiveShock.app entero en macOS) los borraba. Ahora cada guardado escribe:
 /// 1) en la carpeta de datos del usuario (<see cref="UserDirectory"/>), que ninguna
