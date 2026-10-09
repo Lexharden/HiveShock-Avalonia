@@ -4,7 +4,6 @@ using HiveShock.Live;
 using HiveShock.Logging;
 using HiveShock.Networking;
 using HiveShock.Services;
-using HiveShock.Zeldathon;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -44,9 +43,6 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
     /// <summary>Pausa de emergencia y lista de bloqueo de espectadores. Vive aunque se desconecte el puente.</summary>
     public ViewerGuard Guard { get; } = new();
-
-    /// <summary>Conexión con el servidor de Zeldatón (reloj oficial y telemetría). Vive fuera del puente.</summary>
-    public ZeldathonService Zeldathon { get; } = new();
 
 #if DEBUG
     public Live.LiveDiagnosticSink Diagnostics { get; } = new();
@@ -92,25 +88,6 @@ public sealed class BridgeRuntime : IAsyncDisposable
         _events = new GameEventServer(options);
         _events.EventReceived += OnGameEvent;
         _events.Start();
-        Zeldathon.LoadMap(profile.Directory, profile.Id);
-        Zeldathon.Session.SnapshotWanted += () => _ = RequestGameSnapshotAsync();
-        Zeldathon.IsBroadcasting = () => Ports.AnyLive();
-        Ports.Changed += Zeldathon.RefreshStream;
-        Zeldathon.RequestGameQuit = ct => _gameClient.SendAsync(
-            new Dictionary<string, object?> { ["action"] = "quit_game", ["save"] = true }, ct);
-    }
-
-    /// <summary>Pide al juego que vuelva a mandar su estado completo. Si el juego no está abierto, no pasa nada.</summary>
-    private async Task RequestGameSnapshotAsync()
-    {
-        try
-        {
-            await _gameClient.SendActionAsync("request_snapshot").ConfigureAwait(false);
-        }
-        catch (Exception)
-        {
-            // Sin juego abierto no hay nada que pedir: cuando cargue una partida mandará todo por sí solo.
-        }
     }
 
     public static BridgeRuntime Create(string[]? args = null)
@@ -149,7 +126,6 @@ public sealed class BridgeRuntime : IAsyncDisposable
         _profile = profile;
         _effects = effects;
         _gifts = gifts;
-        Zeldathon.LoadMap(profile.Directory, profile.Id);
         Options.ProfileId = profile.Id;
         Goals.ResetAll();
         Goals.ApplyDefinitions(_gifts.Snapshot.Goals);
@@ -184,7 +160,6 @@ public sealed class BridgeRuntime : IAsyncDisposable
         }
 
         _profile = ProfileStore.LoadFromDirectory(_profile.Directory);
-        Zeldathon.LoadMap(_profile.Directory, _profile.Id);
         ReloadEffectsAndGifts();
     }
 
@@ -355,9 +330,6 @@ public sealed class BridgeRuntime : IAsyncDisposable
             return;
         }
 
-        // Telemetría para Zeldatón (escena, ítems, jefes, stats…); los eventos de muerte los ignora.
-        Zeldathon.Session.OnGameEvent(e.Event, e.Data);
-
         if (!_profile.Info.SupportsDeathEvents)
         {
             return;
@@ -507,7 +479,6 @@ public sealed class BridgeRuntime : IAsyncDisposable
         builder.Services.AddSingleton(Guard);
         builder.Services.AddSingleton(_gameClient);
         builder.Services.AddSingleton<EffectDispatcher>();
-        builder.Services.AddSingleton(Zeldathon);
         builder.Services.AddSingleton<LiveEffectRouter>();
         builder.Services.AddSingleton<CrowdControlServer>();
         builder.Services.AddHostedService<EffectPumpService>();
@@ -628,7 +599,6 @@ public sealed class BridgeRuntime : IAsyncDisposable
         await StopAsync().ConfigureAwait(false);
         _events.EventReceived -= OnGameEvent;
         await _events.DisposeAsync().ConfigureAwait(false);
-        await Zeldathon.DisposeAsync().ConfigureAwait(false);
     }
 
     private static void ApplyProfileToOptions(BridgeOptions options, LoadedGameProfile profile, bool forcePortsFromProfile)

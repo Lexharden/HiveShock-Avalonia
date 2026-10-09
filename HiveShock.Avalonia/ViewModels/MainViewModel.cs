@@ -26,7 +26,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Overlays = overlays;
         Runtime = BridgeRuntime.Create();
         Prefs = UiPreferences.Load();
-        TimerSource = new TimerSource(Prefs, Runtime.Zeldathon);
         if (Application.Current != null)
         {
             ThemeManager.Apply(Application.Current, Prefs.ResolveTheme(), Prefs.FollowsSystem);
@@ -43,7 +42,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         ProfileEditor = new ProfileEditorViewModel(this);
         TikTok = new TikTokViewModel(this);
         Twitch = new TwitchViewModel(this);
-        Zeldathon = new ZeldathonViewModel(this);
         Moderation = new ModerationViewModel(this);
         Help = new HelpViewModel();
         About = new AboutViewModel();
@@ -70,10 +68,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         {
             Studio.ShowGoalsOnStream = false;
         };
-        Overlays.TimerClosedByUser += () =>
-        {
-            Studio.ShowTimerOnStream = false;
-        };
 
         Runtime.DeathsChanged += (_, _) => Dispatch(() =>
         {
@@ -91,7 +85,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         BridgeLog.Logged += OnLogged;
         BridgeLog.Init();
         BridgeLog.Info($"UI lista · perfil {Runtime.Profile.DisplayName}");
-        Runtime.Zeldathon.AutoConnectIfConfigured();
         RefreshStatus();
     }
 
@@ -99,7 +92,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public UiPreferences Prefs { get; }
 
     /// <summary>Lo que muestra el cronómetro en pantalla (reloj oficial o local).</summary>
-    public TimerSource TimerSource { get; }
     public DialogService Dialogs { get; }
     public OverlayService Overlays { get; }
 
@@ -111,7 +103,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public ProfileEditorViewModel ProfileEditor { get; }
     public TikTokViewModel TikTok { get; }
     public TwitchViewModel Twitch { get; }
-    public ZeldathonViewModel Zeldathon { get; }
     public ModerationViewModel Moderation { get; }
     public HelpViewModel Help { get; }
     public AboutViewModel About { get; }
@@ -157,7 +148,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public bool IsStudioNav => CurrentPageKey == "studio";
     public bool IsTikTokNav => CurrentPageKey is "tiktok" or "gifts" or "catalog";
     public bool IsTwitchNav => CurrentPageKey == "twitch";
-    public bool IsZeldathonNav => CurrentPageKey == "zeldathon";
     public bool IsModerationNav => CurrentPageKey == "moderacion";
     public bool IsHelpNav => CurrentPageKey == "help";
     public bool IsAboutNav => CurrentPageKey == "about";
@@ -189,10 +179,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
             Overlays.ShowGoals(Runtime.Goals.Snapshots(), Prefs);
         }
 
-        if (Prefs.Timer.Enabled)
-        {
-            Overlays.ShowTimer(TimerSource, Prefs);
-        }
     }
 
     public void ReloadEffectChoices()
@@ -271,7 +257,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         OnPropertyChanged(nameof(IsStudioNav));
         OnPropertyChanged(nameof(IsTikTokNav));
         OnPropertyChanged(nameof(IsTwitchNav));
-        OnPropertyChanged(nameof(IsZeldathonNav));
         OnPropertyChanged(nameof(IsModerationNav));
         OnPropertyChanged(nameof(IsHelpNav));
         OnPropertyChanged(nameof(IsAboutNav));
@@ -398,12 +383,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         CurrentPageKey = "twitch";
     }
 
-    public void GoZeldathon()
-    {
-        CurrentPage = Zeldathon;
-        CurrentPageKey = "zeldathon";
-    }
-
     public void GoModeration()
     {
         CurrentPage = Moderation;
@@ -445,9 +424,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     [RelayCommand]
     private void NavTwitch() => GoTwitch();
-
-    [RelayCommand]
-    private void NavZeldathon() => GoZeldathon();
 
     [RelayCommand]
     private void NavModeration() => GoModeration();
@@ -607,7 +583,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
         _closing = true;
         Gifts.AutoSaver.FlushIfDirty();
-        TimerSource.PersistLocal();
         Studio.PersistDeath();
         Overlays.CloseAll(Prefs);
         Runtime.Overlay.GiftReceived -= OnOverlayGift;

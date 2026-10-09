@@ -2,61 +2,30 @@
 
 Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.props`.
 
-## [Unreleased]
+## [2.2.0] - 2026-10-08
 
-### Cronómetro manual
-* **Las donaciones también suman o restan al cronómetro manual**, igual que al reloj oficial: con tu tarifa (diamantes de TikTok y bits de Twitch), esté corriendo o en pausa, con el mismo aviso animado «+1:30» / «−0:30». Funciona aunque no estés conectado al servidor de la carrera; no pasa por los topes del organizador. El tiempo mostrado nunca baja de cero (si la resta lo pasaría, solo descuenta lo que queda). Con cuenta atrás cambia el tiempo que queda; hacia arriba, el número. «Poner a cero» borra también lo que sumaron o restaron, y se recuerda al volver a abrir HiveShock.
-* La página Zeldatón muestra el valor real del cronómetro manual (antes, con cuenta atrás, mostraba lo transcurrido).
+HiveShock vuelve a ser solo el puente entre tu live y el juego. La **voz** y **Zeldatón** (con su cronómetro) salen de este programa; la voz pasará a ser una app aparte. Se quedan todas las mejoras que no dependían de ellas.
 
-## [2.2.0-zeldathon.3] - 2026-10-04
-
-Edición especial para los streamers de Zeldatón (no pública). Suma la moderación de espectadores, la cola de enemigos sin pérdidas y el aviso animado del cronómetro.
+### Retirado
+* **Voz (Smart TTS)**: página Voz, motores Edge, Piper y Windows, micrófono y atajos. Con esto HiveShock compila un único `net10.0` para Windows, macOS y Linux.
+* **Zeldatón**: conexión con el servidor de la carrera, reloj oficial, cierre del juego, tiempo por donaciones y el cronómetro en pantalla.
+* Los archivos que dejaron esas funciones en tu carpeta de datos se ignoran y no estorban.
 
 ### Moderación
-* **Pausa de emergencia** (botón en la barra de arriba y en Moderación): los espectadores dejan de activar efectos y metas, y lo que ya esperaba turno se descarta. El chat en voz alta, los avisos y el tiempo por donaciones de Zeldatón siguen. No se guarda: al abrir HiveShock siempre empieza reanudada. Las pruebas del streamer no se ven afectadas.
-* **Lista de bloqueo** (nueva página Moderación): ves quién activó efectos hace poco y lo bloqueas con un clic, o bloqueas por @usuario (TikTok o Twitch). Se reconoce por su **id**, así que cambiar de @usuario no lo libra, y otra persona que se quede con ese @usuario no queda bloqueada. Un bloqueado no activa efectos ni metas, no se lee su chat en voz alta, no cuenta como seguidor y sus regalos o bits no cambian el tiempo de la carrera.
-* **Anti-spam de seguir más difícil de esquivar**: el efecto de seguir se decide por el id de la persona (antes, en TikTok caía al nombre visible si faltaba el id, que cualquiera puede repetir y que se cambia). Cambiar de @usuario ya no permite repetir el efecto, y un evento sin id se reconoce por el @usuario recordado. Si la plataforma no manda ni id ni @usuario, el follow pasa sin recordarse (y se avisa una vez) en vez de bloquear a inocentes con el mismo nombre.
-
-### Cronómetro
-* **Aviso animado al cambiar el tiempo por donaciones**: bajo el reloj sale «+1:30» (verde) o «−0:30» (rojo) con un pequeño rebote, un destello del número y un desvanecimiento. Aparece cuando el servidor **confirma** el cambio y muestra lo que aplicó de verdad (si un tope lo recortó, dice «tope»). Varias donaciones seguidas se juntan en un solo aviso con el total neto («+3:20 ×5»). No muestra nombres de espectadores.
-* Solo con el reloj oficial. Se activa o desactiva y se cambian los colores en Zeldatón → Cronómetro en pantalla → «Aviso al cambiar el tiempo», donde también hay botones para probarlo sin tocar el reloj. Con la opción activa el cronómetro reserva una línea bajo el reloj para que nada salte.
+* **Pausa de emergencia** (botón en la barra de arriba y en Moderación): los espectadores dejan de activar efectos y metas, y lo que ya esperaba turno se descarta. No se guarda: al abrir HiveShock siempre empieza reanudada. Las pruebas del streamer no se ven afectadas.
+* **Lista de bloqueo** (nueva página Moderación): ves quién activó efectos hace poco y lo bloqueas con un clic, o bloqueas por @usuario (TikTok o Twitch). Se reconoce por su **id**, así que cambiar de @usuario no lo libra, y otra persona que se quede con ese @usuario no queda bloqueada. Un bloqueado no activa efectos ni metas y no cuenta como seguidor.
+* **Anti-spam de seguir más difícil de esquivar**: el efecto de seguir se decide por el id de la persona. Cambiar de @usuario ya no permite repetir el efecto, y un evento sin id se reconoce por el @usuario recordado. Si la plataforma no manda ni id ni @usuario, el follow pasa sin recordarse (y se avisa una vez) en vez de bloquear a inocentes con el mismo nombre.
 
 ### Cola de enemigos y entrega
-* **Los enemigos de los regalos ya no se pierden ni se borran para hacer sitio.** El juego (Shipwright) lleva un presupuesto de carga (`gRemote.HiveShock.MaxLoad`, 14 por defecto; cada enemigo pesa 1–4): los que no caben esperan en orden y entran conforme mueren otros, de uno en uno. La cola sobrevive a cambios de escena, los enemigos vivos te siguen a la siguiente escena, uno que se queda lejos se reubica junto a Link y la cola se guarda en disco (caduca a las 12 h).
+* **Los enemigos de los regalos ya no se pierden ni se borran para hacer sitio.** El juego (Shipwright) lleva un presupuesto de carga (`gRemote.HiveShock.MaxLoad`, 14 por defecto; cada enemigo pesa 1–4): los que no caben esperan en orden y entran conforme mueren otros. La cola sobrevive a cambios de escena, los enemigos vivos te siguen a la siguiente escena y la cola se guarda en disco (caduca a las 12 h). Ver `docs/spawn-queue.md`.
 * **Reintentos si el juego está cerrado:** cada efecto se reintenta hasta `GAME_RETRY_SECONDS` (600 s por defecto; 0 = no reintentar) en vez de perderse. La pausa de emergencia sigue descartando lo pendiente.
-* Nuevos eventos del juego `spawn_queue` (cuántos esperan, cuántos viven y la carga; disponible en `BridgeRuntime.SpawnQueue`) y `spawn_rejected`, y acción `clear_queue`.
+* Nuevos eventos del juego `spawn_queue` (disponible en `BridgeRuntime.SpawnQueue`) y `spawn_rejected`, y acción `clear_queue`.
 
-## [2.2.0-zeldathon.2] - 2026-09-30
-
-Edición especial para los streamers de Zeldatón (no pública).
-
-### Tiempo por donaciones
-* **Los regalos de TikTok y los bits de Twitch pueden sumar o restar tiempo de la carrera.** En Zeldatón → «Tiempo por donaciones» eliges, para cada plataforma, si suman o restan y cuánto valen («cada 1 diamante = 1 segundo», «cada 100 bits = 60 segundos»), un mínimo para ignorar donaciones pequeñas y un tope propio por donación. Se ven ejemplos con tu tarifa.
-* Un combo de TikTok cuenta una vez con todos sus diamantes; si TikTok no manda el precio se toma del catálogo. Las fracciones no se pierden (diez Rosas a «cada 10 diamantes = 1 s» suman 1 s).
-* El servidor de la carrera aplica el cambio al reloj oficial dentro de los límites del organizador (activar, sumar/restar, tope por donación y topes diarios) y dice cuánto se aplicó de verdad; la página muestra las últimas donaciones y el total confirmado.
-* A prueba de cortes: cada donación se guarda en disco hasta que el servidor la confirma y se reenvía sola al reconectar o al volver a abrir HiveShock; el servidor nunca aplica dos veces la misma. Las pendientes de más de 12 h se descartan.
-* Los botones de prueba de regalos no cambian el tiempo: solo cuentan las donaciones reales del directo.
-
-## [2.2.0-zeldathon.1] - 2026-09-30
-
-Edición especial para los streamers del evento Zeldathon. No es una versión pública: se entrega directamente a los participantes y no se publica en Releases.
-
-### Zeldatón
-* **Cronómetro en pantalla**: nuevo overlay para OBS con el reloj oficial de la carrera (cuenta atrás del día, estado en vivo/pausado/agotado, avisos de color a 30 y 5 minutos, barra de tiempo usado y «reinicia en») o un cronómetro manual (sube o baja). Se personaliza como los demás overlays.
-* **Página Zeldatón**: conecta HiveShock con el servidor de la carrera con tu token. El reloj oficial se sincroniza (y se congela al perder conexión), y tu progreso, ítems, jefes, corazones, rupias, chat y espectadores aparecen solos en la web. Reconexión automática.
-* Cuando se acaba el tiempo del día el servidor ordena cerrar el juego: cierre limpio (guarda la partida) y, si hace falta, forzado. Detalles en `docs/zeldathon.md`.
-* Perfil Ocarina of Time: `zeldathon.json` traduce lo que manda el juego a los ids de la carrera (editable sin recompilar). Ahora cubre unos 60 ítems (armas, escudos, túnicas, botas, flechas, hechizos, mejoras, canciones, medallas, piedras) y el Link que se está jugando (niño/adulto).
-* El catálogo de ítems y objetivos lo administra el organizador en el servidor; HiveShock lo descarga al conectar y solo envía lo que el servidor conoce, y termina el juego con los objetivos que exige el evento.
+### Efectos y guardado
 * Nuevo efecto **Ralentizar a Link** (`slow_down`) en el perfil Ocarina of Time: baja la velocidad de Link durante unos segundos (intensidad ajustable de 0.2 a 0.9).
-
-### Guardado
-* **Guardado automático** en Regalos, Metas y Eventos con una etiqueta que dice si se guardó (verde), está pendiente (dorada) o falló (roja). Se puede desactivar. Perfil y efectos siguen guardándose solo con su botón.
+* **Guardado automático** en Regalos, Metas y Eventos con una etiqueta que dice si se guardó (verde), está pendiente (dorada) o falló (roja). Se puede desactivar.
 * Metas: botón **Del catálogo** para añadir regalos a una meta.
-
-### Seguidores
 * **Anti-spam de seguir**: cada usuario dispara el efecto de seguir una sola vez (TikTok y Twitch), aunque siga y deje de seguir en bucle. Se recuerda entre directos; opción y botón «Olvidar seguidores» en Eventos.
-
-### Correcciones
 * Limpiar la caché de imágenes de regalos ya no provoca «Cannot access a disposed object» en los overlays.
 
 ## [2.1.2-alpha.1] - 2026-09-26

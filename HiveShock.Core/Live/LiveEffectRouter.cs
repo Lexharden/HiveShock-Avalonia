@@ -25,7 +25,6 @@ public sealed class LiveEffectRouter : IDisposable
     private readonly ChatCommandGate _chatGate = new();
     private readonly FollowGate _followGate;
     private readonly bool _ownsFollowGate;
-    private readonly Zeldathon.ZeldathonService? _zeldathon;
     private long _followIgnored;
     private long _followIgnoredLogTicks;
     private long _guardDenied;
@@ -43,7 +42,6 @@ public sealed class LiveEffectRouter : IDisposable
         OverlayNotifier overlay,
         GiftGoalBank goals,
         ViewerGuard guard,
-        Zeldathon.ZeldathonService? zeldathon = null,
         FollowGate? followGate = null)
     {
         _options = options;
@@ -54,7 +52,6 @@ public sealed class LiveEffectRouter : IDisposable
         _overlay = overlay;
         _goals = goals;
         _guard = guard;
-        _zeldathon = zeldathon;
         _ownsFollowGate = followGate == null;
         _followGate = followGate ?? new FollowGate();
         _streakFlushTimer = new Timer(
@@ -76,7 +73,6 @@ public sealed class LiveEffectRouter : IDisposable
     public void HandleChat(ViewerIdentity viewerId, string text, CancellationToken ct)
     {
         var portId = viewerId.PortId;
-        _zeldathon?.CountChat();
         if (_options.CaptureOnly)
         {
             return;
@@ -279,9 +275,6 @@ public sealed class LiveEffectRouter : IDisposable
 
         var viewer = viewerId.IsIdentified || viewerId.Name.Length > 0 ? Viewer(viewerId.Label) : "Anónimo";
 
-        // Zeldatón: los bits pueden sumar o restar tiempo de la carrera (según la tarifa del streamer).
-        _zeldathon?.Donations.OnTwitchBits(viewer, bits);
-
         var match = _gifts.Snapshot.TwitchBits
             .Where(b => bits >= b.Min && !string.IsNullOrWhiteSpace(b.Effect))
             .MaxBy(b => b.Min);
@@ -450,8 +443,6 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
-        ReportDonationTime(user, giftLabel, id, repeat, diamonds);
-
         // En pausa el regalo se reconoce pero no suma a metas ni activa efectos.
         if (!Admit(viewerId, $"Regalo {giftLabel} x{repeat}"))
         {
@@ -505,25 +496,6 @@ public sealed class LiveEffectRouter : IDisposable
                 : $"Regalo {giftLabel} x{repeat}";
             _ = _dispatcher.EnqueueAsync(match.EffectId, user, reason, ct, paramOverrides: match.Params);
         }
-    }
-
-    /// <summary>
-    /// Zeldatón: el regalo (el combo entero, una vez) puede sumar o restar tiempo de la carrera. Si
-    /// TikTok no mandó el precio se toma del catálogo (diamantes por unidad × cantidad).
-    /// </summary>
-    private void ReportDonationTime(string user, string giftLabel, string id, int repeat, long diamonds)
-    {
-        if (_zeldathon == null)
-        {
-            return;
-        }
-
-        if (diamonds <= 0 && _catalog.Find(id)?.Diamonds is > 0 and var each)
-        {
-            diamonds = (long)each * Math.Max(1, repeat);
-        }
-
-        _zeldathon.Donations.OnTikTokGift(Viewer(user), giftLabel, repeat, diamonds);
     }
 
     private void LogUnmapped(string name, string id, long diamonds, int repeat)

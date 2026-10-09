@@ -77,4 +77,13 @@ public sealed class UserDataStoreTests : IDisposable
     {
         Assert.Null(UserDataStore.Load<Prefs>(_file));
     }
+
+    [Fact]
+    public void Unknown_properties_from_removed_features_are_ignored()
+    {
+        // Ajustes guardados por versiones con cronómetro/voz: esos campos ya no existen y no deben romper la carga.
+        File.WriteAllText(UserCopy, "{ \"Deaths\": 9, \"Timer\": { \"Enabled\": true, \"Mode\": \"local\" }, \"Tts\": [1, 2] }");
+
+        Assert.Equal(9, UserDataStore.Load<Prefs>(_file)?.Deaths);
+    }
 }
