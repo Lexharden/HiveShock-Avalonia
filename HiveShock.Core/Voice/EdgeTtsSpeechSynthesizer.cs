@@ -23,11 +23,14 @@ namespace HiveShock.Voice;
 public sealed class EdgeTtsSpeechSynthesizer : ISpeechSynthesizer
 {
     private const string TrustedClientToken = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
-    private const string WssUrl = "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1";
+    // Desde octubre de 2026 el host antiguo (speech.platform.bing.com) responde 403 al WebSocket
+    // de síntesis; Edge sintetiza por api.msedgeservices.com, que acepta el token heredado como
+    // Ocp-Apim-Subscription-Key. El listado de voces sigue en el host antiguo.
+    private const string WssUrl = "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1";
     private const string VoicesUrl = "https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/voices/list";
     // Microsoft rechaza (403) versiones de Edge viejas: si vuelve el bloqueo, lo primero es
     // subir esto a la versión estable actual de Edge (la que use el proyecto edge-tts).
-    private const string ChromiumVersion = "143.0.3650.75";
+    private const string ChromiumVersion = "156.0.8078.25";
     private static readonly string ChromiumMajor = ChromiumVersion.Split('.')[0];
     private const string OutputFormat = "audio-24khz-48kbitrate-mono-mp3";
     private const string DefaultVoiceId = "es-MX-DaliaNeural";
@@ -113,7 +116,7 @@ public sealed class EdgeTtsSpeechSynthesizer : ISpeechSynthesizer
         {
             var connectionId = Guid.NewGuid().ToString("N");
             // Sec-MS-GEC va en la URL (en cabecera Microsoft responde 403).
-            var url = $"{WssUrl}?TrustedClientToken={TrustedClientToken}&ConnectionId={connectionId}" +
+            var url = $"{WssUrl}?Ocp-Apim-Subscription-Key={TrustedClientToken}&ConnectionId={connectionId}" +
                       $"&Sec-MS-GEC={ComputeSecMsGec()}&Sec-MS-GEC-Version=1-{ChromiumVersion}";
             var socket = new ClientWebSocket();
             socket.Options.CollectHttpResponseDetails = true;
