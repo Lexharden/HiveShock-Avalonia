@@ -1,8 +1,13 @@
-﻿# Changelog
+# Changelog
 
 Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.props`.
 
 ## [Unreleased]
+
+## [2.3.0] - 2026-10-12
+
+-
+
 
 ### Actualizaciones
 * **Nueva página «Actualizaciones»** (menú INFO). HiveShock consulta los releases de GitHub al abrir y cada pocas horas, y avisa con un chip «Nueva versión X» arriba, un punto en el menú y una línea en «Qué está pasando». Un solo aviso por versión; puedes omitir una.
