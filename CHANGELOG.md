@@ -2,6 +2,20 @@
 
 Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.props`.
 
+## [Unreleased]
+
+## [2.3.0] - 2026-10-12
+
+-
+
+
+### Actualizaciones
+* **Nueva página «Actualizaciones»** (menú INFO). HiveShock consulta los releases de GitHub al abrir y cada pocas horas, y avisa con un chip «Nueva versión X» arriba, un punto en el menú y una línea en «Qué está pasando». Un solo aviso por versión; puedes omitir una.
+* **Descarga sola en segundo plano** la última versión estable y la verifica (SHA-256 y zip completo); instalar es siempre un clic tuyo: HiveShock nunca se cierra solo en medio de un directo. Se reanuda si se corta la conexión.
+* **Instala la última o cualquier versión publicada**, incluida una anterior (con confirmación). Casilla para incluir versiones de prueba (alpha, beta, rc), apagada por defecto.
+* **A prueba de fallos:** se respalda lo que se va a reemplazar, tus perfiles, regalos, metas y credenciales no se tocan, y si la versión nueva no arranca bien se restaura la anterior sola y te lo cuenta. Funciona en Windows, macOS y Linux (en macOS y Linux se ha cubierto con pruebas automáticas; confirma en un equipo real).
+* Los releases publican un `SHA256SUMS.txt`. Para instalar 2.3.0 hay que hacerlo a mano una vez: las versiones anteriores no traen el actualizador.
+
 ## [2.2.0] - 2026-10-08
 
 HiveShock vuelve a ser solo el puente entre tu live y el juego. La **voz** y **Zeldatón** (con su cronómetro) salen de este programa; la voz pasará a ser una app aparte. Se quedan todas las mejoras que no dependían de ellas.

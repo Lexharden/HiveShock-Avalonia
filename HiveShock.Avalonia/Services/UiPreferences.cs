@@ -30,6 +30,12 @@ public sealed class UiPreferences
     /// <summary>Guarda solo (con una pequeña espera) los cambios de regalos, metas y eventos.</summary>
     public bool AutoSaveEnabled { get; set; } = true;
 
+    /// <summary>Actualizaciones: comprobar al iniciar, descargar sola, incluir pre-releases y versión omitida.</summary>
+    public bool UpdateCheckEnabled { get; set; } = true;
+    public bool UpdateAutoDownload { get; set; } = true;
+    public bool UpdateIncludePrereleases { get; set; }
+    public string UpdateSkippedVersion { get; set; } = "";
+
     public string GiftsOverlayTitle { get; set; } = "Regalos";
     public bool ShowGiftsOverlayTitle { get; set; } = true;
     public bool OverlayShowBackground { get; set; } = true;
