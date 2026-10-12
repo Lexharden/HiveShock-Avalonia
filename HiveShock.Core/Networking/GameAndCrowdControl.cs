@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 using HiveShock.Configuration;
+using HiveShock.Live;
 using HiveShock.Logging;
 
 namespace HiveShock.Networking;
@@ -14,6 +15,9 @@ public sealed class GameTcpClient
     private long _earliestNextSendMs;
 
     public GameTcpClient(BridgeOptions options) => _options = options;
+
+    /// <summary>Tiempo máximo que el despachador reintenta un efecto cuando el juego no responde.</summary>
+    public TimeSpan RetryWindow => _options.GameRetryWindow;
 
     public async Task SendAsync(IReadOnlyDictionary<string, object?> command, CancellationToken ct)
     {
@@ -88,20 +92,50 @@ public sealed class GameTcpClient
     }
 }
 
-public sealed class EffectDispatcher
+public sealed class EffectDispatcher : IDisposable
 {
     private readonly Channel<EffectWorkItem> _channel = Channel.CreateUnbounded<EffectWorkItem>(
         new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
 
     private readonly EffectCatalog _effects;
     private readonly GameTcpClient _game;
+    private readonly ViewerGuard? _guard;
     private int _pendingChat;
+    private int _generation;
 
-    public EffectDispatcher(EffectCatalog effects, GameTcpClient game)
+    public EffectDispatcher(EffectCatalog effects, GameTcpClient game, ViewerGuard? guard = null)
     {
         _effects = effects;
         _game = game;
+        _guard = guard;
+        if (_guard != null)
+        {
+            _guard.PausedChanged += OnPausedChanged;
+        }
     }
+
+    public void Dispose()
+    {
+        if (_guard != null)
+        {
+            _guard.PausedChanged -= OnPausedChanged;
+        }
+    }
+
+    /// <summary>Al pausar, lo que ya estaba en cola no debe llegar al juego.</summary>
+    private void OnPausedChanged(bool paused)
+    {
+        if (paused)
+        {
+            DiscardPending();
+        }
+    }
+
+    /// <summary>
+    /// Descarta lo que aún espera turno (no lo que ya se está enviando). Se marca por generación en vez de
+    /// vaciar el canal: tiene un solo lector y vaciarlo desde otro hilo no es seguro.
+    /// </summary>
+    public void DiscardPending() => Interlocked.Increment(ref _generation);
 
     public int PendingChat => Volatile.Read(ref _pendingChat);
 
@@ -127,7 +161,8 @@ public sealed class EffectDispatcher
 
         try
         {
-            await _channel.Writer.WriteAsync(new EffectWorkItem(effectId, user, reason, cmd, fromChat), ct)
+            var generation = Volatile.Read(ref _generation);
+            await _channel.Writer.WriteAsync(new EffectWorkItem(effectId, user, reason, cmd, fromChat, generation), ct)
                 .ConfigureAwait(false);
         }
         catch
@@ -149,7 +184,17 @@ public sealed class EffectDispatcher
             {
                 try
                 {
-                    await _game.SendAsync(item.Command, ct).ConfigureAwait(false);
+                    if (item.Generation != Volatile.Read(ref _generation))
+                    {
+                        BridgeLog.Info($"Descartado {item.EffectId} <- {item.User ?? "anon"} ({item.Reason}): efectos en pausa");
+                        continue;
+                    }
+
+                    if (!await SendWithRetryAsync(item, ct).ConfigureAwait(false))
+                    {
+                        continue;
+                    }
+
                     BridgeLog.Info($"OK {item.EffectId} <- {item.User ?? "anon"} ({item.Reason})");
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -175,12 +220,60 @@ public sealed class EffectDispatcher
         }
     }
 
+    /// <summary>
+    /// Entrega el efecto; si el juego no está disponible reintenta con espera creciente (1 s → 10 s) hasta
+    /// <see cref="GameTcpClient.RetryWindow"/>. Mantiene el orden: lo que viene detrás espera. Devuelve false si se
+    /// descartó porque los efectos se pusieron en pausa mientras tanto.
+    /// </summary>
+    private async Task<bool> SendWithRetryAsync(EffectWorkItem item, CancellationToken ct)
+    {
+        var window = _game.RetryWindow;
+        var started = Environment.TickCount64;
+        var delayMs = 1000;
+        var warned = false;
+
+        while (true)
+        {
+            try
+            {
+                await _game.SendAsync(item.Command, ct).ConfigureAwait(false);
+                return true;
+            }
+            catch (Exception ex) when ((ex is TimeoutException || ex is InvalidOperationException) &&
+                                       window > TimeSpan.Zero)
+            {
+                if (item.Generation != Volatile.Read(ref _generation))
+                {
+                    BridgeLog.Info($"Descartado {item.EffectId} <- {item.User ?? "anon"} ({item.Reason}): efectos en pausa");
+                    return false;
+                }
+
+                if (Environment.TickCount64 - started >= window.TotalMilliseconds)
+                {
+                    throw;
+                }
+
+                if (!warned)
+                {
+                    warned = true;
+                    BridgeLog.Warn(
+                        $"Juego no disponible ({ex.Message}); reintentando {item.EffectId} <- {item.User ?? "anon"} " +
+                        $"hasta {window.TotalMinutes:0.#} min");
+                }
+
+                await Task.Delay(delayMs, ct).ConfigureAwait(false);
+                delayMs = Math.Min(delayMs * 2, 10_000);
+            }
+        }
+    }
+
     private sealed record EffectWorkItem(
         string EffectId,
         string? User,
         string Reason,
         Dictionary<string, object?> Command,
-        bool FromChat);
+        bool FromChat,
+        int Generation);
 }
 
 public sealed class CrowdControlServer

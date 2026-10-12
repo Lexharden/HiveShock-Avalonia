@@ -1,6 +1,5 @@
 using HiveShock.Configuration;
 using HiveShock.Logging;
-using HiveShock.Voice;
 using Microsoft.Extensions.Hosting;
 
 namespace HiveShock.Live;
@@ -10,18 +9,18 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
     private readonly BridgeOptions _options;
     private readonly LiveEffectRouter _router;
     private readonly LivePortHub _hub;
-    private readonly SmartVoiceManager? _voice;
+    private readonly ViewerGuard _guard;
 
     public TwitchLiveHostedService(
         BridgeOptions options,
         LiveEffectRouter router,
         LivePortHub hub,
-        SmartVoiceManager? voice = null)
+        ViewerGuard guard)
     {
         _options = options;
         _router = router;
         _hub = hub;
-        _voice = voice;
+        _guard = guard;
     }
 
     public string Id => LivePortIds.Twitch;
@@ -122,22 +121,18 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
             clientId,
             access,
             userId,
-            (chatter, chatterId, text, roles) =>
+            (viewer, text) =>
             {
-                _router.HandleChat(chatter, chatterId, text, ct, LivePortIds.Twitch);
-                if (chatterId == userId)
+                // Bloqueado: ni comandos.
+                if (_guard.IsBlocked(viewer))
                 {
-                    roles |= ChatterRoles.Broadcaster;
+                    return;
                 }
 
-                _voice?.Enqueue(new TtsMessage(LivePortIds.Twitch, chatter, text, DateTime.UtcNow)
-                {
-                    Roles = roles,
-                    SpeakerKey = chatterId,
-                });
+                _router.HandleChat(viewer, text, ct);
             },
-            user => _router.HandleFollow(user, ct, LivePortIds.Twitch),
-            (user, bits) => _router.HandleCheer(user, bits, ct),
+            viewer => _router.HandleFollow(viewer, ct),
+            (viewer, bits) => _router.HandleCheer(viewer, bits, ct),
             () =>
             {
                 onLive();

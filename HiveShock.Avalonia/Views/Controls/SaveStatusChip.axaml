@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+             x:Class="HiveShock.Avalonia.Views.Controls.SaveStatusChip"
+             x:DataType="vm:SaveStatusViewModel">
+    <UserControl.Styles>
+        <Style Selector="Border.saveChip">
+            <Setter Property="CornerRadius" Value="999" />
+            <Setter Property="Padding" Value="12,5" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="{DynamicResource CardAltBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        </Style>
+        <Style Selector="Border.saveChip TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+        </Style>
+        <Style Selector="Border.saveChip.ok">
+            <Setter Property="Background" Value="#262EA85F" />
+            <Setter Property="BorderBrush" Value="#2EA85F" />
+        </Style>
+        <Style Selector="Border.saveChip.ok TextBlock">
+            <Setter Property="Foreground" Value="#2EA85F" />
+        </Style>
+        <Style Selector="Border.saveChip.err">
+            <Setter Property="Background" Value="#26E05A5A" />
+            <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+        </Style>
+        <Style Selector="Border.saveChip.err TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+        </Style>
+        <Style Selector="Border.saveChip.pending">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrandGoldBrush}" />
+        </Style>
+        <Style Selector="Border.saveChip.pending TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource BrandGoldBrush}" />
+        </Style>
+    </UserControl.Styles>
+    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+        <CheckBox Content="Guardado automático" IsChecked="{Binding AutoSaveEnabled}"
+                  IsVisible="{Binding SupportsAutoSave}" VerticalAlignment="Center" />
+        <Border Classes="saveChip" Classes.ok="{Binding IsSaved}" Classes.err="{Binding IsFailed}"
+                Classes.pending="{Binding IsPending}" IsVisible="{Binding IsVisible}"
+                VerticalAlignment="Center" MaxWidth="420">
+            <TextBlock Text="{Binding Message}" TextTrimming="CharacterEllipsis"
+                       ToolTip.Tip="{Binding Message}" />
+        </Border>
+    </StackPanel>
+</UserControl>

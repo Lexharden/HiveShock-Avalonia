@@ -90,6 +90,8 @@ public sealed class GiftFileEditor
     public int LikesEvery { get; set; }
     public string LikesEffect { get; set; } = "";
     public string FollowEffect { get; set; } = "";
+    /// <summary>Un mismo usuario dispara el efecto de seguir una sola vez (TikTok y Twitch).</summary>
+    public bool FollowOncePerUser { get; set; } = true;
     public string ShareEffect { get; set; } = "";
     public bool ChatEnabled { get; set; }
     public string ChatPrefix { get; set; } = "!";
@@ -149,6 +151,7 @@ public sealed class GiftFileEditor
         LikesEvery = 0;
         LikesEffect = "";
         FollowEffect = "";
+        FollowOncePerUser = true;
         ShareEffect = "";
         ChatEnabled = false;
         ChatPrefix = "!";
@@ -173,6 +176,7 @@ public sealed class GiftFileEditor
         if (_root["follow"] is JsonObject follow)
         {
             FollowEffect = follow["effect"]?.GetValue<string>() ?? "";
+            FollowOncePerUser = ReadBoolOr(follow, "oncePerUser", true);
         }
 
         if (_root["share"] is JsonObject share)
@@ -287,6 +291,7 @@ public sealed class GiftFileEditor
 
         var follow = _root["follow"] as JsonObject ?? new JsonObject();
         follow["effect"] = FollowEffect ?? "";
+        follow["oncePerUser"] = FollowOncePerUser;
         _root["follow"] = follow;
 
         var share = _root["share"] as JsonObject ?? new JsonObject();

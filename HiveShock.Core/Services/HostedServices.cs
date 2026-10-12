@@ -3,7 +3,6 @@ using HiveShock.Hosting;
 using HiveShock.Live;
 using HiveShock.Logging;
 using HiveShock.Networking;
-using HiveShock.Voice;
 using Microsoft.Extensions.Hosting;
 using TikTokLive;
 using TikTokLive.Proto;
@@ -142,7 +141,7 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
     private readonly GiftCatalogStore _catalog;
     private readonly LiveEffectRouter _router;
     private readonly LivePortHub _hub;
-    private readonly SmartVoiceManager? _voice;
+    private readonly ViewerGuard _guard;
 #if DEBUG
     private readonly HiveShock.Live.LiveDiagnosticSink? _diagnostics;
 #endif
@@ -152,7 +151,7 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         GiftCatalogStore catalog,
         LiveEffectRouter router,
         LivePortHub hub,
-        SmartVoiceManager? voice = null
+        ViewerGuard guard
 #if DEBUG
         , HiveShock.Live.LiveDiagnosticSink? diagnostics = null
 #endif
@@ -162,7 +161,7 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         _catalog = catalog;
         _router = router;
         _hub = hub;
-        _voice = voice;
+        _guard = guard;
 #if DEBUG
         _diagnostics = diagnostics;
 #endif
@@ -282,7 +281,9 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         };
 
         client.OnDisconnected += () =>
+        {
             BridgeLog.Warn("TikTok desconectado");
+        };
 
         client.OnReconnecting += info =>
             BridgeLog.Warn($"TikTok reconectando {info.Attempt}/{info.MaxRetries}");
@@ -295,19 +296,20 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
 
         client.OnGift += gift => _router.HandleTikTokGift(gift, ct);
         client.OnLike += like =>
-            _router.HandleLike(ViewerName(like.User), like.LikeCount > 0 ? like.LikeCount : 1, ct);
-        client.OnFollow += social => _router.HandleFollow(ViewerName(social.User), ct, LivePortIds.TikTok);
-        client.OnShare += social => _router.HandleShare(ViewerName(social.User), ct);
+            _router.HandleLike(ViewerIdentity.TikTok(like.User), like.LikeCount > 0 ? like.LikeCount : 1, ct);
+        client.OnFollow += social => _router.HandleFollow(ViewerIdentity.TikTok(social.User), ct);
+        client.OnShare += social => _router.HandleShare(ViewerIdentity.TikTok(social.User), ct);
         client.OnChat += chat =>
         {
-            var viewer = ViewerName(chat.User);
-            var comment = chat.Comment ?? "";
-            _router.HandleChat(viewer, LiveEffectRouter.TikTokStableId(chat.User), comment, ct, LivePortIds.TikTok);
-            _voice?.Enqueue(new TtsMessage(LivePortIds.TikTok, viewer, comment, DateTime.UtcNow)
+            var viewer = ViewerIdentity.TikTok(chat.User);
+            // Bloqueado: ni comandos.
+            if (_guard.IsBlocked(viewer))
             {
-                Roles = TikTokRoles(chat),
-                SpeakerKey = LiveEffectRouter.TikTokStableId(chat.User),
-            });
+                return;
+            }
+
+            var comment = chat.Comment ?? "";
+            _router.HandleChat(viewer, comment, ct);
         };
 
 #if DEBUG
@@ -318,32 +320,4 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
 
         await client.RunAsync(ct).ConfigureAwait(false);
     }
-
-    private ChatterRoles TikTokRoles(WebcastChatMessage chat)
-    {
-        var roles = ChatterRoles.None;
-        var context = chat.UserIdentity;
-        var own = (_options.TikTokUniqueId ?? "").Trim().TrimStart('@');
-        if (context?.IsAnchor == true ||
-            (own.Length > 0 && string.Equals(own, chat.User?.UniqueId, StringComparison.OrdinalIgnoreCase)))
-        {
-            roles |= ChatterRoles.Broadcaster;
-        }
-
-        if (context?.IsModeratorOfAnchor == true)
-        {
-            roles |= ChatterRoles.Moderator;
-        }
-
-        if (context?.IsSubscriberOfAnchor == true)
-        {
-            roles |= ChatterRoles.Subscriber;
-        }
-
-        return roles;
-    }
-
-    private static string ViewerName(UserIdentity? user) =>
-        user?.Nickname is { Length: > 0 } nick ? nick :
-        user?.UniqueId is { Length: > 0 } uid ? uid : "";
 }

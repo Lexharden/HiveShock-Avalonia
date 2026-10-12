@@ -2,7 +2,31 @@
 
 Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.props`.
 
-## [Unreleased]
+## [2.2.0] - 2026-10-08
+
+HiveShock vuelve a ser solo el puente entre tu live y el juego. La **voz** y **Zeldatón** (con su cronómetro) salen de este programa; la voz pasará a ser una app aparte. Se quedan todas las mejoras que no dependían de ellas.
+
+### Retirado
+* **Voz (Smart TTS)**: página Voz, motores Edge, Piper y Windows, micrófono y atajos. Con esto HiveShock compila un único `net10.0` para Windows, macOS y Linux.
+* **Zeldatón**: conexión con el servidor de la carrera, reloj oficial, cierre del juego, tiempo por donaciones y el cronómetro en pantalla.
+* Los archivos que dejaron esas funciones en tu carpeta de datos se ignoran y no estorban.
+
+### Moderación
+* **Pausa de emergencia** (botón en la barra de arriba y en Moderación): los espectadores dejan de activar efectos y metas, y lo que ya esperaba turno se descarta. No se guarda: al abrir HiveShock siempre empieza reanudada. Las pruebas del streamer no se ven afectadas.
+* **Lista de bloqueo** (nueva página Moderación): ves quién activó efectos hace poco y lo bloqueas con un clic, o bloqueas por @usuario (TikTok o Twitch). Se reconoce por su **id**, así que cambiar de @usuario no lo libra, y otra persona que se quede con ese @usuario no queda bloqueada. Un bloqueado no activa efectos ni metas y no cuenta como seguidor.
+* **Anti-spam de seguir más difícil de esquivar**: el efecto de seguir se decide por el id de la persona. Cambiar de @usuario ya no permite repetir el efecto, y un evento sin id se reconoce por el @usuario recordado. Si la plataforma no manda ni id ni @usuario, el follow pasa sin recordarse (y se avisa una vez) en vez de bloquear a inocentes con el mismo nombre.
+
+### Cola de enemigos y entrega
+* **Los enemigos de los regalos ya no se pierden ni se borran para hacer sitio.** El juego (Shipwright) lleva un presupuesto de carga (`gRemote.HiveShock.MaxLoad`, 14 por defecto; cada enemigo pesa 1–4): los que no caben esperan en orden y entran conforme mueren otros. La cola sobrevive a cambios de escena, los enemigos vivos te siguen a la siguiente escena y la cola se guarda en disco (caduca a las 12 h). Ver `docs/spawn-queue.md`.
+* **Reintentos si el juego está cerrado:** cada efecto se reintenta hasta `GAME_RETRY_SECONDS` (600 s por defecto; 0 = no reintentar) en vez de perderse. La pausa de emergencia sigue descartando lo pendiente.
+* Nuevos eventos del juego `spawn_queue` (disponible en `BridgeRuntime.SpawnQueue`) y `spawn_rejected`, y acción `clear_queue`.
+
+### Efectos y guardado
+* Nuevo efecto **Ralentizar a Link** (`slow_down`) en el perfil Ocarina of Time: baja la velocidad de Link durante unos segundos (intensidad ajustable de 0.2 a 0.9).
+* **Guardado automático** en Regalos, Metas y Eventos con una etiqueta que dice si se guardó (verde), está pendiente (dorada) o falló (roja). Se puede desactivar.
+* Metas: botón **Del catálogo** para añadir regalos a una meta.
+* **Anti-spam de seguir**: cada usuario dispara el efecto de seguir una sola vez (TikTok y Twitch), aunque siga y deje de seguir en bucle. Se recuerda entre directos; opción y botón «Olvidar seguidores» en Eventos.
+* Limpiar la caché de imágenes de regalos ya no provoca «Cannot access a disposed object» en los overlays.
 
 ## [2.1.2-alpha.1] - 2026-09-26
 

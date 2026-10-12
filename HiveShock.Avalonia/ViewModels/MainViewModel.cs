@@ -6,8 +6,6 @@ using HiveShock.Avalonia.Services;
 using HiveShock.Avalonia.Themes;
 using HiveShock.Hosting;
 using HiveShock.Logging;
-using HiveShock.Voice;
-using HiveShock.Voice.Piper;
 
 namespace HiveShock.Avalonia.ViewModels;
 
@@ -27,7 +25,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Dialogs = dialogs;
         Overlays = overlays;
         Runtime = BridgeRuntime.Create();
-        AttachVoiceIfSupported();
         Prefs = UiPreferences.Load();
         if (Application.Current != null)
         {
@@ -45,7 +42,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         ProfileEditor = new ProfileEditorViewModel(this);
         TikTok = new TikTokViewModel(this);
         Twitch = new TwitchViewModel(this);
-        SmartTts = new SmartTtsViewModel(this);
+        Moderation = new ModerationViewModel(this);
         Help = new HelpViewModel();
         About = new AboutViewModel();
         Events.LoadFromEditor(Gifts.Editor);
@@ -83,6 +80,8 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         });
         Runtime.Overlay.GiftReceived += OnOverlayGift;
         Runtime.Ports.Changed += OnPortsChanged;
+        ViewerEffectsPaused = Runtime.Guard.IsPaused;
+        Runtime.Guard.PausedChanged += OnViewerPauseChanged;
         BridgeLog.Logged += OnLogged;
         BridgeLog.Init();
         BridgeLog.Info($"UI lista · perfil {Runtime.Profile.DisplayName}");
@@ -91,6 +90,8 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     public BridgeRuntime Runtime { get; }
     public UiPreferences Prefs { get; }
+
+    /// <summary>Lo que muestra el cronómetro en pantalla (reloj oficial o local).</summary>
     public DialogService Dialogs { get; }
     public OverlayService Overlays { get; }
 
@@ -102,7 +103,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public ProfileEditorViewModel ProfileEditor { get; }
     public TikTokViewModel TikTok { get; }
     public TwitchViewModel Twitch { get; }
-    public SmartTtsViewModel SmartTts { get; }
+    public ModerationViewModel Moderation { get; }
     public HelpViewModel Help { get; }
     public AboutViewModel About { get; }
 
@@ -140,11 +141,14 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private string _detailLogText = "";
     [ObservableProperty] private string _selectedThemeId = "system";
     [ObservableProperty] private bool _navExpanded = true;
+    [ObservableProperty] private bool _viewerEffectsPaused;
+
+    public string PauseButtonText => ViewerEffectsPaused ? "▶ Efectos en pausa · Reanudar" : "⏸ Pausar efectos";
 
     public bool IsStudioNav => CurrentPageKey == "studio";
     public bool IsTikTokNav => CurrentPageKey is "tiktok" or "gifts" or "catalog";
     public bool IsTwitchNav => CurrentPageKey == "twitch";
-    public bool IsSmartTtsNav => CurrentPageKey == "voz";
+    public bool IsModerationNav => CurrentPageKey == "moderacion";
     public bool IsHelpNav => CurrentPageKey == "help";
     public bool IsAboutNav => CurrentPageKey == "about";
     public bool CanInteract => !IsBusy;
@@ -174,6 +178,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         {
             Overlays.ShowGoals(Runtime.Goals.Snapshots(), Prefs);
         }
+
     }
 
     public void ReloadEffectChoices()
@@ -252,14 +257,9 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         OnPropertyChanged(nameof(IsStudioNav));
         OnPropertyChanged(nameof(IsTikTokNav));
         OnPropertyChanged(nameof(IsTwitchNav));
-        OnPropertyChanged(nameof(IsSmartTtsNav));
+        OnPropertyChanged(nameof(IsModerationNav));
         OnPropertyChanged(nameof(IsHelpNav));
         OnPropertyChanged(nameof(IsAboutNav));
-        if (value != "voz")
-        {
-            // La prueba de micrófono solo tiene sentido con el medidor a la vista.
-            SmartTts.StopMicTest();
-        }
     }
 
     public async Task ToggleConnectionAsync()
@@ -323,47 +323,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         }
     }
 
-    /// <summary>
-    /// Arma Smart TTS con las implementaciones concretas de escritorio (viven en
-    /// HiveShock.Desktop) y lo conecta a Runtime. Solo existe en la compilación
-    /// net10.0-windows10.0.19041.0 (HIVESHOCK_WINDOWS_DESKTOP): es el único TFM que
-    /// referencia HiveShock.Desktop, porque NAudio/SharpHook solo exponen WASAPI/WinMM/
-    /// Media Foundation bajo un TFM Windows-versionado. En la compilación net10.0 normal
-    /// (Mac/Linux, y Windows sin -f) este método es un no-op y Runtime.Voice queda en
-    /// null; la página "Voz" lo muestra como no disponible en vez de intentar algo que
-    /// no existe en ese binario.
-    /// </summary>
-    private void AttachVoiceIfSupported()
-    {
-#if HIVESHOCK_WINDOWS_DESKTOP
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
-        try
-        {
-            var settings = TtsSettings.Load();
-            // Orden = preferencia y orden de respaldo: Edge (más natural) → Piper (natural, sin
-            // internet, si está instalado) → Windows (siempre disponible).
-            var engines = new TtsEngineRegistry([new EdgeTtsEngine(), new PiperTtsEngine(), new WindowsTtsEngine()]);
-            var voice = new SmartVoiceManager(
-                new WindowsMicrophoneCapture(),
-                engines,
-                new WindowsAudioPlayer(),
-                new SharpHookGlobalHotkeyListener(),
-                new VoiceActivityDetector(),
-                settings);
-            Runtime.AttachVoice(voice);
-        }
-        catch (Exception ex)
-        {
-            // Sin voz la app sigue siendo útil: la página "Voz" queda como no disponible.
-            BridgeLog.Error($"Smart TTS no se pudo iniciar: {ex.Message}");
-        }
-#endif
-    }
-
     private static string FriendlyStartError(string message)
     {
         if (message.Contains("canal", StringComparison.OrdinalIgnoreCase) ||
@@ -424,6 +383,12 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         CurrentPageKey = "twitch";
     }
 
+    public void GoModeration()
+    {
+        CurrentPage = Moderation;
+        CurrentPageKey = "moderacion";
+    }
+
     public void GoGifts(bool reload = true)
     {
         GoTikTok();
@@ -437,12 +402,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public void GoEvents()
     {
         GoTikTok();
-    }
-
-    public void GoSmartTts()
-    {
-        CurrentPage = SmartTts;
-        CurrentPageKey = "voz";
     }
 
     public void GoHelp()
@@ -467,7 +426,10 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     private void NavTwitch() => GoTwitch();
 
     [RelayCommand]
-    private void NavSmartTts() => GoSmartTts();
+    private void NavModeration() => GoModeration();
+
+    [RelayCommand]
+    private void ToggleViewerEffectsPause() => Runtime.Guard.SetPaused(!Runtime.Guard.IsPaused);
 
     [RelayCommand]
     private void ToggleNav() => NavExpanded = !NavExpanded;
@@ -489,6 +451,10 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     [RelayCommand]
     private void ClearLog() => ClearActivity();
+
+    partial void OnViewerEffectsPausedChanged(bool value) => OnPropertyChanged(nameof(PauseButtonText));
+
+    private void OnViewerPauseChanged(bool paused) => Dispatch(() => ViewerEffectsPaused = paused);
 
     partial void OnNavExpandedChanged(bool value)
     {
@@ -616,10 +582,12 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         }
 
         _closing = true;
+        Gifts.AutoSaver.FlushIfDirty();
         Studio.PersistDeath();
         Overlays.CloseAll(Prefs);
         Runtime.Overlay.GiftReceived -= OnOverlayGift;
         Runtime.Ports.Changed -= OnPortsChanged;
+        Runtime.Guard.PausedChanged -= OnViewerPauseChanged;
         BridgeLog.Logged -= OnLogged;
 
         try

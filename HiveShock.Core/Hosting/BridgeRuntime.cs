@@ -4,7 +4,6 @@ using HiveShock.Live;
 using HiveShock.Logging;
 using HiveShock.Networking;
 using HiveShock.Services;
-using HiveShock.Voice;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -42,14 +41,8 @@ public sealed class BridgeRuntime : IAsyncDisposable
     public GiftGoalBank Goals { get; } = new();
     public LivePortHub Ports { get; } = new();
 
-    /// <summary>
-    /// Smart TTS, de vida larga como Overlay/Goals. Null en plataformas sin implementación
-    /// todavía (Android, o escritorio no-Windows): quien compone la app (HiveShock.Avalonia)
-    /// decide si hay algo que conectar aquí y lo hace con <see cref="AttachVoice"/> — Core no
-    /// conoce las implementaciones concretas (viven en HiveShock.Desktop) para no arrastrar
-    /// sus dependencias nativas a Android.
-    /// </summary>
-    public SmartVoiceManager? Voice { get; private set; }
+    /// <summary>Pausa de emergencia y lista de bloqueo de espectadores. Vive aunque se desconecte el puente.</summary>
+    public ViewerGuard Guard { get; } = new();
 
 #if DEBUG
     public Live.LiveDiagnosticSink Diagnostics { get; } = new();
@@ -141,9 +134,6 @@ public sealed class BridgeRuntime : IAsyncDisposable
         ProfileChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Conecta Smart TTS ya armado (mic/voz/hotkey concretos elegidos por el host de escritorio).</summary>
-    public void AttachVoice(SmartVoiceManager voice) => Voice = voice;
-
     public IReadOnlyList<LoadedGameProfile> ListProfiles() => ProfileStore.ListProfiles();
 
     public void ReloadGifts()
@@ -176,6 +166,17 @@ public sealed class BridgeRuntime : IAsyncDisposable
     public void ReloadCatalog() => Catalog.Load();
 
     public void ResetDeathCounter() => DeathCounter.Reset();
+
+    /// <summary>Olvida quién ya disparó el efecto de seguir. Solo con el puente detenido.</summary>
+    public void ClearFollowHistory()
+    {
+        if (IsRunning)
+        {
+            throw new InvalidOperationException("Detén el puente para borrar el historial de seguidores.");
+        }
+
+        FollowGate.ClearPersisted();
+    }
 
     public Task SimulateGoalAsync(string goalId, int units = 1, CancellationToken ct = default)
     {
@@ -303,8 +304,32 @@ public sealed class BridgeRuntime : IAsyncDisposable
         Overlay.Notify(gift.Gift, gift.Id);
     }
 
+    /// <summary>Último estado de la cola de enemigos que reportó el juego (HiveShock en Shipwright).</summary>
+    public GameSpawnQueue SpawnQueue { get; private set; } = GameSpawnQueue.Empty;
+
+    /// <summary>Cambió <see cref="SpawnQueue"/> (llega desde el hilo del lector de eventos).</summary>
+    public event EventHandler? SpawnQueueChanged;
+
     private void OnGameEvent(object? sender, GameEventArgs e)
     {
+        if (string.Equals(e.Event, "spawn_queue", StringComparison.OrdinalIgnoreCase))
+        {
+            if (e.Data is { } queueData && GameSpawnQueue.TryParse(queueData, out var queue))
+            {
+                SpawnQueue = queue;
+                SpawnQueueChanged?.Invoke(this, EventArgs.Empty);
+            }
+
+            return;
+        }
+
+        if (string.Equals(e.Event, "spawn_rejected", StringComparison.OrdinalIgnoreCase))
+        {
+            var action = e.Data is { } rejected && rejected.TryGetProperty("action", out var a) ? a.GetString() : null;
+            BridgeLog.Warn($"El juego rechazó un spawn ({action ?? "?"}): la cola de enemigos está llena.");
+            return;
+        }
+
         if (!_profile.Info.SupportsDeathEvents)
         {
             return;
@@ -451,11 +476,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         builder.Services.AddSingleton(Overlay);
         builder.Services.AddSingleton(Goals);
         builder.Services.AddSingleton(Ports);
-        if (Voice != null)
-        {
-            builder.Services.AddSingleton(Voice);
-        }
-
+        builder.Services.AddSingleton(Guard);
         builder.Services.AddSingleton(_gameClient);
         builder.Services.AddSingleton<EffectDispatcher>();
         builder.Services.AddSingleton<LiveEffectRouter>();
@@ -578,7 +599,6 @@ public sealed class BridgeRuntime : IAsyncDisposable
         await StopAsync().ConfigureAwait(false);
         _events.EventReceived -= OnGameEvent;
         await _events.DisposeAsync().ConfigureAwait(false);
-        Voice?.Dispose();
     }
 
     private static void ApplyProfileToOptions(BridgeOptions options, LoadedGameProfile profile, bool forcePortsFromProfile)

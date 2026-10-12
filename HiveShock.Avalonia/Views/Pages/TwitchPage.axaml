@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ctl="using:HiveShock.Avalonia.Views.Controls"
              xmlns:vm="using:HiveShock.Avalonia.ViewModels"
              x:Class="HiveShock.Avalonia.Views.Pages.TwitchPage"
              x:DataType="vm:TwitchViewModel">
@@ -39,6 +40,7 @@
 
         <Grid Grid.Row="2" RowDefinitions="Auto,*,Auto,*" Margin="0,4,0,0">
             <StackPanel>
+                <ctl:SaveStatusChip DataContext="{Binding Events.SaveStatus}" HorizontalAlignment="Left" Margin="0,0,0,8" />
                 <TextBlock Classes="sectionTitle" Text="PALABRAS DEL CHAT" />
                 <CheckBox Content="Activar" IsChecked="{Binding Events.TwitchChatEnabled}" />
                 <WrapPanel Margin="0,8,0,0">
@@ -95,6 +97,10 @@
                                           SelectedValue="{Binding Events.TwitchFollowEffect}"
                                           SelectedValueBinding="{Binding Id}"
                                           DisplayMemberBinding="{Binding Display}" />
+                                <CheckBox Content="Solo la primera vez que sigue (evita el spam de seguir y dejar de seguir)"
+                                          IsChecked="{Binding Events.FollowOncePerUser}" Margin="0,8,0,0" />
+                                <Button Classes="secondary" Content="Olvidar seguidores"
+                                        Command="{Binding Events.ClearFollowHistoryCommand}" HorizontalAlignment="Left" />
                             </StackPanel>
                         </Border>
                         <Border Classes="card" Grid.Column="1" Margin="8,0,0,0">
@@ -127,6 +133,7 @@
                     </Grid>
                     <Button Classes="primary" Content="Guardar" Command="{Binding Events.SaveCommand}"
                             HorizontalAlignment="Left" MinWidth="140" />
+                    <ctl:SaveStatusChip DataContext="{Binding Events.SaveStatus}" HorizontalAlignment="Left" />
                 </StackPanel>
             </ScrollViewer>
         </Grid>
