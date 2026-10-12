@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
@@ -166,15 +166,6 @@ public sealed partial class UpdatesViewModel : ViewModelBase
             _service.Skip(r);
             SavePrefs();
             Refresh();
-        }
-    }
-
-    [RelayCommand]
-    private void OpenRelease(ReleaseRow? row)
-    {
-        if (row is { Release.HtmlUrl.Length: > 0 })
-        {
-            PlatformShell.OpenUrl(row.Release.HtmlUrl);
         }
     }
 

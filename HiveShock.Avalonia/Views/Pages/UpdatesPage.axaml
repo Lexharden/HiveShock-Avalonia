@@ -1,4 +1,4 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:HiveShock.Avalonia.ViewModels"
              x:Class="HiveShock.Avalonia.Views.Pages.UpdatesPage"
@@ -7,7 +7,7 @@
         <StackPanel MaxWidth="640" HorizontalAlignment="Left">
             <TextBlock Classes="pageTitle" Text="Actualizaciones" />
             <TextBlock Classes="pageLead"
-                       Text="HiveShock mira los releases publicados en GitHub, descarga la versión nueva en segundo plano y la instala cuando tú lo decides. Tus perfiles, regalos, metas y credenciales no se tocan." />
+                       Text="HiveShock busca las versiones publicadas, descarga la versión nueva en segundo plano y la instala cuando tú lo decides. Tus perfiles, regalos, metas y credenciales no se tocan." />
 
             <TextBlock Classes="sectionTitle" Text="ESTADO" />
             <Border Classes="card" Margin="0,0,0,16">
@@ -67,9 +67,6 @@
                                                     CommandParameter="{Binding}"
                                                     Classes.secondary="{Binding !IsNewer}"
                                                     Command="{Binding $parent[UserControl].((vm:UpdatesViewModel)DataContext).InstallRowCommand}" />
-                                            <Button Classes="secondary" Content="Ver en GitHub"
-                                                    CommandParameter="{Binding}"
-                                                    Command="{Binding $parent[UserControl].((vm:UpdatesViewModel)DataContext).OpenReleaseCommand}" />
                                         </StackPanel>
                                         <StackPanel Spacing="3">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
