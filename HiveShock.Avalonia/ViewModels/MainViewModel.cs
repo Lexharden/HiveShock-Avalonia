@@ -45,6 +45,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Moderation = new ModerationViewModel(this);
         Help = new HelpViewModel();
         About = new AboutViewModel();
+        Updates = new UpdatesViewModel(this);
         Events.LoadFromEditor(Gifts.Editor);
         Goals.LoadFromEditor(Gifts.Editor);
 
@@ -106,6 +107,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public ModerationViewModel Moderation { get; }
     public HelpViewModel Help { get; }
     public AboutViewModel About { get; }
+    public UpdatesViewModel Updates { get; }
 
     public System.Collections.ObjectModel.ObservableCollection<EffectChoice> EffectChoices { get; }
 
@@ -151,6 +153,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public bool IsModerationNav => CurrentPageKey == "moderacion";
     public bool IsHelpNav => CurrentPageKey == "help";
     public bool IsAboutNav => CurrentPageKey == "about";
+    public bool IsUpdatesNav => CurrentPageKey == "updates";
     public bool CanInteract => !IsBusy;
     public bool StatusDotVisible => StatusTone is "connecting" or "ok" or "live";
     public bool IsToneIdle => StatusTone == "idle";
@@ -164,6 +167,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     public void Attach()
     {
+        Updates.Start();
         if (Prefs.DeathOverlayEnabled)
         {
             Overlays.ShowCounter(Runtime.DeathCounter, Prefs.ResolveOverlayTitle(), Prefs);
@@ -260,6 +264,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         OnPropertyChanged(nameof(IsModerationNav));
         OnPropertyChanged(nameof(IsHelpNav));
         OnPropertyChanged(nameof(IsAboutNav));
+        OnPropertyChanged(nameof(IsUpdatesNav));
     }
 
     public async Task ToggleConnectionAsync()
@@ -410,6 +415,22 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         CurrentPageKey = "help";
     }
 
+    public void GoUpdates()
+    {
+        CurrentPage = Updates;
+        CurrentPageKey = "updates";
+    }
+
+    /// <summary>La página Actualizaciones avisa de que apareció o desapareció una versión nueva.</summary>
+    public void NotifyUpdateBadge()
+    {
+        OnPropertyChanged(nameof(UpdateBadgeVisible));
+        OnPropertyChanged(nameof(UpdateBadgeText));
+    }
+
+    public bool UpdateBadgeVisible => Updates.BadgeVisible;
+    public string UpdateBadgeText => Updates.BadgeText;
+
     public void GoAbout()
     {
         CurrentPage = About;
@@ -439,6 +460,9 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     [RelayCommand]
     private void NavAbout() => GoAbout();
+
+    [RelayCommand]
+    private void NavUpdates() => GoUpdates();
 
     [RelayCommand]
     private void ClearActivity()
