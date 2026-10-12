@@ -4,6 +4,11 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-10-12
+
+### Actualizaciones
+* La lista de versiones ya no muestra el botón «Ver en GitHub»: cada versión solo ofrece instalarla.
+
 ## [2.3.0] - 2026-10-12
 
 ### Actualizaciones
