@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using HiveShock.Input;
 
 namespace HiveShock.Configuration;
 
@@ -41,6 +42,9 @@ public sealed class GameProfileInfo
     public List<string> SingletonEffects { get; set; } = [];
     public string HelpNotes { get; set; } = "";
 
+    /// <summary>Ventana del juego a la que se envían las teclas de las macros (keys.json).</summary>
+    public WindowTarget? Window { get; set; }
+
     public string Label(string key, string fallback)
     {
         if (Labels.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value))
@@ -60,6 +64,8 @@ public sealed class LoadedGameProfile
     public required string EffectsPath { get; init; }
     public required string GiftsPath { get; init; }
     public required string ProfileJsonPath { get; init; }
+
+    public string KeysPath => Path.Combine(Directory, KeyMacroCatalogStore.FileName);
 
     public string Id => Info.Id;
     public string DisplayName => Info.DisplayName;

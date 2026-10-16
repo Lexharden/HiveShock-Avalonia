@@ -1,0 +1,171 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ctl="using:HiveShock.Avalonia.Views.Controls"
+             xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+             x:Class="HiveShock.Avalonia.Views.Pages.KeyMacrosPage"
+             x:DataType="vm:KeyMacrosViewModel">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="720" HorizontalAlignment="Left">
+            <TextBlock Classes="pageTitle" Text="Teclas" />
+            <ctl:SaveStatusChip DataContext="{Binding SaveStatus}" HorizontalAlignment="Left" Margin="0,0,0,8" />
+            <TextBlock Classes="pageLead"
+                       Text="Pulsa teclas en la ventana del juego cuando pasa algo en el live. Cada macro aparece como un efecto más: asígnala a un regalo, a un comando de chat o a un evento." />
+
+            <Border Classes="card" Margin="0,0,0,12" IsVisible="{Binding !IsSupported}">
+                <TextBlock Text="{Binding WindowStatusText}" TextWrapping="Wrap" />
+            </Border>
+
+            <TextBlock Classes="sectionTitle" Text="VENTANA DEL JUEGO" />
+            <Border Classes="card" Margin="0,0,0,16" IsVisible="{Binding IsSupported}">
+                <StackPanel>
+                    <TextBlock Text="{Binding WindowStatusText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Classes="fieldLabel" Text="Elegir una ventana abierta" Margin="0,10,0,4" />
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Classes="secondary" Content="Actualizar"
+                                Command="{Binding RefreshOpenWindowsCommand}" Margin="8,0,0,0" />
+                        <ComboBox ItemsSource="{Binding OpenWindows}" SelectedItem="{Binding SelectedOpenWindow}"
+                                  HorizontalAlignment="Stretch" PlaceholderText="Abre el juego y pulsa Actualizar">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:OpenWindowChoice">
+                                    <TextBlock Text="{Binding Display}" TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </DockPanel>
+                    <TextBlock Classes="fieldLabel" Text="Proceso" Margin="0,10,0,4" />
+                    <TextBox Text="{Binding WindowProcess}" PlaceholderText="p. ej. soh (sin .exe)" />
+                    <TextBlock Classes="fieldLabel" Text="El título contiene (opcional)" Margin="0,10,0,4" />
+                    <TextBox Text="{Binding WindowTitle}" PlaceholderText="p. ej. Ship of Harkinian" />
+                    <TextBlock Classes="fieldLabel" Text="Título por expresión regular (opcional)" Margin="0,10,0,4" />
+                    <TextBox Text="{Binding WindowRegex}" />
+                    <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,8,0,0"
+                               Text="Antes de pulsar, HiveShock trae el juego al frente y, al terminar, te devuelve a la ventana que estabas usando. Si el juego se ejecuta como administrador, HiveShock también debe ejecutarse así." />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Classes="sectionTitle" Text="MACROS" />
+            <Border Classes="card" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Todavía no hay macros. Crea una y asígnala a un comando de chat (!saltar), un regalo o un evento."
+                               Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"
+                               IsVisible="{Binding !HasMacros}" />
+                    <ListBox ItemsSource="{Binding Macros}" SelectedItem="{Binding SelectedMacro}"
+                             MaxHeight="200" IsVisible="{Binding HasMacros}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:KeyMacroRow">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Id}" FontSize="12"
+                                               Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <WrapPanel Margin="0,8,0,0">
+                        <Button Classes="primary" Content="Nueva macro" Command="{Binding AddMacroCommand}" Margin="0,0,8,0" />
+                        <Button Classes="secondary" Content="Duplicar" Command="{Binding DuplicateMacroCommand}"
+                                IsEnabled="{Binding HasSelection}" Margin="0,0,8,0" />
+                        <Button Classes="secondary" Classes.danger="True" Content="Quitar" Command="{Binding RemoveMacroCommand}"
+                                IsEnabled="{Binding HasSelection}" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <StackPanel IsVisible="{Binding HasSelection}">
+                <TextBlock Classes="sectionTitle" Text="EDITAR MACRO" />
+                <Border Classes="card" Margin="0,0,0,16" DataContext="{Binding SelectedMacro}" x:DataType="vm:KeyMacroRow">
+                    <StackPanel>
+                        <TextBlock Classes="fieldLabel" Text="Nombre" />
+                        <TextBox Text="{Binding Label}" PlaceholderText="Saltar" />
+                        <TextBlock Classes="fieldLabel" Text="Id (lo que se elige al asignarla)" Margin="0,10,0,4" />
+                        <TextBox Text="{Binding Id}" PlaceholderText="saltar" />
+                        <TextBlock Classes="fieldLabel" Text="Si se activa otra vez mientras ya está en marcha" Margin="0,10,0,4" />
+                        <ComboBox ItemsSource="{x:Static vm:KeyMacroRow.OverlapChoices}"
+                                  SelectedValue="{Binding Overlap}" SelectedValueBinding="{Binding Value}"
+                                  DisplayMemberBinding="{Binding Display}" MinWidth="260" />
+                        <TextBlock Classes="fieldLabel" Text="Duración máxima (ms)" Margin="0,10,0,4" />
+                        <TextBox Text="{Binding MaxTotalText}" Width="120" HorizontalAlignment="Left" />
+                        <TextBlock Classes="fieldLabel" Text="Atajo global (opcional)" Margin="0,10,0,4" />
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Classes="secondary" Content="Quitar" Margin="8,0,0,0"
+                                    Command="{Binding $parent[UserControl].((vm:KeyMacrosViewModel)DataContext).ClearHotkeyCommand}" />
+                            <Button DockPanel.Dock="Right" Classes="secondary" Margin="8,0,0,0"
+                                    Content="{Binding $parent[UserControl].((vm:KeyMacrosViewModel)DataContext).HotkeyCaptureLabel}"
+                                    Command="{Binding $parent[UserControl].((vm:KeyMacrosViewModel)DataContext).BeginHotkeyCaptureCommand}" />
+                            <TextBox Text="{Binding HotkeyText}" PlaceholderText="Ctrl+Alt+F5" />
+                        </DockPanel>
+                        <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                   Text="Lanza la macro a mano desde cualquier ventana. Necesita Ctrl, Alt, Shift o Win para no quitarle esa tecla al juego." />
+                        <CheckBox IsChecked="{Binding AllowDangerous}" Margin="0,10,0,0"
+                                  Content="Permitir combinaciones bloqueadas (Win, Alt+F4, Alt+Tab, Ctrl+Alt+Supr)" />
+
+                        <TextBlock Classes="fieldLabel" Text="Pasos" Margin="0,14,0,4" />
+                        <ItemsControl ItemsSource="{Binding Steps}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:KeyStepRow">
+                                    <Border Padding="0,6" BorderThickness="0,0,0,1"
+                                            BorderBrush="{DynamicResource MutedBrush}">
+                                        <WrapPanel>
+                                            <ComboBox ItemsSource="{x:Static vm:KeyStepRow.ActionChoices}"
+                                                      SelectedValue="{Binding Action}" SelectedValueBinding="{Binding Value}"
+                                                      DisplayMemberBinding="{Binding Display}" MinWidth="150" Margin="0,0,8,0" />
+                                            <ComboBox ItemsSource="{x:Static vm:KeyStepRow.KeyNames}"
+                                                      SelectedItem="{Binding Key}" MinWidth="110" Margin="0,0,8,0" />
+                                            <Button Classes="secondary" Content="{Binding CaptureLabel}" Margin="0,0,8,0"
+                                                    CommandParameter="{Binding}"
+                                                    Command="{Binding $parent[UserControl].((vm:KeyMacrosViewModel)DataContext).BeginCaptureCommand}" />
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,8,0" IsVisible="{Binding ShowHold}">
+                                                <TextBox Text="{Binding HoldText}" Width="80" />
+                                                <TextBlock Text="ms" VerticalAlignment="Center" Margin="4,0,0,0"
+                                                           Foreground="{DynamicResource MutedBrush}" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,8,0" IsVisible="{Binding ShowRepeat}">
+                                                <TextBlock Text="×" VerticalAlignment="Center" Margin="0,0,4,0"
+                                                           Foreground="{DynamicResource MutedBrush}" />
+                                                <TextBox Text="{Binding RepeatText}" Width="64" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
+                                                <TextBlock Text="espera" VerticalAlignment="Center" Margin="0,0,4,0"
+                                                           Foreground="{DynamicResource MutedBrush}" />
+                                                <TextBox Text="{Binding DelayText}" Width="72" />
+                                                <TextBlock Text="ms" VerticalAlignment="Center" Margin="4,0,0,0"
+                                                           Foreground="{DynamicResource MutedBrush}" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
+                                                <TextBlock Text="±" VerticalAlignment="Center" Margin="0,0,4,0"
+                                                           Foreground="{DynamicResource MutedBrush}" ToolTip.Tip="Variación aleatoria de los tiempos" />
+                                                <TextBox Text="{Binding JitterText}" Width="56" />
+                                                <TextBlock Text="%" VerticalAlignment="Center" Margin="4,0,0,0"
+                                                           Foreground="{DynamicResource MutedBrush}" />
+                                            </StackPanel>
+                                            <Button Classes="secondary" Content="↑" Margin="0,0,4,0"
+                                                    CommandParameter="{Binding}"
+                                                    Command="{Binding $parent[UserControl].((vm:KeyMacrosViewModel)DataContext).MoveStepUpCommand}" />
+                                            <Button Classes="secondary" Content="↓" Margin="0,0,4,0"
+                                                    CommandParameter="{Binding}"
+                                                    Command="{Binding $parent[UserControl].((vm:KeyMacrosViewModel)DataContext).MoveStepDownCommand}" />
+                                            <Button Classes="secondary" Content="Quitar"
+                                                    CommandParameter="{Binding}"
+                                                    Command="{Binding $parent[UserControl].((vm:KeyMacrosViewModel)DataContext).RemoveStepCommand}" />
+                                        </WrapPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <WrapPanel Margin="0,-6,0,8">
+                    <Button Classes="secondary" Content="Añadir paso" Command="{Binding AddStepCommand}" Margin="0,0,8,0" />
+                    <Button Classes="primary" Content="Probar macro" Command="{Binding TestMacroCommand}" />
+                </WrapPanel>
+                <TextBlock Text="{Binding ValidationText}" TextWrapping="Wrap" Foreground="OrangeRed"
+                           IsVisible="{Binding HasValidationText}" Margin="0,0,0,6" />
+                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}"
+                           IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,8,0,16"
+                           Text="Para usarla: en Chat / Regalos / Eventos elige esta macro como «efecto». Los cambios valen al momento, aunque estés conectado." />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

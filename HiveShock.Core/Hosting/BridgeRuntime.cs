@@ -1,5 +1,6 @@
 using HiveShock;
 using HiveShock.Configuration;
+using HiveShock.Input;
 using HiveShock.Live;
 using HiveShock.Logging;
 using HiveShock.Networking;
@@ -25,6 +26,8 @@ public sealed class BridgeRuntime : IAsyncDisposable
     private Task? _runTask;
     private readonly GameTcpClient _gameClient;
     private readonly GameEventServer _events;
+    private readonly CancellationTokenSource _keyCts = new();
+    private Task? _keyPump;
     private EffectCatalog _effects;
     private GiftConfigStore _gifts;
     private LoadedGameProfile _profile;
@@ -40,6 +43,18 @@ public sealed class BridgeRuntime : IAsyncDisposable
     public OverlayNotifier Overlay { get; } = new();
     public GiftGoalBank Goals { get; } = new();
     public LivePortHub Ports { get; } = new();
+
+    /// <summary>Teclas hacia la ventana del juego. Vive con el runtime: sirve al puente en marcha y a las pruebas de la UI.</summary>
+    public KeyMacroRunner KeyRunner { get; }
+
+    private readonly IGameInput _keyInput = GameInputFactory.Create();
+    private readonly IGlobalHotkeys _hotkeys = GameInputFactory.CreateHotkeys();
+
+    /// <summary>Atajos de macros que no se pudieron registrar (id de macro → motivo). Vacío si todo va bien.</summary>
+    public IReadOnlyDictionary<string, string> HotkeyProblems { get; private set; } = new Dictionary<string, string>();
+
+    /// <summary>Si este sistema puede enviar teclas a otra ventana (hoy solo Windows).</summary>
+    public bool SupportsKeyInput => OperatingSystem.IsWindows();
 
     /// <summary>Pausa de emergencia y lista de bloqueo de espectadores. Vive aunque se desconecte el puente.</summary>
     public ViewerGuard Guard { get; } = new();
@@ -85,6 +100,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         _gifts = gifts;
         Catalog = catalog;
         _gameClient = new GameTcpClient(options);
+        KeyRunner = new KeyMacroRunner(_keyInput, () => _profile.Info.Window, () => Options.DryRun);
         _events = new GameEventServer(options);
         _events.EventReceived += OnGameEvent;
         _events.Start();
@@ -96,7 +112,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         var profile = ProfileStore.LoadActive(options.ProfileId);
         ApplyProfileToOptions(options, profile, forcePortsFromProfile: false);
 
-        var effects = EffectCatalog.Load(profile.EffectsPath, profile.Info);
+        var effects = LoadEffects(profile);
         var gifts = new GiftConfigStore(effects);
         gifts.Reload(profile.GiftsPath);
         var catalog = GiftCatalogStore.LoadOrCreate();
@@ -104,6 +120,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         BridgeLog.Info($"Perfil activo: {profile.DisplayName} ({profile.Id}) → {options.GameHost}:{options.GamePort}");
         var runtime = new BridgeRuntime(options, profile, effects, gifts, catalog);
         runtime.Goals.ApplyDefinitions(gifts.Snapshot.Goals);
+        runtime.ApplyHotkeys();
         return runtime;
     }
 
@@ -119,7 +136,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         ProfileStore.SaveActiveId(profile.Id);
         ApplyProfileToOptions(Options, profile, forcePortsFromProfile: true);
 
-        var effects = EffectCatalog.Load(profile.EffectsPath, profile.Info);
+        var effects = LoadEffects(profile);
         var gifts = new GiftConfigStore(effects);
         gifts.Reload(profile.GiftsPath);
 
@@ -130,11 +147,109 @@ public sealed class BridgeRuntime : IAsyncDisposable
         Goals.ResetAll();
         Goals.ApplyDefinitions(_gifts.Snapshot.Goals);
 
+        ApplyHotkeys();
         BridgeLog.Info($"Perfil cambiado: {profile.DisplayName} ({profile.Id}) → {Options.GameHost}:{Options.GamePort}");
         ProfileChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public IReadOnlyList<LoadedGameProfile> ListProfiles() => ProfileStore.ListProfiles();
+
+    public IReadOnlyList<KeyMacro> LoadKeyMacros() =>
+        [.. KeyMacroCatalogStore.Load(_profile.KeysPath).All.OrderBy(m => m.Label, StringComparer.OrdinalIgnoreCase)];
+
+    /// <summary>Guarda keys.json y deja las macros activas al instante (también con el puente en marcha).</summary>
+    public void SaveKeyMacros(IReadOnlyCollection<KeyMacro> macros)
+    {
+        KeyMacroCatalogStore.Save(_profile.KeysPath, macros);
+        _effects.SetMacros(new KeyMacroCatalog(macros));
+        ApplyHotkeys();
+    }
+
+    /// <summary>Registra los atajos globales de las macros del perfil activo (sustituye los anteriores).</summary>
+    public void ApplyHotkeys()
+    {
+        var problems = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var bindings = new List<HotkeyBinding>();
+        foreach (var macro in _effects.Macros.Where(m => !string.IsNullOrWhiteSpace(m.Hotkey)))
+        {
+            if (!HotkeyCombo.TryParse(macro.Hotkey, out var combo))
+            {
+                problems[macro.Id] = $"Atajo «{macro.Hotkey}» no válido.";
+                continue;
+            }
+
+            var id = macro.Id;
+            bindings.Add(new HotkeyBinding(id, combo, () => TryRunMacro(id, "Atajo", "atajo")));
+        }
+
+        foreach (var failure in _hotkeys.Apply(bindings))
+        {
+            problems[failure.Id] = failure.Reason;
+        }
+
+        foreach (var (id, reason) in problems)
+        {
+            BridgeLog.Warn($"Atajo de «{id}»: {reason}");
+        }
+
+        HotkeyProblems = problems;
+    }
+
+
+    /// <summary>Guarda la ventana objetivo en profile.json; vale al instante.</summary>
+    public void SetGameWindow(WindowTarget? window)
+    {
+        var editor = new ProfileInfoEditor(_profile.ProfileJsonPath);
+        editor.Load();
+        editor.Info.Window = window is { IsEmpty: false } ? window : null;
+        editor.Save();
+        _profile.Info.Window = editor.Info.Window;
+    }
+
+    public WindowStatus GetGameWindowStatus(WindowTarget window) =>
+        window.IsEmpty ? WindowStatus.NotFound : _keyInput.GetStatus(window);
+
+    /// <summary>Ventanas abiertas para elegir el juego. Vacío fuera de Windows.</summary>
+    public IReadOnlyList<Platform.Windows.WindowInfo> ListGameWindows() =>
+        OperatingSystem.IsWindows() ? Platform.Windows.Win32GameInput.ListWindows() : [];
+
+    /// <summary>Prueba una macro (aunque no esté guardada). Devuelve los errores de validación; vacío = en marcha.</summary>
+    public IReadOnlyList<string> TestKeyMacro(KeyMacro macro)
+    {
+        var errors = KeyMacroValidator.Validate(macro);
+        if (errors.Count == 0)
+        {
+            EnsureKeyPump();
+            KeyRunner.Enqueue(macro, "Prueba", "prueba");
+        }
+
+        return errors;
+    }
+
+    private static EffectCatalog LoadEffects(LoadedGameProfile profile) =>
+        EffectCatalog.Load(profile.EffectsPath, profile.Info, KeyMacroCatalogStore.Load(profile.KeysPath));
+
+    /// <summary>Arranca (una sola vez) el bucle que ejecuta las macros de teclas.</summary>
+    private void EnsureKeyPump()
+    {
+        lock (_gate)
+        {
+            _keyPump ??= Task.Run(() => KeyRunner.RunAsync(_keyCts.Token));
+        }
+    }
+
+    /// <summary>Si el efecto es una macro de teclas la ejecuta y devuelve true (pruebas de la UI, que no pasan por el dispatcher).</summary>
+    private bool TryRunMacro(string effectId, string user, string reason)
+    {
+        if (!_effects.TryGetMacro(effectId, out var macro))
+        {
+            return false;
+        }
+
+        EnsureKeyPump();
+        KeyRunner.Enqueue(macro, user, reason);
+        return true;
+    }
 
     public void ReloadGifts()
     {
@@ -144,7 +259,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
     public void ReloadEffectsAndGifts()
     {
-        _effects = EffectCatalog.Load(EffectsPath, _profile.Info);
+        _effects = LoadEffects(_profile);
         _gifts = new GiftConfigStore(_effects);
         _gifts.Reload(GiftsPath);
         Goals.ApplyDefinitions(_gifts.Snapshot.Goals);
@@ -201,6 +316,11 @@ public sealed class BridgeRuntime : IAsyncDisposable
         }
 
         BridgeLog.Info($"Meta {tick.Label} -> {tick.Effect}");
+        if (TryRunMacro(tick.Effect, "Test", "meta"))
+        {
+            return Task.CompletedTask;
+        }
+
         return _gameClient.SendAsync(
             _effects.Resolve(tick.Effect, "Test") ??
             throw new InvalidOperationException($"Efecto desconocido: {tick.Effect}"),
@@ -248,6 +368,11 @@ public sealed class BridgeRuntime : IAsyncDisposable
             BridgeLog.Info($"Meta {tick.Label} {tick.Count}/{tick.Need} ({testerName} +{tick.Added})");
             if (tick.Fired && !string.IsNullOrWhiteSpace(tick.Effect))
             {
+                if (TryRunMacro(tick.Effect, testerName, "meta"))
+                {
+                    BridgeLog.Info($"Meta {tick.Label} -> {tick.Effect}");
+                }
+
                 var goalCmd = _effects.Resolve(tick.Effect, testerName);
                 if (goalCmd != null)
                 {
@@ -290,6 +415,11 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
         for (var i = 0; i < times; i++)
         {
+            if (TryRunMacro(gift.Effect, testerName, "prueba"))
+            {
+                continue;
+            }
+
             var overrides = gift.Params.Count > 0 ? gift.Params : null;
             var cmd = _effects.Resolve(gift.Effect, testerName, overrides);
             if (cmd is null)
@@ -366,6 +496,11 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
     public Task SendEffectAsync(string effectId, string testerName = "Test", CancellationToken ct = default)
     {
+        if (TryRunMacro(effectId, testerName, "prueba"))
+        {
+            return Task.CompletedTask;
+        }
+
         var cmd = _effects.Resolve(effectId, testerName)
                   ?? throw new InvalidOperationException($"Efecto desconocido: {effectId}");
         return _gameClient.SendAsync(cmd, ct);
@@ -478,6 +613,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         builder.Services.AddSingleton(Ports);
         builder.Services.AddSingleton(Guard);
         builder.Services.AddSingleton(_gameClient);
+        builder.Services.AddSingleton(KeyRunner);
         builder.Services.AddSingleton<EffectDispatcher>();
         builder.Services.AddSingleton<LiveEffectRouter>();
         builder.Services.AddSingleton<CrowdControlServer>();
@@ -491,6 +627,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         builder.Services.AddHostedService<TwitchLiveHostedService>();
 
         var host = builder.Build();
+        EnsureKeyPump();
         var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
         lock (_gate)
@@ -597,6 +734,9 @@ public sealed class BridgeRuntime : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await StopAsync().ConfigureAwait(false);
+        KeyRunner.CancelAll();
+        _hotkeys.Dispose();
+        await _keyCts.CancelAsync().ConfigureAwait(false);
         _events.EventReceived -= OnGameEvent;
         await _events.DisposeAsync().ConfigureAwait(false);
     }

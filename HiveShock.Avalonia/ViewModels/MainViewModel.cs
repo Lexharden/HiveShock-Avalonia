@@ -43,6 +43,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         TikTok = new TikTokViewModel(this);
         Twitch = new TwitchViewModel(this);
         Moderation = new ModerationViewModel(this);
+        KeyMacros = new KeyMacrosViewModel(this);
         Help = new HelpViewModel();
         About = new AboutViewModel();
         Updates = new UpdatesViewModel(this);
@@ -105,6 +106,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public TikTokViewModel TikTok { get; }
     public TwitchViewModel Twitch { get; }
     public ModerationViewModel Moderation { get; }
+    public KeyMacrosViewModel KeyMacros { get; }
     public HelpViewModel Help { get; }
     public AboutViewModel About { get; }
     public UpdatesViewModel Updates { get; }
@@ -151,6 +153,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public bool IsTikTokNav => CurrentPageKey is "tiktok" or "gifts" or "catalog";
     public bool IsTwitchNav => CurrentPageKey == "twitch";
     public bool IsModerationNav => CurrentPageKey == "moderacion";
+    public bool IsKeyMacrosNav => CurrentPageKey == "teclas";
     public bool IsHelpNav => CurrentPageKey == "help";
     public bool IsAboutNav => CurrentPageKey == "about";
     public bool IsUpdatesNav => CurrentPageKey == "updates";
@@ -194,9 +197,33 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Pone al día la lista de efectos tras editar macros sin vaciarla: los selectores de regalos y comandos
+    /// no deben perder lo que ya tenían elegido.
+    /// </summary>
+    public void SyncEffectChoices()
+    {
+        var entries = Runtime.Effects.ListEntries();
+        var wanted = entries.Select(e => e.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        for (var i = EffectChoices.Count - 1; i >= 0; i--)
+        {
+            if (!wanted.Contains(EffectChoices[i].Id))
+            {
+                EffectChoices.RemoveAt(i);
+            }
+        }
+
+        var have = EffectChoices.Select(e => e.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var (id, label) in entries.Where(e => !have.Contains(e.Id)))
+        {
+            EffectChoices.Add(new EffectChoice(id, label));
+        }
+    }
+
     public void OnProfileChanged()
     {
         ReloadEffectChoices();
+        KeyMacros.Load();
         Studio.RefreshProfiles();
         Gifts.Load();
         Catalog.Load();
@@ -262,6 +289,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         OnPropertyChanged(nameof(IsTikTokNav));
         OnPropertyChanged(nameof(IsTwitchNav));
         OnPropertyChanged(nameof(IsModerationNav));
+        OnPropertyChanged(nameof(IsKeyMacrosNav));
         OnPropertyChanged(nameof(IsHelpNav));
         OnPropertyChanged(nameof(IsAboutNav));
         OnPropertyChanged(nameof(IsUpdatesNav));
@@ -394,6 +422,12 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         CurrentPageKey = "moderacion";
     }
 
+    public void GoKeyMacros()
+    {
+        CurrentPage = KeyMacros;
+        CurrentPageKey = "teclas";
+    }
+
     public void GoGifts(bool reload = true)
     {
         GoTikTok();
@@ -448,6 +482,9 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     [RelayCommand]
     private void NavModeration() => GoModeration();
+
+    [RelayCommand]
+    private void NavKeyMacros() => GoKeyMacros();
 
     [RelayCommand]
     private void ToggleViewerEffectsPause() => Runtime.Guard.SetPaused(!Runtime.Guard.IsPaused);

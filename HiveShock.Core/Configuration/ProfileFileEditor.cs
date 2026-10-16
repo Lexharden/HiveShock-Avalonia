@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using HiveShock.Input;
 
 namespace HiveShock.Configuration;
 
@@ -26,6 +27,10 @@ public sealed class EditableProfileInfo
     public bool SupportsDeleteSave { get; set; }
     public bool SupportsRescue { get; set; }
     public string HelpNotes { get; set; } = "";
+
+    /// <summary>Ventana del juego para las macros de teclas. Se conserva al guardar aunque el editor no la muestre.</summary>
+    public WindowTarget? Window { get; set; }
+
     public List<EditableLabel> Labels { get; } = [];
     public List<string> EnemyEffects { get; } = [];
     public List<string> SingletonEffects { get; } = [];
@@ -101,6 +106,7 @@ public sealed class ProfileInfoEditor
             SupportsDeleteSave = info.SupportsDeleteSave,
             SupportsRescue = info.SupportsRescue,
             HelpNotes = info.HelpNotes,
+            Window = info.Window,
         };
 
         foreach (var (key, value) in info.Labels)
@@ -132,6 +138,7 @@ public sealed class ProfileInfoEditor
             SupportsDeleteSave = info.SupportsDeleteSave,
             SupportsRescue = info.SupportsRescue,
             HelpNotes = info.HelpNotes ?? "",
+            Window = info.Window is { IsEmpty: false } ? info.Window : null,
         };
 
         foreach (var label in info.Labels)
