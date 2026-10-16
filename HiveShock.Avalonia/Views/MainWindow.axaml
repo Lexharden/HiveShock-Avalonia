@@ -209,6 +209,15 @@
                                 <TextBlock Text="Moderación" IsVisible="{Binding NavExpanded}" />
                             </Panel>
                         </Button>
+                        <Button Classes="nav" Classes.active="{Binding IsKeyMacrosNav}"
+                                Classes.compact="{Binding NavCollapsed}"
+                                Command="{Binding NavKeyMacrosCommand}" ToolTip.Tip="Teclas">
+                            <Panel>
+                                <TextBlock Text="Tc" HorizontalAlignment="Center"
+                                           IsVisible="{Binding NavCollapsed}" />
+                                <TextBlock Text="Teclas" IsVisible="{Binding NavExpanded}" />
+                            </Panel>
+                        </Button>
                     </StackPanel>
                 </DockPanel>
             </Border>

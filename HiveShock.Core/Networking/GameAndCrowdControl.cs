@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 using HiveShock.Configuration;
+using HiveShock.Input;
 using HiveShock.Live;
 using HiveShock.Logging;
 
@@ -100,14 +101,16 @@ public sealed class EffectDispatcher : IDisposable
     private readonly EffectCatalog _effects;
     private readonly GameTcpClient _game;
     private readonly ViewerGuard? _guard;
+    private readonly KeyMacroRunner? _keys;
     private int _pendingChat;
     private int _generation;
 
-    public EffectDispatcher(EffectCatalog effects, GameTcpClient game, ViewerGuard? guard = null)
+    public EffectDispatcher(EffectCatalog effects, GameTcpClient game, ViewerGuard? guard = null, KeyMacroRunner? keys = null)
     {
         _effects = effects;
         _game = game;
         _guard = guard;
+        _keys = keys;
         if (_guard != null)
         {
             _guard.PausedChanged += OnPausedChanged;
@@ -128,6 +131,7 @@ public sealed class EffectDispatcher : IDisposable
         if (paused)
         {
             DiscardPending();
+            _keys?.CancelAll();
         }
     }
 
@@ -147,6 +151,21 @@ public sealed class EffectDispatcher : IDisposable
         bool fromChat = false,
         IReadOnlyDictionary<string, double>? paramOverrides = null)
     {
+        if (_effects.TryGetMacro(effectId, out var macro))
+        {
+            // Las teclas no van al juego por TCP: las ejecuta su propio runner (cola y solape propios).
+            if (_keys is null)
+            {
+                BridgeLog.Warn($"«{effectId}» es una macro de teclas pero no hay runner de teclas activo.");
+            }
+            else
+            {
+                _keys.Enqueue(macro, user, reason);
+            }
+
+            return;
+        }
+
         var cmd = _effects.Resolve(effectId, user, paramOverrides);
         if (cmd is null)
         {

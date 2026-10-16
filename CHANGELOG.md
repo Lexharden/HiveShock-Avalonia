@@ -4,6 +4,17 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+### Teclas
+* **Nueva página «Teclas»** (solo Windows): crea macros que pulsan teclas en la ventana del juego. Cada macro es una secuencia de pasos (pulsar, mantener, dejar pulsada, soltar) con repeticiones, esperas y una variación aleatoria opcional de los tiempos.
+* **Cada macro es un efecto más:** aparece en los selectores de Regalos, Chat y Eventos, así que `!saltar`, un regalo, bits, un follow o una meta pueden disparar teclas. Mantienen el cooldown, el anti-spam, el bloqueo de espectadores y la pausa de emergencia que ya tenían.
+* **Funciona aunque estés en otra ventana:** HiveShock trae el juego al frente, envía las teclas y te devuelve a la ventana que estabas usando. Si hay macros seguidas, no te devuelve el foco entre una y otra.
+* **Ventana del juego por perfil** (proceso, parte del título o expresión regular), con selector de ventanas abiertas y un indicador de estado: lista, minimizada, no encontrada o juego ejecutándose como administrador (en ese caso Windows exige que HiveShock también lo sea; se avisa).
+* **Atajo global opcional por macro** (por ejemplo `Ctrl+Alt+F5`) para lanzarla a mano desde cualquier ventana. Exige un modificador para no quitarle esa tecla al juego; si otra aplicación ya lo usa, se avisa.
+* **Sin teclas pegadas:** al cancelar, fallar, pausar o cerrar, se sueltan todas las teclas que la macro dejó pulsadas. Hay un tope de duración por macro.
+* **Combinaciones bloqueadas por defecto:** Win, Alt+F4, Alt+Tab, Ctrl+Alt+Supr y Ctrl+Esc; se pueden permitir en una macro concreta.
+* Los cambios en las macros valen al instante, también con el puente conectado. Se guardan en `keys.json` dentro de la carpeta del perfil.
+* Arreglo: guardar el perfil desde su editor ya no borra la ventana del juego de `profile.json`.
+
 ## [2.3.1] - 2026-10-12
 
 ### Actualizaciones
