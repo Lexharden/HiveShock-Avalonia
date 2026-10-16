@@ -44,7 +44,6 @@ public sealed partial class UpdatesViewModel : ViewModelBase
         var options = new UpdateOptions
         {
             CheckOnStart = prefs.UpdateCheckEnabled,
-            AutoDownload = prefs.UpdateAutoDownload,
             IncludePrereleases = prefs.UpdateIncludePrereleases,
             SkippedVersion = prefs.UpdateSkippedVersion,
         };
@@ -56,7 +55,6 @@ public sealed partial class UpdatesViewModel : ViewModelBase
 
         _syncing = true;
         CheckOnStart = options.CheckOnStart;
-        AutoDownload = options.AutoDownload;
         IncludePrereleases = options.IncludePrereleases;
         _syncing = false;
         Refresh();
@@ -67,7 +65,6 @@ public sealed partial class UpdatesViewModel : ViewModelBase
     public string CurrentVersionText => $"Versión instalada: {_service.CurrentVersion}";
 
     [ObservableProperty] private bool _checkOnStart = true;
-    [ObservableProperty] private bool _autoDownload = true;
     [ObservableProperty] private bool _includePrereleases;
     [ObservableProperty] private string _statusText = "";
     [ObservableProperty] private string _statusDetail = "";
@@ -85,7 +82,6 @@ public sealed partial class UpdatesViewModel : ViewModelBase
     public bool BadgeVisible => HasUpdate;
 
     partial void OnCheckOnStartChanged(bool value) => OptionChanged();
-    partial void OnAutoDownloadChanged(bool value) => OptionChanged();
 
     partial void OnIncludePrereleasesChanged(bool value)
     {
@@ -102,7 +98,6 @@ public sealed partial class UpdatesViewModel : ViewModelBase
 
         var o = _service.Options;
         o.CheckOnStart = CheckOnStart;
-        o.AutoDownload = AutoDownload;
         o.IncludePrereleases = IncludePrereleases;
         SavePrefs();
         Refresh();
@@ -112,7 +107,6 @@ public sealed partial class UpdatesViewModel : ViewModelBase
     {
         var p = _shell.Prefs;
         p.UpdateCheckEnabled = _service.Options.CheckOnStart;
-        p.UpdateAutoDownload = _service.Options.AutoDownload;
         p.UpdateIncludePrereleases = _service.Options.IncludePrereleases;
         p.UpdateSkippedVersion = _service.Options.SkippedVersion;
         p.Save();

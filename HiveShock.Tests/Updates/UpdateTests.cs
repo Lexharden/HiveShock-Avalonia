@@ -419,16 +419,39 @@ public sealed class UpdateServiceTests : TempDirTest
     [Fact]
     public async Task Offers_latest_stable_by_default()
     {
-        using var svc = Make(new UpdateOptions { AutoDownload = false });
+        using var svc = Make(new UpdateOptions());
         await svc.CheckAsync();
         Assert.Equal(UpdateState.Available, svc.State);
         Assert.Equal("2.3.0", svc.Latest!.Version);
     }
 
     [Fact]
+    public async Task Check_announces_but_never_downloads_on_its_own()
+    {
+        var requests = new List<string>();
+        var handler = new FakeHandler(r =>
+        {
+            requests.Add(r.RequestUri!.ToString());
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(Json, Encoding.UTF8, "application/json"),
+            };
+        });
+        using var svc = new UpdateService(new HttpClient(handler), "2.2.0", new UpdateOptions(),
+            new UpdatePaths(Path.Combine(Dir, "upd")), Path.Combine(Dir, "app"), "win-x64");
+
+        await svc.CheckAsync(silent: true);
+
+        Assert.Equal(UpdateState.Available, svc.State);
+        Assert.Null(svc.Downloaded);
+        Assert.Single(requests);
+        Assert.False(Directory.Exists(Path.Combine(Dir, "upd", "downloads")));
+    }
+
+    [Fact]
     public async Task Prerelease_channel_offers_beta()
     {
-        using var svc = Make(new UpdateOptions { AutoDownload = false, IncludePrereleases = true });
+        using var svc = Make(new UpdateOptions { IncludePrereleases = true });
         await svc.CheckAsync();
         Assert.Equal("2.4.0-beta.1", svc.Latest!.Version);
     }
@@ -436,7 +459,7 @@ public sealed class UpdateServiceTests : TempDirTest
     [Fact]
     public async Task Up_to_date_when_on_latest()
     {
-        using var svc = Make(new UpdateOptions { AutoDownload = false }, current: "2.3.0");
+        using var svc = Make(new UpdateOptions(), current: "2.3.0");
         await svc.CheckAsync();
         Assert.Equal(UpdateState.UpToDate, svc.State);
         Assert.Null(svc.Latest);
@@ -445,7 +468,7 @@ public sealed class UpdateServiceTests : TempDirTest
     [Fact]
     public async Task Skipped_version_is_not_announced()
     {
-        using var svc = Make(new UpdateOptions { AutoDownload = false, SkippedVersion = "2.3.0" });
+        using var svc = Make(new UpdateOptions { SkippedVersion = "2.3.0" });
         await svc.CheckAsync();
         Assert.NotNull(svc.Latest);
         Assert.Null(svc.Announceable);

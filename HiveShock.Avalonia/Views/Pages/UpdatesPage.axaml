@@ -7,7 +7,7 @@
         <StackPanel MaxWidth="640" HorizontalAlignment="Left">
             <TextBlock Classes="pageTitle" Text="Actualizaciones" />
             <TextBlock Classes="pageLead"
-                       Text="HiveShock busca las versiones publicadas, descarga la versión nueva en segundo plano y la instala cuando tú lo decides. Tus perfiles, regalos, metas y credenciales no se tocan." />
+                       Text="HiveShock busca las versiones publicadas, te avisa cuando hay una versión nueva y solo la descarga e instala cuando tú lo decides. Tus perfiles, regalos, metas y credenciales no se tocan." />
 
             <TextBlock Classes="sectionTitle" Text="ESTADO" />
             <Border Classes="card" Margin="0,0,0,16">
@@ -40,12 +40,10 @@
                 <StackPanel Spacing="6">
                     <CheckBox IsChecked="{Binding CheckOnStart}"
                               Content="Buscar actualizaciones al abrir HiveShock y cada pocas horas" />
-                    <CheckBox IsChecked="{Binding AutoDownload}"
-                              Content="Descargar solo la versión nueva en segundo plano" />
                     <CheckBox IsChecked="{Binding IncludePrereleases}"
                               Content="Incluir versiones de prueba (alpha, beta, rc)" />
                     <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"
-                               Text="HiveShock nunca se cierra solo: la instalación empieza cuando pulsas Instalar. Si la versión nueva no arranca bien, se restaura la anterior automáticamente." />
+                               Text="HiveShock no descarga ni instala nada por su cuenta: solo te avisa. Al pulsar Instalar se descarga la versión, se verifica y empieza la instalación. Si la versión nueva no arranca bien, se restaura la anterior automáticamente." />
                 </StackPanel>
             </Border>
 

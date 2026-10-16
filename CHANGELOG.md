@@ -4,6 +4,11 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-10-15
+
+### Actualizaciones
+* **HiveShock ya no descarga nada por su cuenta.** Solo te avisa de que hay una versión nueva (chip arriba, punto en el menú y línea en «Qué está pasando»); la versión se descarga, se verifica e instala cuando tú pulsas Instalar. Se retira la casilla «Descargar solo la versión nueva en segundo plano».
+
 ## [2.4.0] - 2026-10-15
 
 ### Teclas
