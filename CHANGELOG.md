@@ -4,6 +4,8 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-10-15
+
 ### Teclas
 * **Nueva página «Teclas»** (solo Windows): crea macros que pulsan teclas en la ventana del juego. Cada macro es una secuencia de pasos (pulsar, mantener, dejar pulsada, soltar) con repeticiones, esperas y una variación aleatoria opcional de los tiempos.
 * **Cada macro es un efecto más:** aparece en los selectores de Regalos, Chat y Eventos, así que `!saltar`, un regalo, bits, un follow o una meta pueden disparar teclas. Mantienen el cooldown, el anti-spam, el bloqueo de espectadores y la pausa de emergencia que ya tenían.
