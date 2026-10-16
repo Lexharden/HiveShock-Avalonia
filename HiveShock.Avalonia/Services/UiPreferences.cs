@@ -32,7 +32,6 @@ public sealed class UiPreferences
 
     /// <summary>Actualizaciones: comprobar al iniciar, descargar sola, incluir pre-releases y versión omitida.</summary>
     public bool UpdateCheckEnabled { get; set; } = true;
-    public bool UpdateAutoDownload { get; set; } = true;
     public bool UpdateIncludePrereleases { get; set; }
     public string UpdateSkippedVersion { get; set; } = "";
 

@@ -9,14 +9,13 @@ public enum UpdateState { Idle, Checking, UpToDate, Available, Downloading, Read
 public sealed class UpdateOptions
 {
     public bool CheckOnStart { get; set; } = true;
-    public bool AutoDownload { get; set; } = true;
     public bool IncludePrereleases { get; set; }
     public string SkippedVersion { get; set; } = "";
 }
 
 /// <summary>
-/// Comprueba los Releases de GitHub, descarga en segundo plano la última versión y prepara la instalación.
-/// Nunca cierra la app por su cuenta: instalar es siempre una acción del usuario.
+/// Comprueba los Releases de GitHub y anuncia la versión nueva. No descarga ni instala nada por su cuenta:
+/// descargar e instalar son siempre acciones del usuario.
 /// </summary>
 public sealed class UpdateService : IDisposable
 {
@@ -152,11 +151,6 @@ public sealed class UpdateService : IDisposable
         finally
         {
             _gate.Release();
-        }
-
-        if (Options.AutoDownload && Announceable is { } latest && State == UpdateState.Available)
-        {
-            await DownloadAsync(latest, silent: true, ct).ConfigureAwait(false);
         }
     }
 
