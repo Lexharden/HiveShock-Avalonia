@@ -23,3 +23,8 @@ TestResults/
 
 # Restos del resolvedor de SDK de Visual Studio / Rider
 *.proj.Backup.tmp
+
+# Copias de seguridad del guardado seguro
+*.json.bak
+*.json.corrupt
+*.json.tmp

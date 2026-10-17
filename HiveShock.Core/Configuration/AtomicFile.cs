@@ -56,4 +56,59 @@ public static class AtomicFile
             throw;
         }
     }
+
+    /// <summary>
+    /// Lee <paramref name="path"/> y, si no existe, está vacío o <paramref name="isValid"/> lo rechaza
+    /// (JSON cortado por un cierre a mitad de escritura), prueba con el <c>.bak</c>. El archivo dañado
+    /// se conserva como <c>.corrupt</c> para no perderlo ni pisarlo con un guardado posterior.
+    /// Devuelve null si ninguna de las dos copias sirve.
+    /// </summary>
+    public static string? ReadAllTextWithBackup(string path, Func<string, bool> isValid, out bool usedBackup)
+    {
+        usedBackup = false;
+        var main = TryRead(path, isValid);
+        if (main != null)
+        {
+            return main;
+        }
+
+        var backup = TryRead(path + ".bak", isValid);
+        if (backup == null)
+        {
+            return null;
+        }
+
+        usedBackup = true;
+        if (File.Exists(path))
+        {
+            try
+            {
+                File.Copy(path, path + ".corrupt", overwrite: true);
+            }
+            catch
+            {
+                // conservar el dañado es un extra; recuperar lo bueno importa más
+            }
+        }
+
+        return backup;
+    }
+
+    private static string? TryRead(string path, Func<string, bool> isValid)
+    {
+        try
+        {
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+
+            var text = File.ReadAllText(path, Encoding.UTF8);
+            return text.Trim().Length > 0 && isValid(text) ? text : null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
 }

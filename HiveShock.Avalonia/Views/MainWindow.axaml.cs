@@ -61,6 +61,19 @@ public partial class MainWindow : Window
         _isClosing = true;
         if (DataContext is MainViewModel vm)
         {
+            // Si algo no se pudo guardar (p. ej. una macro con id repetido) se avisa en vez de perderlo en silencio.
+            if (!HiveShock.Avalonia.Services.AutoSaver.FlushAll(out var pendingError))
+            {
+                var closeAnyway = await vm.Dialogs.ConfirmAsync(
+                    "Cambios sin guardar",
+                    $"No se pudo guardar: {pendingError}{Environment.NewLine}{Environment.NewLine}Si cierras ahora se perderán. ¿Cerrar igualmente?");
+                if (!closeAnyway)
+                {
+                    _isClosing = false;
+                    return;
+                }
+            }
+
             try
             {
                 await vm.ShutdownAsync().ConfigureAwait(true);

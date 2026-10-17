@@ -37,6 +37,9 @@
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
                             HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="12">
+                    <TextBlock Text="{Binding ActiveProfileText}" FontSize="12" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Foreground="{DynamicResource MutedBrush}"
+                               ToolTip.Tip="Los regalos, comandos y metas que ves pertenecen a este perfil. Las macros de teclas son de todos." />
                     <Button Classes="secondary" Margin="0" Padding="12,7" VerticalAlignment="Center"
                             IsVisible="{Binding UpdateBadgeVisible}"
                             Command="{Binding NavUpdatesCommand}"
