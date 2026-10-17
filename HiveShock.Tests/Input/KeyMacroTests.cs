@@ -12,14 +12,26 @@ public class KeyMacroTests
     private static KeyStep Step(string key, KeyAction action = KeyAction.Tap, int hold = 500, int delay = 0, int repeat = 1) =>
         new() { Key = key, Action = action, HoldMs = hold, DelayAfterMs = delay, Repeat = repeat };
 
-    private static async Task<FakeGameInput> RunAsync(Func<KeyMacroRunner, Task> arrange, FakeGameInput? input = null)
+    /// <param name="waitForSession">Espera a que la sesión de teclas termine; false si no debe pasar nada (se da un margen corto).</param>
+    private static async Task<FakeGameInput> RunAsync(
+        Func<KeyMacroRunner, Task> arrange,
+        FakeGameInput? input = null,
+        bool waitForSession = true)
     {
         input ??= new FakeGameInput();
         using var runner = new KeyMacroRunner(input, () => Game, delay: (_, _) => Task.CompletedTask);
         using var cts = new CancellationTokenSource();
         var loop = runner.RunAsync(cts.Token);
         await arrange(runner);
-        await Task.Delay(100);
+        if (waitForSession)
+        {
+            await Wait.UntilAsync(() => input.Disposed > 0);
+        }
+        else
+        {
+            await Task.Delay(100);
+        }
+
         await cts.CancelAsync();
         await loop;
         return input;
@@ -71,11 +83,11 @@ public class KeyMacroTests
         var loop = runner.RunAsync(cts.Token);
 
         runner.Enqueue(Macro("m", Step("W", KeyAction.Hold, hold: 5000)), "u", "t");
-        await Task.Delay(100);
+        await Wait.UntilAsync(() => input.Events.Count >= 1);
         Assert.Equal(["+W"], input.Events);
 
         runner.CancelAll();
-        await Task.Delay(100);
+        await Wait.UntilAsync(() => input.Events.Count >= 2);
         await cts.CancelAsync();
         await loop;
 
@@ -93,11 +105,11 @@ public class KeyMacroTests
         var macro = Macro("m", Step("W", KeyAction.Hold, hold: 5000)) with { Overlap = MacroOverlap.Drop };
 
         Assert.True(runner.Enqueue(macro, "a", "t"));
-        await Task.Delay(100);
+        await Wait.UntilAsync(() => input.Events.Count >= 1);
         Assert.False(runner.Enqueue(macro, "b", "t"));
 
         gate.SetResult();
-        await Task.Delay(100);
+        await Wait.UntilAsync(() => input.Disposed > 0);
         await cts.CancelAsync();
         await loop;
     }
@@ -111,7 +123,8 @@ public class KeyMacroTests
                 r.Enqueue(Macro("m", Step("W")), "u", "t");
                 return Task.CompletedTask;
             },
-            new FakeGameInput { Status = WindowStatus.Elevated });
+            new FakeGameInput { Status = WindowStatus.Elevated },
+            waitForSession: false);
 
         Assert.Empty(input.Events);
         Assert.Equal(0, input.Sessions);
