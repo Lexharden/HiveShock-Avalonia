@@ -107,8 +107,10 @@ public sealed class LiveEffectRouter : IDisposable
             .FirstOrDefault()
             ?.ToLowerInvariant();
 
-        if (string.IsNullOrWhiteSpace(command) || !cfg.Commands.TryGetValue(command, out var effectId))
+        if (string.IsNullOrWhiteSpace(command) || !cfg.Commands.TryGetValue(command, out var effectId)
+            || string.IsNullOrWhiteSpace(effectId))
         {
+            // Sin comando, o con «Ninguno»: no hace nada ni gasta el tiempo de espera del espectador.
             return;
         }
 

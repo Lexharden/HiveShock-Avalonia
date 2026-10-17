@@ -326,12 +326,13 @@ public sealed class GiftFileEditor
         var cmds = new JsonObject();
         foreach (var cmd in ChatCommands)
         {
-            if (string.IsNullOrWhiteSpace(cmd.Word) || string.IsNullOrWhiteSpace(cmd.Effect))
+            // Un comando sin efecto («Ninguno») se conserva: borrarlo en silencio al guardar era perder lo escrito.
+            if (string.IsNullOrWhiteSpace(cmd.Word))
             {
                 continue;
             }
 
-            cmds[cmd.Word.Trim()] = cmd.Effect.Trim();
+            cmds[cmd.Word.Trim()] = (cmd.Effect ?? "").Trim();
         }
 
         chat["commands"] = cmds;
@@ -349,12 +350,12 @@ public sealed class GiftFileEditor
         var twCmds = new JsonObject();
         foreach (var cmd in TwitchChatCommands)
         {
-            if (string.IsNullOrWhiteSpace(cmd.Word) || string.IsNullOrWhiteSpace(cmd.Effect))
+            if (string.IsNullOrWhiteSpace(cmd.Word))
             {
                 continue;
             }
 
-            twCmds[cmd.Word.Trim()] = cmd.Effect.Trim();
+            twCmds[cmd.Word.Trim()] = (cmd.Effect ?? "").Trim();
         }
 
         twChat["commands"] = twCmds;
