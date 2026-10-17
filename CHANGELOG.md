@@ -4,6 +4,22 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-10-16
+
+### Perfiles propios
+* **Nuevo botón «+ Nuevo perfil» en Inicio.** Crea un perfil tuyo, sin juego del catálogo: solo comandos de chat y macros de teclas. Puede empezar en blanco, con un comando de ejemplo (`!saltar`) o como copia del perfil actual.
+* Los perfiles propios se guardan en tu carpeta de datos, así que las actualizaciones no los tocan. Llevan la etiqueta PROPIO y se pueden borrar (la carpeta se mueve a `profiles-deleted` por si fue un error). Los perfiles del catálogo no se pueden borrar.
+* El perfil activo se ve siempre en la barra superior, para saber a qué perfil pertenecen los regalos, comandos y metas que editas.
+* La página Eventos avisa en rojo de los comandos o reglas cuyo efecto ya no existe (por ejemplo, si borraste la macro a la que apuntaban).
+
+### Teclas
+* **Las macros y la ventana del juego ahora son globales:** ya no dependen del perfil elegido. Se guardan en `macros.json` en tu carpeta de datos (con una copia junto al programa). La primera vez se importan las del perfil activo; los `keys.json` antiguos no se tocan.
+
+### Guardado
+* **Arreglo:** los comandos y las macros recién creados podían perderse al cambiar de pestaña, cambiar de juego o cerrar la app. Ahora lo pendiente de todos los editores se guarda antes de navegar, cambiar de perfil, guardar el perfil o los efectos, y al cerrar; si algo no se puede guardar se avisa en vez de perderlo en silencio.
+* Recargar desde disco ya no pisa lo que acabas de escribir, y un guardado en espera ya no se escribe en el perfil equivocado.
+* **Escritura segura:** `gifts.json`, `profile.json`, `effects.json` y `active-profile.txt` se escriben a un temporal y se reemplazan, dejando la copia anterior como `.bak`. Si un archivo queda cortado o vacío, se recupera el `.bak` y el dañado se conserva como `.corrupt`.
+
 ## [2.4.1] - 2026-10-15
 
 ### Actualizaciones
