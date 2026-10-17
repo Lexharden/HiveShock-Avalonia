@@ -4,6 +4,12 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.5.1] - 2026-10-16
+
+### Guardado
+* **Arreglo:** los comandos (y las reglas de bits, likes, seguir, compartir, regalos y metas) podían perder su efecto al cambiar de página, por ejemplo de Twitch a TikTok. Los selectores de efecto devolvían un valor vacío al quedarse sin opciones y el guardado automático lo tomaba como una edición. Ahora ese vacío se ignora.
+* Un comando sin efecto («Ninguno») ya no se borra al guardar: conserva su palabra. En vivo no hace nada ni gasta el tiempo de espera del espectador.
+
 ## [2.5.0] - 2026-10-16
 
 ### Perfiles propios
