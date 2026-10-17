@@ -88,3 +88,84 @@ public class CustomProfileTests : IDisposable
             CustomProfileStore.Create(_root, [], new string('x', CustomProfileStore.MaxNameLength + 1), ProfileTemplate.Blank));
     }
 }
+
+public class ChatPlatformsTests : IDisposable
+{
+    private readonly string _root = Path.Combine(Path.GetTempPath(), $"hs-chat-{Guid.NewGuid():N}");
+
+    public void Dispose()
+    {
+        try
+        {
+            Directory.Delete(_root, recursive: true);
+        }
+        catch (IOException)
+        {
+        }
+    }
+
+    private GiftConfigStore Load(LoadedGameProfile profile)
+    {
+        var macros = new KeyMacroCatalog([new KeyMacro { Id = "teclas_1", Steps = [new KeyStep { Key = "Space" }] }]);
+        var store = new GiftConfigStore(EffectCatalog.Load(profile.EffectsPath, profile.Info, macros));
+        store.Reload(profile.GiftsPath);
+        return store;
+    }
+
+    [Fact]
+    public void New_profile_command_answers_on_tiktok_and_twitch()
+    {
+        var dir = CustomProfileStore.Create(_root, [], "Dos canales", ProfileTemplate.Starter, starterMacroId: "teclas_1");
+        var snap = Load(ProfileStore.LoadFromDirectory(dir)).Snapshot;
+
+        Assert.True(snap.Chat.Enabled);
+        Assert.True(snap.TwitchChat.Enabled);
+        Assert.Equal("teclas_1", snap.Chat.Commands["saltar"]);
+        Assert.Equal("teclas_1", snap.TwitchChat.Commands["saltar"]);
+    }
+
+    [Fact]
+    public void After_saving_each_platform_keeps_its_own_commands()
+    {
+        var dir = CustomProfileStore.Create(_root, [], "Separados", ProfileTemplate.Starter, starterMacroId: "teclas_1");
+        var profile = ProfileStore.LoadFromDirectory(dir);
+
+        var editor = new GiftFileEditor(profile.GiftsPath);
+        editor.Load();
+        editor.ChatCommands.Add(new EditableChatCommand { Word = "solotiktok", Effect = "teclas_1" });
+        editor.Save();
+
+        var snap = Load(profile).Snapshot;
+        Assert.True(snap.Chat.Commands.ContainsKey("solotiktok"));
+        Assert.False(snap.TwitchChat.Commands.ContainsKey("solotiktok"));
+        Assert.True(snap.TwitchChat.Commands.ContainsKey("saltar"));
+    }
+}
+
+public class CommandWithoutEffectTests
+{
+    [Fact]
+    public void Command_with_no_effect_survives_save_and_reload()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"gifts-{Guid.NewGuid():N}.json");
+        try
+        {
+            File.WriteAllText(path, """{ "gifts": [] }""");
+            var editor = new GiftFileEditor(path);
+            editor.Load();
+            editor.ChatCommands.Add(new EditableChatCommand { Word = "salto", Effect = "" });
+            editor.TwitchChatCommands.Add(new EditableChatCommand { Word = "salto", Effect = "" });
+            editor.Save();
+
+            var again = new GiftFileEditor(path);
+            again.Load();
+            Assert.Equal("salto", Assert.Single(again.ChatCommands).Word);
+            Assert.Equal("salto", Assert.Single(again.TwitchChatCommands).Word);
+        }
+        finally
+        {
+            File.Delete(path);
+            File.Delete(path + ".bak");
+        }
+    }
+}

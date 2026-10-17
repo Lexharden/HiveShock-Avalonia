@@ -25,10 +25,28 @@ public sealed partial class EventsViewModel : ViewModelBase
     public SaveStatusViewModel SaveStatus => _shell.Gifts.SaveStatus;
 
     [ObservableProperty] private string _likesEveryText = "0";
-    [ObservableProperty] private string _likesEffect = "";
-    [ObservableProperty] private string _followEffect = "";
+    private string _likesEffect = "";
+
+    public string LikesEffect
+    {
+        get => _likesEffect;
+        set => SetEffectId(ref _likesEffect, value);
+    }
+    private string _followEffect = "";
+
+    public string FollowEffect
+    {
+        get => _followEffect;
+        set => SetEffectId(ref _followEffect, value);
+    }
     [ObservableProperty] private bool _followOncePerUser = true;
-    [ObservableProperty] private string _shareEffect = "";
+    private string _shareEffect = "";
+
+    public string ShareEffect
+    {
+        get => _shareEffect;
+        set => SetEffectId(ref _shareEffect, value);
+    }
     [ObservableProperty] private bool _chatEnabled;
     [ObservableProperty] private string _chatPrefix = "!";
     [ObservableProperty] private string _chatCooldownText = "30";
@@ -38,7 +56,13 @@ public sealed partial class EventsViewModel : ViewModelBase
     [ObservableProperty] private string _twitchChatPrefix = "!";
     [ObservableProperty] private string _twitchChatCooldownText = "30";
     [ObservableProperty] private string _twitchChatGlobalGapText = "2";
-    [ObservableProperty] private string _twitchFollowEffect = "";
+    private string _twitchFollowEffect = "";
+
+    public string TwitchFollowEffect
+    {
+        get => _twitchFollowEffect;
+        set => SetEffectId(ref _twitchFollowEffect, value);
+    }
     [ObservableProperty] private ChatCommandRowViewModel? _selectedTwitchCommand;
     [ObservableProperty] private BitsRowViewModel? _selectedBitsRule;
 
