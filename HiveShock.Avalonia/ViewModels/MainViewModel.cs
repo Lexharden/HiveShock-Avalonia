@@ -195,6 +195,8 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         {
             EffectChoices.Add(new EffectChoice(id, label));
         }
+
+        Events?.RefreshBroken();
     }
 
     /// <summary>
@@ -217,11 +219,37 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         foreach (var (id, label) in entries.Where(e => !have.Contains(e.Id)))
         {
             EffectChoices.Add(new EffectChoice(id, label));
-        }
+        }
+
+        Events?.RefreshBroken();
     }
+
+    /// <summary>
+    /// Guarda lo que haya pendiente en todos los editores (regalos, comandos, metas, teclas…) antes de
+    /// recargar algo desde disco. False si algo no se pudo guardar: entonces NO se debe recargar, o se perdería.
+    /// </summary>
+    public bool FlushPendingEdits(string? warnTitle = null)
+    {
+        if (AutoSaver.FlushAll(out var error))
+        {
+            return true;
+        }
+
+        BridgeLog.Warn($"Cambios sin guardar: {error}");
+        if (warnTitle != null)
+        {
+            Dialogs.Warn(warnTitle, $"Hay cambios sin guardar que no se pudieron guardar ({error}). Corrígelos o guárdalos antes de continuar.");
+        }
+
+        return false;
+    }
+
+    /// <summary>Perfil activo, siempre visible en la barra superior para no confundir a qué perfil pertenece lo que editas.</summary>
+    public string ActiveProfileText => $"Perfil: {Runtime.Profile.ShortDisplayName}";
 
     public void OnProfileChanged()
     {
+        OnPropertyChanged(nameof(ActiveProfileText));
         ReloadEffectChoices();
         KeyMacros.Load();
         Studio.RefreshProfiles();
@@ -285,6 +313,8 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     partial void OnCurrentPageKeyChanged(string value)
     {
+        // Al salir de una página no se queda nada a medias en la cola de guardado.
+        FlushPendingEdits();
         OnPropertyChanged(nameof(IsStudioNav));
         OnPropertyChanged(nameof(IsTikTokNav));
         OnPropertyChanged(nameof(IsTwitchNav));
@@ -400,10 +430,15 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     public void GoTikTok()
     {
-        Gifts.Load();
+        // Solo se relee de disco si lo editado ya quedó guardado: nunca se pisa lo que acabas de escribir.
+        if (FlushPendingEdits())
+        {
+            Gifts.Load();
+            Events.LoadFromEditor(Gifts.Editor);
+            Goals.LoadFromEditor(Gifts.Editor);
+        }
+
         Catalog.Load();
-        Events.LoadFromEditor(Gifts.Editor);
-        Goals.LoadFromEditor(Gifts.Editor);
         ProfileEditor.Load();
         CurrentPage = TikTok;
         CurrentPageKey = "tiktok";
@@ -411,7 +446,12 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     public void GoTwitch()
     {
-        Events.LoadFromEditor(Gifts.Editor);
+        // El editor solo conoce lo ya guardado: si hay cambios pendientes, lo que hay en pantalla manda.
+        if (FlushPendingEdits())
+        {
+            Events.LoadFromEditor(Gifts.Editor);
+        }
+
         CurrentPage = Twitch;
         CurrentPageKey = "twitch";
     }
@@ -643,7 +683,11 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         }
 
         _closing = true;
-        Gifts.AutoSaver.FlushIfDirty();
+        if (!AutoSaver.FlushAll(out var flushError))
+        {
+            BridgeLog.Error($"Al cerrar quedaron cambios sin guardar: {flushError}");
+        }
+
         Studio.PersistDeath();
         Overlays.CloseAll(Prefs);
         Runtime.Overlay.GiftReceived -= OnOverlayGift;

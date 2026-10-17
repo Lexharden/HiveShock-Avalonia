@@ -89,6 +89,8 @@ public sealed partial class SaveStatusViewModel : ViewModelBase
 
     public void MarkSaving() => Set(SaveState.Saving, "Guardando…");
 
+    public void Clear() => Set(SaveState.Idle, "");
+
     public void MarkSaved(string what) =>
         Set(SaveState.Saved, $"✓ {what} guardado · {DateTime.Now:HH:mm:ss}");
 

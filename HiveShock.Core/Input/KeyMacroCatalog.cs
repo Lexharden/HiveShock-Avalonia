@@ -55,20 +55,45 @@ public static class KeyMacroCatalogStore
     /// <summary>Sin archivo o con JSON roto devuelve un catálogo vacío (y avisa): nunca debe tumbar el arranque.</summary>
     public static KeyMacroCatalog Load(string path)
     {
-        if (!File.Exists(path))
+        if (!File.Exists(path) && !File.Exists(path + ".bak"))
         {
             return KeyMacroCatalog.Empty;
         }
 
         try
         {
-            var shape = JsonSerializer.Deserialize<FileShape>(File.ReadAllText(path, Encoding.UTF8), Options);
+            // Archivo cortado o vacío: se usa la copia .bak (y el dañado queda como .corrupt).
+            var text = AtomicFile.ReadAllTextWithBackup(path, IsValid, out var usedBackup);
+            if (text == null)
+            {
+                BridgeLog.Warn($"No se pudo leer {Path.GetFileName(path)}: archivo dañado y sin copia válida.");
+                return KeyMacroCatalog.Empty;
+            }
+
+            if (usedBackup)
+            {
+                BridgeLog.Warn($"{Path.GetFileName(path)} estaba dañado: se recuperó la copia anterior (.bak).");
+            }
+
+            var shape = JsonSerializer.Deserialize<FileShape>(text, Options);
             return new KeyMacroCatalog(shape?.Macros ?? []);
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             BridgeLog.Warn($"No se pudo leer {Path.GetFileName(path)}: {ex.Message}");
             return KeyMacroCatalog.Empty;
+        }
+    }
+
+    private static bool IsValid(string text)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<FileShape>(text, Options) != null;
+        }
+        catch (JsonException)
+        {
+            return false;
         }
     }
 

@@ -17,6 +17,9 @@ public sealed class AutoSaver
 {
     private static readonly TimeSpan DefaultDelay = TimeSpan.FromMilliseconds(900);
 
+    // Todos los editores con guardado pendiente se vuelcan juntos al navegar, cambiar de perfil o cerrar.
+    private static readonly List<AutoSaver> All = [];
+
     private readonly SaveStatusViewModel _status;
     private readonly Action<bool> _save;
     private readonly string _what;
@@ -31,6 +34,7 @@ public sealed class AutoSaver
     {
         _status = status;
         _save = save;
+        All.Add(this);
         _what = what;
         _timer = new DispatcherTimer { Interval = delay ?? DefaultDelay };
         _timer.Tick += (_, _) =>
@@ -81,14 +85,48 @@ public sealed class AutoSaver
     /// <summary>Guardado inmediato (botón Guardar, cerrar la app). True si quedó en disco.</summary>
     public bool SaveNow() => Run(automatic: false);
 
-    /// <summary>Vuelca lo pendiente si lo hay (al cerrar la app), sin importar la casilla de automático.</summary>
-    public void FlushIfDirty()
+    /// <summary>
+    /// Vuelca lo pendiente si lo hay (al cerrar la app, navegar…), sin importar la casilla de automático.
+    /// True si no queda nada sin guardar.
+    /// </summary>
+    public bool FlushIfDirty()
     {
         _timer.Stop();
         if (_dirty)
         {
             Run(automatic: true);
         }
+
+        return !_dirty;
+    }
+
+    /// <summary>
+    /// Olvida lo pendiente: se llama justo después de recargar desde disco, cuando lo que hay en pantalla
+    /// ya es lo guardado. Sin esto, un guardado en espera pisaría el archivo recién leído (o el de otro perfil).
+    /// </summary>
+    public void Discard()
+    {
+        _timer.Stop();
+        _dirty = false;
+        if (_status.State is SaveState.Pending or SaveState.Failed)
+        {
+            _status.Clear();
+        }
+    }
+
+    /// <summary>Guarda todo editor con cambios pendientes. False (y el motivo) si alguno no pudo guardar.</summary>
+    public static bool FlushAll(out string? error)
+    {
+        error = null;
+        foreach (var saver in All.ToArray())
+        {
+            if (!saver.FlushIfDirty())
+            {
+                error ??= $"{saver._what}: {saver.LastError ?? "no se pudo guardar"}";
+            }
+        }
+
+        return error == null;
     }
 
     public void Track<T>(ObservableCollection<T> list, Func<string?, bool>? ignoreProperty = null)

@@ -120,7 +120,7 @@ public sealed class ProfileInfoEditor
     }
 
     private static void WriteTo(string path, EditableProfileInfo info) =>
-        File.WriteAllText(path, ToJson(info), new UTF8Encoding(false));
+        AtomicFile.WriteAllText(path, ToJson(info));
 
     private static string ToJson(EditableProfileInfo info)
     {
@@ -269,7 +269,7 @@ public sealed class EffectCatalogEditor
     };
 
     private static void WriteTo(string path, List<EditableEffect> effects) =>
-        File.WriteAllText(path, ToJson(effects), new UTF8Encoding(false));
+        AtomicFile.WriteAllText(path, ToJson(effects));
 
     private static string ToJson(List<EditableEffect> effects)
     {

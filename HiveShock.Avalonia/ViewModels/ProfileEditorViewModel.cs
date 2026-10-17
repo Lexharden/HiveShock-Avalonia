@@ -259,6 +259,11 @@ public sealed partial class ProfileEditorViewModel : ViewModelBase
             return;
         }
 
+        if (!_shell.FlushPendingEdits("Perfil"))
+        {
+            return;
+        }
+
         try
         {
             PullProfileFromUi();
@@ -289,6 +294,11 @@ public sealed partial class ProfileEditorViewModel : ViewModelBase
         if (dupes.Count > 0)
         {
             _shell.Dialogs.Warn("Efectos", $"Hay ids repetidos: {string.Join(", ", dupes)}. Corrígelos antes de guardar.");
+            return;
+        }
+
+        if (!_shell.FlushPendingEdits("Efectos"))
+        {
             return;
         }
 

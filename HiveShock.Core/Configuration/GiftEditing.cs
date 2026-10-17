@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using HiveShock.Logging;
 
 namespace HiveShock.Configuration;
 
@@ -109,9 +110,27 @@ public sealed class GiftFileEditor
 
     public void Load()
     {
-        var text = File.ReadAllText(_path, Encoding.UTF8);
-        _root = JsonNode.Parse(text, new JsonNodeOptions { PropertyNameCaseInsensitive = true }) as JsonObject
-                ?? throw new InvalidDataException("gifts.json inválido");
+        static JsonObject? Parse(string text)
+        {
+            try
+            {
+                return JsonNode.Parse(text, new JsonNodeOptions { PropertyNameCaseInsensitive = true }) as JsonObject;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
+        // Si el archivo está cortado o vacío se recupera el respaldo en vez de abrir la app sin nada.
+        var text = AtomicFile.ReadAllTextWithBackup(_path, t => Parse(t) != null, out var usedBackup)
+                   ?? throw new InvalidDataException("gifts.json inválido");
+        if (usedBackup)
+        {
+            BridgeLog.Warn("gifts.json estaba dañado: se recuperó la copia anterior (.bak).");
+        }
+
+        _root = Parse(text) ?? throw new InvalidDataException("gifts.json inválido");
 
         _gifts = [];
         if (_root["gifts"] is JsonArray arr)
@@ -143,7 +162,8 @@ public sealed class GiftFileEditor
             WriteIndented = true,
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         });
-        File.WriteAllText(_path, json + Environment.NewLine, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        // Atómico + .bak: un cierre a mitad de escritura no deja gifts.json cortado (y sin comandos).
+        AtomicFile.WriteAllText(_path, json + Environment.NewLine);
     }
 
     private void LoadLiveEvents()

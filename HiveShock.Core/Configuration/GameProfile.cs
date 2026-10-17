@@ -65,6 +65,9 @@ public sealed class LoadedGameProfile
     public required string GiftsPath { get; init; }
     public required string ProfileJsonPath { get; init; }
 
+    /// <summary>Perfil creado por el usuario (carpeta de datos del usuario): se puede borrar y no lo pisa una actualización.</summary>
+    public bool IsCustom { get; init; }
+
     public string KeysPath => Path.Combine(Directory, KeyMacroCatalogStore.FileName);
 
     public string Id => Info.Id;
@@ -92,10 +95,36 @@ public static class ProfileStore
         ?? throw new DirectoryNotFoundException(
             $"No se encontró la carpeta profiles/ (carpeta: {AppPaths.AppDirectory}).");
 
+    /// <summary>Perfiles propios del usuario. Viven en su carpeta de datos, no junto al programa.</summary>
+    public static string UserProfilesRoot => Path.Combine(UserDataStore.UserDirectory, "profiles");
+
     public static IReadOnlyList<LoadedGameProfile> ListProfiles()
     {
-        var root = ProfilesRoot;
         var list = new List<LoadedGameProfile>();
+        var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenRoots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // El catálogo (junto al programa) va primero y gana si un id se repite; después, los perfiles propios.
+        foreach (var root in new[] { FindProfilesRoot(), UserProfilesRoot })
+        {
+            if (root != null && Directory.Exists(root) && seenRoots.Add(Path.GetFullPath(root)))
+            {
+                AddProfilesFrom(root, list, seenIds);
+            }
+        }
+
+        if (list.Count == 0)
+        {
+            throw new InvalidOperationException(
+                $"No hay perfiles válidos en {FindProfilesRoot() ?? AppPaths.AppDirectory}. " +
+                "Cada perfil necesita profile.json, effects.json y gifts.json.");
+        }
+
+        return list;
+    }
+
+    private static void AddProfilesFrom(string root, List<LoadedGameProfile> list, HashSet<string> seenIds)
+    {
         foreach (var dir in Directory.GetDirectories(root).OrderBy(d => d, StringComparer.OrdinalIgnoreCase))
         {
             var profilePath = Path.Combine(dir, "profile.json");
@@ -108,21 +137,17 @@ public static class ProfileStore
 
             try
             {
-                list.Add(LoadFromDirectory(dir));
+                var loaded = LoadFromDirectory(dir);
+                if (seenIds.Add(loaded.Id))
+                {
+                    list.Add(loaded);
+                }
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"[HiveShock] Perfil inválido en {dir}: {ex.Message}");
             }
         }
-
-        if (list.Count == 0)
-        {
-            throw new InvalidOperationException(
-                $"No hay perfiles válidos en {root}. Cada perfil necesita profile.json, effects.json y gifts.json.");
-        }
-
-        return list;
     }
 
     public static LoadedGameProfile LoadActive(string? preferredId = null)
@@ -159,7 +184,7 @@ public static class ProfileStore
         var id = NormalizeId(profileId) ?? throw new ArgumentException("Id de perfil vacío.");
         _ = LoadById(id); // validate
         var path = Path.Combine(AppPaths.AppDirectory, ActiveFileName);
-        File.WriteAllText(path, id + Environment.NewLine, new UTF8Encoding(false));
+        AtomicFile.WriteAllText(path, id + Environment.NewLine);
     }
 
     public static LoadedGameProfile LoadFromDirectory(string directory)
@@ -194,7 +219,24 @@ public static class ProfileStore
             EffectsPath = effectsPath,
             GiftsPath = giftsPath,
             ProfileJsonPath = profilePath,
+            IsCustom = IsUnderUserRoot(directory),
         };
+    }
+
+    private static string Normalize(string path) =>
+        Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+    private static bool IsUnderUserRoot(string directory)
+    {
+        try
+        {
+            var parent = Path.GetDirectoryName(Normalize(directory));
+            return parent != null && string.Equals(Normalize(parent), Normalize(UserProfilesRoot), StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 
     private static string? FindProfilesRoot()

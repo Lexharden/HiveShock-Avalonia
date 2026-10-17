@@ -31,6 +31,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
     private EffectCatalog _effects;
     private GiftConfigStore _gifts;
     private LoadedGameProfile _profile;
+    private MacroLibrary _library;
 
     public BridgeOptions Options { get; }
     public EffectCatalog Effects => _effects;
@@ -92,15 +93,17 @@ public sealed class BridgeRuntime : IAsyncDisposable
         LoadedGameProfile profile,
         EffectCatalog effects,
         GiftConfigStore gifts,
-        GiftCatalogStore catalog)
+        GiftCatalogStore catalog,
+        MacroLibrary library)
     {
         Options = options;
         _profile = profile;
+        _library = library;
         _effects = effects;
         _gifts = gifts;
         Catalog = catalog;
         _gameClient = new GameTcpClient(options);
-        KeyRunner = new KeyMacroRunner(_keyInput, () => _profile.Info.Window, () => Options.DryRun);
+        KeyRunner = new KeyMacroRunner(_keyInput, () => _library.Window, () => Options.DryRun);
         _events = new GameEventServer(options);
         _events.EventReceived += OnGameEvent;
         _events.Start();
@@ -112,13 +115,14 @@ public sealed class BridgeRuntime : IAsyncDisposable
         var profile = ProfileStore.LoadActive(options.ProfileId);
         ApplyProfileToOptions(options, profile, forcePortsFromProfile: false);
 
-        var effects = LoadEffects(profile);
+        var library = MacroLibraryStore.LoadOrImport(profile);
+        var effects = LoadEffects(profile, library);
         var gifts = new GiftConfigStore(effects);
         gifts.Reload(profile.GiftsPath);
         var catalog = GiftCatalogStore.LoadOrCreate();
 
         BridgeLog.Info($"Perfil activo: {profile.DisplayName} ({profile.Id}) → {options.GameHost}:{options.GamePort}");
-        var runtime = new BridgeRuntime(options, profile, effects, gifts, catalog);
+        var runtime = new BridgeRuntime(options, profile, effects, gifts, catalog, library);
         runtime.Goals.ApplyDefinitions(gifts.Snapshot.Goals);
         runtime.ApplyHotkeys();
         return runtime;
@@ -136,7 +140,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         ProfileStore.SaveActiveId(profile.Id);
         ApplyProfileToOptions(Options, profile, forcePortsFromProfile: true);
 
-        var effects = LoadEffects(profile);
+        var effects = LoadEffects(profile, _library);
         var gifts = new GiftConfigStore(effects);
         gifts.Reload(profile.GiftsPath);
 
@@ -154,14 +158,78 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
     public IReadOnlyList<LoadedGameProfile> ListProfiles() => ProfileStore.ListProfiles();
 
-    public IReadOnlyList<KeyMacro> LoadKeyMacros() =>
-        [.. KeyMacroCatalogStore.Load(_profile.KeysPath).All.OrderBy(m => m.Label, StringComparer.OrdinalIgnoreCase)];
-
-    /// <summary>Guarda keys.json y deja las macros activas al instante (también con el puente en marcha).</summary>
-    public void SaveKeyMacros(IReadOnlyCollection<KeyMacro> macros)
+    /// <summary>Crea un perfil propio (sin cambiar al actual). «Copia» parte del perfil activo.</summary>
+    public LoadedGameProfile CreateProfile(string name, ProfileTemplate template)
     {
-        KeyMacroCatalogStore.Save(_profile.KeysPath, macros);
-        _effects.SetMacros(new KeyMacroCatalog(macros));
+        var starterMacro = template == ProfileTemplate.Starter ? EnsureStarterMacro() : null;
+        return CustomProfileStore.Create(name, template, template == ProfileTemplate.CopyOf ? _profile : null, starterMacro);
+    }
+
+    /// <summary>Quita un perfil propio. Si es el activo pasa antes a otro. Con el puente detenido.</summary>
+    public void DeleteProfile(string profileId)
+    {
+        if (IsRunning)
+        {
+            throw new InvalidOperationException("Detén el bridge antes de borrar un perfil.");
+        }
+
+        var target = ProfileStore.LoadById(profileId);
+        if (!target.IsCustom)
+        {
+            throw new InvalidOperationException("Solo se pueden borrar los perfiles propios.");
+        }
+
+        if (string.Equals(target.Id, _profile.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            var fallback = ProfileStore.ListProfiles().FirstOrDefault(p => !p.IsCustom)
+                           ?? throw new InvalidOperationException("No hay otro perfil al que cambiar.");
+            SwitchProfile(fallback.Id);
+        }
+
+        CustomProfileStore.Delete(target);
+        BridgeLog.Info($"Perfil propio quitado: {target.DisplayName} (queda en profiles-deleted por si fue un error)");
+    }
+
+    /// <summary>Macro de ejemplo para la plantilla básica: reutiliza la primera que exista o crea una.</summary>
+    private string EnsureStarterMacro()
+    {
+        var existing = _library.Macros.OrderBy(m => m.Label, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+        if (existing != null)
+        {
+            return existing.Id;
+        }
+
+        var sample = new KeyMacro
+        {
+            Id = "teclas_1",
+            Label = "Pulsar Espacio",
+            Steps = [new KeyStep { Key = "Space" }],
+        };
+        SaveMacroLibrary([sample], _library.Window);
+        return sample.Id;
+    }
+
+    /// <summary>Macros de la biblioteca global (no dependen del juego elegido).</summary>
+    public IReadOnlyList<KeyMacro> LoadKeyMacros() =>
+        [.. _library.Macros.OrderBy(m => m.Label, StringComparer.OrdinalIgnoreCase)];
+
+    /// <summary>Ventana a la que se envían las teclas (global, no por perfil).</summary>
+    public WindowTarget? GameWindow => _library.Window;
+
+    /// <summary>
+    /// Guarda la biblioteca (macros + ventana) y deja las macros activas al instante, también con el puente en
+    /// marcha. Si no se puede escribir en disco lanza y NO cambia lo que está activo.
+    /// </summary>
+    public void SaveMacroLibrary(IReadOnlyCollection<KeyMacro> macros, WindowTarget? window)
+    {
+        var library = new MacroLibrary
+        {
+            Window = window is { IsEmpty: false } ? window : null,
+            Macros = [.. macros],
+        };
+        MacroLibraryStore.Save(library);
+        _library = library;
+        _effects.SetMacros(new KeyMacroCatalog(library.Macros));
         ApplyHotkeys();
     }
 
@@ -196,16 +264,6 @@ public sealed class BridgeRuntime : IAsyncDisposable
     }
 
 
-    /// <summary>Guarda la ventana objetivo en profile.json; vale al instante.</summary>
-    public void SetGameWindow(WindowTarget? window)
-    {
-        var editor = new ProfileInfoEditor(_profile.ProfileJsonPath);
-        editor.Load();
-        editor.Info.Window = window is { IsEmpty: false } ? window : null;
-        editor.Save();
-        _profile.Info.Window = editor.Info.Window;
-    }
-
     public WindowStatus GetGameWindowStatus(WindowTarget window) =>
         window.IsEmpty ? WindowStatus.NotFound : _keyInput.GetStatus(window);
 
@@ -226,8 +284,8 @@ public sealed class BridgeRuntime : IAsyncDisposable
         return errors;
     }
 
-    private static EffectCatalog LoadEffects(LoadedGameProfile profile) =>
-        EffectCatalog.Load(profile.EffectsPath, profile.Info, KeyMacroCatalogStore.Load(profile.KeysPath));
+    private static EffectCatalog LoadEffects(LoadedGameProfile profile, MacroLibrary library) =>
+        EffectCatalog.Load(profile.EffectsPath, profile.Info, new KeyMacroCatalog(library.Macros));
 
     /// <summary>Arranca (una sola vez) el bucle que ejecuta las macros de teclas.</summary>
     private void EnsureKeyPump()
@@ -259,7 +317,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
     public void ReloadEffectsAndGifts()
     {
-        _effects = LoadEffects(_profile);
+        _effects = LoadEffects(_profile, _library);
         _gifts = new GiftConfigStore(_effects);
         _gifts.Reload(GiftsPath);
         Goals.ApplyDefinitions(_gifts.Snapshot.Goals);

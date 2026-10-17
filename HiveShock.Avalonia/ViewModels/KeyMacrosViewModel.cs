@@ -103,7 +103,7 @@ public sealed partial class KeyMacrosViewModel : ViewModelBase
             AddRow(KeyMacroRow.From(macro));
         }
 
-        var window = _shell.Runtime.Profile.Info.Window;
+        var window = _shell.Runtime.GameWindow;
         WindowProcess = window?.ProcessName ?? "";
         WindowTitle = window?.TitleContains ?? "";
         WindowRegex = window?.TitleRegex ?? "";
@@ -111,6 +111,7 @@ public sealed partial class KeyMacrosViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasMacros));
         OnPropertyChanged(nameof(IsBridgeRunning));
         RefreshStatus();
+        _saver.Discard();
     }
 
     public void FlushPending() => _saver.FlushIfDirty();
@@ -155,12 +156,7 @@ public sealed partial class KeyMacrosViewModel : ViewModelBase
 
         var target = CurrentTarget();
         var window = target.IsEmpty ? null : target;
-        if (window != _shell.Runtime.Profile.Info.Window)
-        {
-            _shell.Runtime.SetGameWindow(window);
-        }
-
-        _shell.Runtime.SaveKeyMacros(models);
+        _shell.Runtime.SaveMacroLibrary(models, window);
         _shell.SyncEffectChoices();
 
         var problems = _shell.Runtime.HotkeyProblems;

@@ -51,6 +51,42 @@ public sealed partial class EventsViewModel : ViewModelBase
 
     public void NotifyEffects() => OnPropertyChanged(nameof(EffectsWithNone));
 
+    [ObservableProperty] private string _brokenText = "";
+
+    public bool HasBroken => BrokenText.Length > 0;
+
+    partial void OnBrokenTextChanged(string value) => OnPropertyChanged(nameof(HasBroken));
+
+    /// <summary>
+    /// Avisa de comandos y reglas cuyo efecto ya no existe (p. ej. se borró la macro a la que apuntaban):
+    /// en vivo no harían nada y nadie lo notaría.
+    /// </summary>
+    public void RefreshBroken()
+    {
+        var known = _shell.EffectChoices.Select(e => e.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        bool Missing(string? effect) => !string.IsNullOrWhiteSpace(effect) && !known.Contains(effect.Trim());
+
+        var broken = new List<string>();
+        broken.AddRange(ChatCommands.Where(c => Missing(c.Effect)).Select(c => $"{ChatPrefix}{c.Word} → {c.Effect}"));
+        broken.AddRange(TwitchChatCommands.Where(c => Missing(c.Effect)).Select(c => $"Twitch {TwitchChatPrefix}{c.Word} → {c.Effect}"));
+        broken.AddRange(TwitchBits.Where(b => Missing(b.Effect)).Select(b => $"Bits {b.MinText} → {b.Effect}"));
+        foreach (var (what, effect) in new[]
+                 {
+                     ("Likes", LikesEffect), ("Seguir", FollowEffect), ("Compartir", ShareEffect),
+                     ("Seguir en Twitch", TwitchFollowEffect),
+                 })
+        {
+            if (Missing(effect))
+            {
+                broken.Add($"{what} → {effect}");
+            }
+        }
+
+        BrokenText = broken.Count == 0
+            ? ""
+            : "Sin efecto (la macro o el efecto ya no existe): " + string.Join(" · ", broken);
+    }
+
     public void LoadFromEditor(GiftFileEditor editor)
     {
         using var _ = _shell.Gifts.AutoSaver.Suppress();
@@ -95,6 +131,7 @@ public sealed partial class EventsViewModel : ViewModelBase
         }
 
         SelectedBitsRule = TwitchBits.FirstOrDefault();
+        RefreshBroken();
     }
 
     public void ApplyToEditor(GiftFileEditor editor)
