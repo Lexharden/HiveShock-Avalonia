@@ -60,7 +60,7 @@ public class KeyMacroDispatchTests
             keys: runner);
 
         await dispatcher.EnqueueAsync("saltar", "viewer", "chat");
-        await Task.Delay(150);
+        await Wait.UntilAsync(() => input.Events.Count >= 2);
         await cts.CancelAsync();
         await loop;
 
