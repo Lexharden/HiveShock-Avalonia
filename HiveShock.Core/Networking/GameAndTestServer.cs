@@ -317,13 +317,13 @@ public sealed class EffectDispatcher : IDisposable
         int Generation);
 }
 
-public sealed class CrowdControlServer
+public sealed class TestServer
 {
     private readonly BridgeOptions _options;
     private readonly EffectCatalog _effects;
     private readonly EffectDispatcher _dispatcher;
 
-    public CrowdControlServer(BridgeOptions options, EffectCatalog effects, EffectDispatcher dispatcher)
+    public TestServer(BridgeOptions options, EffectCatalog effects, EffectDispatcher dispatcher)
     {
         _options = options;
         _effects = effects;
@@ -332,9 +332,9 @@ public sealed class CrowdControlServer
 
     public async Task RunAsync(CancellationToken ct)
     {
-        var listener = new TcpListener(System.Net.IPAddress.Loopback, _options.CrowdControlPort);
+        var listener = new TcpListener(System.Net.IPAddress.Loopback, _options.TestPort);
         listener.Start();
-        BridgeLog.Info($"Pruebas escuchando 127.0.0.1:{_options.CrowdControlPort}");
+        BridgeLog.Info($"Pruebas escuchando 127.0.0.1:{_options.TestPort}");
 
         try
         {
@@ -356,7 +356,7 @@ public sealed class CrowdControlServer
 
     private async Task HandleClientAsync(TcpClient client, CancellationToken ct)
     {
-        BridgeLog.Info("CC conectado");
+        BridgeLog.Info("Pruebas: cliente conectado");
         using (client)
         {
             try
@@ -396,11 +396,11 @@ public sealed class CrowdControlServer
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                BridgeLog.Error($"CC: {ex.Message}");
+                BridgeLog.Error($"Pruebas: {ex.Message}");
             }
             finally
             {
-                BridgeLog.Info("CC desconectado");
+                BridgeLog.Info("Pruebas: cliente desconectado");
             }
         }
     }
@@ -424,7 +424,7 @@ public sealed class CrowdControlServer
             {
                 if (root.TryGetProperty("id", out var idOnly))
                 {
-                    await WriteCcAsync(stream, new { id = JsonElementToObject(idOnly), status = 0 }, ct)
+                    await WriteReplyAsync(stream, new { id = JsonElementToObject(idOnly), status = 0 }, ct)
                         .ConfigureAwait(false);
                 }
 
@@ -439,25 +439,25 @@ public sealed class CrowdControlServer
 
             if (!_effects.Contains(code))
             {
-                BridgeLog.Warn($"CC efecto desconocido: {code}");
-                await WriteCcAsync(stream, new { id, status = 1 }, ct).ConfigureAwait(false);
+                BridgeLog.Warn($"Pruebas: efecto desconocido: {code}");
+                await WriteReplyAsync(stream, new { id, status = 1 }, ct).ConfigureAwait(false);
                 return;
             }
 
             try
             {
                 await _dispatcher.EnqueueAsync(code, viewer, "Pruebas", ct).ConfigureAwait(false);
-                await WriteCcAsync(stream, new { id, status = 0 }, ct).ConfigureAwait(false);
+                await WriteReplyAsync(stream, new { id, status = 0 }, ct).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                BridgeLog.Error($"CC: {ex.Message}");
-                await WriteCcAsync(stream, new { id, status = 1 }, ct).ConfigureAwait(false);
+                BridgeLog.Error($"Pruebas: {ex.Message}");
+                await WriteReplyAsync(stream, new { id, status = 1 }, ct).ConfigureAwait(false);
             }
         }
     }
 
-    private static async Task WriteCcAsync(NetworkStream stream, object payload, CancellationToken ct)
+    private static async Task WriteReplyAsync(NetworkStream stream, object payload, CancellationToken ct)
     {
         var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload, JsonDefaults.Options) + "\0");
         await stream.WriteAsync(bytes, ct).ConfigureAwait(false);

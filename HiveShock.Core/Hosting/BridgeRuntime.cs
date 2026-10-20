@@ -712,10 +712,10 @@ public sealed class BridgeRuntime : IAsyncDisposable
         builder.Services.AddSingleton(SystemEffects);
         builder.Services.AddSingleton<EffectDispatcher>();
         builder.Services.AddSingleton<LiveEffectRouter>();
-        builder.Services.AddSingleton<CrowdControlServer>();
+        builder.Services.AddSingleton<TestServer>();
         builder.Services.AddHostedService<EffectPumpService>();
         builder.Services.AddHostedService<ConfigWatchService>();
-        builder.Services.AddHostedService<CrowdControlHostedService>();
+        builder.Services.AddHostedService<TestServerHostedService>();
 #if DEBUG
         builder.Services.AddSingleton(Diagnostics);
 #endif
@@ -863,10 +863,10 @@ public sealed class BridgeRuntime : IAsyncDisposable
                 options.GamePort = profile.Info.GamePort > 0 ? profile.Info.GamePort : 43000;
             }
 
-            if (Environment.GetEnvironmentVariable("CC_PORT") is null)
+            if (BridgeOptions.EnvAny("HIVESHOCK_TEST_PORT", "CC_PORT") is null)
             {
-                options.CrowdControlPort = profile.Info.CrowdControlPort > 0
-                    ? profile.Info.CrowdControlPort
+                options.TestPort = profile.Info.TestPort > 0
+                    ? profile.Info.TestPort
                     : 43001;
             }
 
@@ -890,12 +890,12 @@ public sealed class BridgeRuntime : IAsyncDisposable
             case BridgeRunMode.Capture:
                 Options.DevMode = false;
                 Options.CaptureOnly = true;
-                Options.DisableCrowdControl = true;
+                Options.DisableTestServer = true;
                 break;
             case BridgeRunMode.Sdk:
                 Options.DevMode = true;
                 Options.CaptureOnly = false;
-                Options.DisableCrowdControl = false;
+                Options.DisableTestServer = false;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(mode), mode, null);

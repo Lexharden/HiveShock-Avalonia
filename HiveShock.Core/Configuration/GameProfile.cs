@@ -31,7 +31,15 @@ public sealed class GameProfileInfo
     public string Description { get; set; } = "";
     public string GameHost { get; set; } = "127.0.0.1";
     public int GamePort { get; set; } = 43000;
-    public int CrowdControlPort { get; set; } = 43001;
+    public int TestPort { get; set; } = 43001;
+
+    /// <summary>Nombre antiguo de <see cref="TestPort"/> en profile.json. Solo se lee; al guardar se escribe «testPort».</summary>
+    [JsonPropertyName("crowdControlPort")]
+    public int LegacyTestPort
+    {
+        set => TestPort = value;
+    }
+
     public int EventPort { get; set; } = 43002;
     public string Protocol { get; set; } = "json-line";
     public bool SupportsDeathEvents { get; set; } = true;
@@ -155,7 +163,7 @@ public static class ProfileStore
         var profiles = ListProfiles();
         var id = NormalizeId(preferredId)
                  ?? ReadSavedActiveId()
-                 ?? Environment.GetEnvironmentVariable("CROWDBRIDGE_PROFILE")
+                 ?? BridgeOptions.EnvAny("HIVESHOCK_PROFILE", "CROWDBRIDGE_PROFILE")
                  ?? Environment.GetEnvironmentVariable("BRIDGE_PROFILE")
                  ?? DefaultProfileId;
 

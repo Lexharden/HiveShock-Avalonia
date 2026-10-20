@@ -26,7 +26,7 @@ public sealed partial class ProfileEditorViewModel : ObservableObject
     [ObservableProperty] private string _description = "";
     [ObservableProperty] private string _helpNotes = "";
     [ObservableProperty] private string _gamePortText = "43000";
-    [ObservableProperty] private string _ccPortText = "43001";
+    [ObservableProperty] private string _testPortText = "43001";
     [ObservableProperty] private string _eventPortText = "43002";
     [ObservableProperty] private bool _supportsDeathEvents = true;
     [ObservableProperty] private bool _supportsDeleteSave;
@@ -79,7 +79,7 @@ public sealed partial class ProfileEditorViewModel : ObservableObject
         Description = info.Description;
         HelpNotes = info.HelpNotes;
         GamePortText = info.GamePort.ToString();
-        CcPortText = info.CrowdControlPort.ToString();
+        TestPortText = info.TestPort.ToString();
         EventPortText = info.EventPort.ToString();
         SupportsDeathEvents = info.SupportsDeathEvents;
         SupportsDeleteSave = info.SupportsDeleteSave;
@@ -261,7 +261,7 @@ public sealed partial class ProfileEditorViewModel : ObservableObject
         info.Description = Description;
         info.HelpNotes = HelpNotes;
         info.GamePort = ParseInt(GamePortText, info.GamePort);
-        info.CrowdControlPort = ParseInt(CcPortText, info.CrowdControlPort);
+        info.TestPort = ParseInt(TestPortText, info.TestPort);
         info.EventPort = ParseInt(EventPortText, info.EventPort);
         info.SupportsDeathEvents = SupportsDeathEvents;
         info.SupportsDeleteSave = SupportsDeleteSave;

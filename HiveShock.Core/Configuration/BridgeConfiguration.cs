@@ -14,16 +14,16 @@ public sealed class BridgeOptions
     public string? TikTokCookies { get; set; }
     public string GameHost { get; set; } = "127.0.0.1";
     public int GamePort { get; set; } = 43000;
-    public int CrowdControlPort { get; set; } = 43001;
+    public int TestPort { get; set; } = 43001;
     /// <summary>Puerto donde el bridge escucha eventos del juego (muertes, save borrado).</summary>
     public int EventPort { get; set; } = 43002;
     public bool DryRun { get; set; }
-    public bool DisableCrowdControl { get; set; }
+    public bool DisableTestServer { get; set; }
     public bool ListEffectsOnly { get; set; }
     public bool SkipMenu { get; set; }
     /// <summary>Solo pruebas / SDK → juego. No conecta a ningún canal.</summary>
     public bool DevMode { get; set; }
-    /// <summary>Conecta a TikTok solo para capturar regalos al catálogo (sin efectos ni CC).</summary>
+    /// <summary>Conecta a TikTok solo para capturar regalos al catálogo (sin efectos ni servidor de pruebas).</summary>
     public bool CaptureOnly { get; set; }
     public bool TikTokEnabled { get; set; } = true;
     public bool TwitchEnabled { get; set; } = true;
@@ -34,7 +34,7 @@ public sealed class BridgeOptions
     public string TwitchUserId { get; set; } = "";
     public TimeSpan LiveRetryInterval { get; set; } = TimeSpan.FromSeconds(30);
     public TimeSpan GameConnectTimeout { get; set; } = TimeSpan.FromSeconds(3);
-    /// <summary>Id de perfil preferido (--profile / CROWDBRIDGE_PROFILE). Vacío = active-profile.txt.</summary>
+    /// <summary>Id de perfil preferido (--profile / HIVESHOCK_PROFILE). Vacío = active-profile.txt.</summary>
     public string? ProfileId { get; set; }
     /// <summary>Pausa mínima entre envíos TCP al juego (ms). 0 = sin pacing.</summary>
     public int EffectGapMs { get; set; } = 300;
@@ -50,13 +50,13 @@ public sealed class BridgeOptions
         EnvFileLoader.Load(AppPaths.Find(".env"));
 
         var dry = HasFlag(args, "--dry") || EnvBool("TIKTOK_DRY_RUN");
-        var noCc = HasFlag(args, "--no-cc") || EnvBool("DISABLE_CC");
+        var noTest = HasFlag(args, "--no-test") || HasFlag(args, "--no-cc") || EnvBool("HIVESHOCK_NO_TEST") || EnvBool("DISABLE_CC");
         var list = HasFlag(args, "--list");
         var skipMenu = HasFlag(args, "--start") || HasFlag(args, "--no-menu");
         var dev = HasFlag(args, "--dev") || HasFlag(args, "--sdk") || EnvBool("BRIDGE_DEV_MODE");
         var tiktok = NormalizeUniqueId(ArgValue(args, "--tiktok") ?? Env("TIKTOK_UNIQUE_ID"));
         var profile = ArgValue(args, "--profile")
-                      ?? Env("CROWDBRIDGE_PROFILE")
+                      ?? EnvAny("HIVESHOCK_PROFILE", "CROWDBRIDGE_PROFILE")
                       ?? Env("BRIDGE_PROFILE");
 
         return new BridgeOptions
@@ -73,10 +73,10 @@ public sealed class BridgeOptions
             TwitchUserId = Env("TWITCH_USER_ID") ?? "",
             GameHost = Env("GAME_HOST") ?? "127.0.0.1",
             GamePort = EnvInt("GAME_PORT", 43000),
-            CrowdControlPort = EnvInt("CC_PORT", 43001),
+            TestPort = int.TryParse(EnvAny("HIVESHOCK_TEST_PORT", "CC_PORT"), out var testPort) ? testPort : 43001,
             EventPort = EnvInt("EVENT_PORT", 43002),
             DryRun = dry,
-            DisableCrowdControl = noCc,
+            DisableTestServer = noTest,
             ListEffectsOnly = list,
             SkipMenu = skipMenu,
             DevMode = dev,
@@ -104,7 +104,7 @@ public sealed class BridgeOptions
         if (force)
         {
             GamePort = profile.GamePort > 0 ? profile.GamePort : 43000;
-            CrowdControlPort = profile.CrowdControlPort > 0 ? profile.CrowdControlPort : 43001;
+            TestPort = profile.TestPort > 0 ? profile.TestPort : 43001;
             EventPort = profile.EventPort > 0 ? profile.EventPort : 43002;
         }
     }
@@ -169,6 +169,21 @@ public sealed class BridgeOptions
     {
         var value = Environment.GetEnvironmentVariable(key);
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    /// <summary>Primera variable de entorno con valor. Las últimas son nombres antiguos que se siguen aceptando.</summary>
+    public static string? EnvAny(params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            var value = Env(key);
+            if (value is not null)
+            {
+                return value;
+            }
+        }
+
+        return null;
     }
 
     private static int EnvInt(string key, int fallback) =>

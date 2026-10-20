@@ -4,8 +4,6 @@ Puente entre **tu live** y el juego: TikTok y Twitch pueden escuchar a la vez. R
 
 Cada **canal** (TikTok, Twitch) tiene su propia ficha en Inicio. El programa no asume una sola plataforma.
 
-La app WPF original sigue en el repo CrowdBridge (solo Windows) hasta confirmar paridad.
-
 ## Solución
 
 - `HiveShock.Avalonia` — GUI (`HiveShock` / `HiveShock.exe`)
