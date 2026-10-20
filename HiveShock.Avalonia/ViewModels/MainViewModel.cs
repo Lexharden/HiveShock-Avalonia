@@ -43,6 +43,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         TikTok = new TikTokViewModel(this);
         Twitch = new TwitchViewModel(this);
         Moderation = new ModerationViewModel(this);
+        SystemFx = new SystemEffectsViewModel(this);
         KeyMacros = new KeyMacrosViewModel(this);
         Help = new HelpViewModel();
         About = new AboutViewModel();
@@ -106,6 +107,9 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public TikTokViewModel TikTok { get; }
     public TwitchViewModel Twitch { get; }
     public ModerationViewModel Moderation { get; }
+
+    /// <summary>Efectos del sistema (reiniciar el equipo): ajustes en Moderación y aviso de cuenta atrás en la ventana.</summary>
+    public SystemEffectsViewModel SystemFx { get; }
     public KeyMacrosViewModel KeyMacros { get; }
     public HelpViewModel Help { get; }
     public AboutViewModel About { get; }

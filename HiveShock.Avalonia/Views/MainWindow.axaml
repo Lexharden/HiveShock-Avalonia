@@ -228,6 +228,16 @@
             <Grid Grid.Column="1" RowDefinitions="*,Auto">
                 <ContentControl Content="{Binding CurrentPage}" Margin="14,10,14,8"
                                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                <Border Grid.Row="0" ZIndex="50" VerticalAlignment="Top" Margin="14,10,14,0" Padding="14,10"
+                        CornerRadius="8" Background="{DynamicResource DangerBrush}"
+                        IsVisible="{Binding SystemFx.IsCounting}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Cancelar" Margin="12,0,0,0" VerticalAlignment="Center"
+                                Command="{Binding SystemFx.CancelRestartCommand}" />
+                        <TextBlock Text="{Binding SystemFx.BannerText}" TextWrapping="Wrap" FontWeight="SemiBold"
+                                   Foreground="White" VerticalAlignment="Center" />
+                    </DockPanel>
+                </Border>
                 <!--
                     Recogido por defecto (solo el encabezado, ~40px) en vez de reservar
                     espacio fijo en toda página: antes eso restaba espacio incluso en
