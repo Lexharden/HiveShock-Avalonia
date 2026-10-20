@@ -4,6 +4,12 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.6.1] - 2026-10-20
+
+### Limpieza de nombres
+* **Se quitó el nombre antiguo «CrowdControl / CrowdBridge / CC»** del código, los logs y la documentación. El servidor local de pruebas (el «Puerto pruebas» de Inicio) pasa a llamarse *TestServer* y su ajuste `testPort`.
+* **Nada se rompe:** los `profile.json` con `crowdControlPort`, y las variables `CC_PORT`, `CROWDBRIDGE_PROFILE`, `DISABLE_CC` y el flag `--no-cc` se siguen leyendo. Al guardar, el perfil usa `testPort`. Los nombres nuevos son `HIVESHOCK_TEST_PORT`, `HIVESHOCK_PROFILE`, `HIVESHOCK_NO_TEST` y `--no-test`.
+
 ## [2.6.0] - 2026-10-19
 
 ### Reiniciar el equipo (solo Windows)
