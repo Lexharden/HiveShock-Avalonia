@@ -1,0 +1,258 @@
+{
+  "heal": {
+    "action": "heal",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Panales",
+        "min": 1,
+        "max": 10,
+        "step": 1
+      }
+    }
+  },
+  "damage": {
+    "action": "damage",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Panales",
+        "min": 1,
+        "max": 10,
+        "step": 1
+      }
+    }
+  },
+  "kill": {
+    "action": "kill"
+  },
+  "insta_kill": {
+    "action": "kill"
+  },
+  "extra_life": {
+    "action": "extra_life",
+    "value": 1
+  },
+  "refill_air": {
+    "action": "refill_air"
+  },
+  "eggs": {
+    "action": "eggs",
+    "value": 10,
+    "_params": {
+      "value": {
+        "label": "Huevos",
+        "min": 1,
+        "max": 99,
+        "step": 1
+      }
+    }
+  },
+  "red_feathers": {
+    "action": "red_feathers",
+    "value": 5,
+    "_params": {
+      "value": {
+        "label": "Plumas",
+        "min": 1,
+        "max": 50,
+        "step": 1
+      }
+    }
+  },
+  "gold_feathers": {
+    "action": "gold_feathers",
+    "value": 2,
+    "_params": {
+      "value": {
+        "label": "Plumas",
+        "min": 1,
+        "max": 10,
+        "step": 1
+      }
+    }
+  },
+  "lose_life": {
+    "action": "lose_life",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Vidas",
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "max_health_up": {
+    "action": "max_health_up",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Panales",
+        "min": 1,
+        "max": 3,
+        "step": 1
+      }
+    }
+  },
+  "max_health_down": {
+    "action": "max_health_down",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Panales",
+        "min": 1,
+        "max": 3,
+        "step": 1
+      }
+    }
+  },
+  "lose_eggs": {
+    "action": "lose_eggs",
+    "value": 10,
+    "_params": {
+      "value": {
+        "label": "Huevos",
+        "min": 1,
+        "max": 99,
+        "step": 1
+      }
+    }
+  },
+  "lose_red_feathers": {
+    "action": "lose_red_feathers",
+    "value": 5,
+    "_params": {
+      "value": {
+        "label": "Plumas",
+        "min": 1,
+        "max": 50,
+        "step": 1
+      }
+    }
+  },
+  "lose_gold_feathers": {
+    "action": "lose_gold_feathers",
+    "value": 2,
+    "_params": {
+      "value": {
+        "label": "Plumas",
+        "min": 1,
+        "max": 10,
+        "step": 1
+      }
+    }
+  },
+  "spawn_snippet": {
+    "action": "spawn_snippet",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "spawn_bigbutt": {
+    "action": "spawn_bigbutt",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "spawn_shrapnel": {
+    "action": "spawn_shrapnel",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "spawn_bat": {
+    "action": "spawn_bat",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "hit": {
+    "action": "hit"
+  },
+  "damage_silent": {
+    "action": "damage_silent",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Panales",
+        "min": 1,
+        "max": 10,
+        "step": 1
+      }
+    }
+  },
+  "knockback": {
+    "action": "knockback",
+    "strength": 6,
+    "damage": 1,
+    "deal_damage": false,
+    "_params": {
+      "strength": {
+        "label": "Fuerza (1-10 empujón, 11-14 lanzamiento)",
+        "min": 1,
+        "max": 14,
+        "step": 1
+      },
+      "damage": {
+        "label": "Daño (panales)",
+        "min": 0,
+        "max": 5,
+        "step": 1
+      },
+      "deal_damage": {
+        "label": "Hacer daño",
+        "type": "bool"
+      }
+    }
+  },
+  "launch": {
+    "action": "launch",
+    "strength": 8,
+    "damage": 0,
+    "deal_damage": false,
+    "_params": {
+      "strength": {
+        "label": "Distancia",
+        "min": 1,
+        "max": 14,
+        "step": 1
+      },
+      "damage": {
+        "label": "Daño (panales)",
+        "min": 0,
+        "max": 5,
+        "step": 1
+      },
+      "deal_damage": {
+        "label": "Hacer daño",
+        "type": "bool"
+      }
+    }
+  }
+}
