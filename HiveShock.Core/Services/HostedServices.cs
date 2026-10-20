@@ -102,12 +102,12 @@ public sealed class EffectPumpService : BackgroundService
     }
 }
 
-public sealed class CrowdControlHostedService : BackgroundService
+public sealed class TestServerHostedService : BackgroundService
 {
     private readonly BridgeOptions _options;
-    private readonly CrowdControlServer _server;
+    private readonly TestServer _server;
 
-    public CrowdControlHostedService(BridgeOptions options, CrowdControlServer server)
+    public TestServerHostedService(BridgeOptions options, TestServer server)
     {
         _options = options;
         _server = server;
@@ -115,7 +115,7 @@ public sealed class CrowdControlHostedService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (_options.DisableCrowdControl || _options.CaptureOnly)
+        if (_options.DisableTestServer || _options.CaptureOnly)
         {
             return;
         }
@@ -130,7 +130,7 @@ public sealed class CrowdControlHostedService : BackgroundService
         }
         catch (Exception ex)
         {
-            BridgeLog.Error($"CC: {ex.Message}");
+            BridgeLog.Error($"Pruebas: {ex.Message}");
         }
     }
 }

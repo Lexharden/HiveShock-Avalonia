@@ -20,7 +20,7 @@ public sealed class EditableProfileInfo
     public string Description { get; set; } = "";
     public string GameHost { get; set; } = "127.0.0.1";
     public int GamePort { get; set; } = 43000;
-    public int CrowdControlPort { get; set; } = 43001;
+    public int TestPort { get; set; } = 43001;
     public int EventPort { get; set; } = 43002;
     public string Protocol { get; set; } = "json-line";
     public bool SupportsDeathEvents { get; set; } = true;
@@ -99,7 +99,7 @@ public sealed class ProfileInfoEditor
             Description = info.Description,
             GameHost = info.GameHost,
             GamePort = info.GamePort,
-            CrowdControlPort = info.CrowdControlPort,
+            TestPort = info.TestPort,
             EventPort = info.EventPort,
             Protocol = info.Protocol,
             SupportsDeathEvents = info.SupportsDeathEvents,
@@ -131,7 +131,7 @@ public sealed class ProfileInfoEditor
             Description = (info.Description ?? "").Trim(),
             GameHost = string.IsNullOrWhiteSpace(info.GameHost) ? "127.0.0.1" : info.GameHost.Trim(),
             GamePort = info.GamePort > 0 ? info.GamePort : 43000,
-            CrowdControlPort = info.CrowdControlPort > 0 ? info.CrowdControlPort : 43001,
+            TestPort = info.TestPort > 0 ? info.TestPort : 43001,
             EventPort = info.EventPort > 0 ? info.EventPort : 43002,
             Protocol = string.IsNullOrWhiteSpace(info.Protocol) ? "json-line" : info.Protocol.Trim(),
             SupportsDeathEvents = info.SupportsDeathEvents,

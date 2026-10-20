@@ -49,7 +49,7 @@ Console.WriteLine($"Perfil {runtime.Profile.DisplayName} ({runtime.Profile.Id})"
 if (mode == BridgeRunMode.Sdk)
 {
     Console.WriteLine("Modo   Pruebas");
-    Console.WriteLine($"Pruebas 127.0.0.1:{options.CrowdControlPort}");
+    Console.WriteLine($"Pruebas 127.0.0.1:{options.TestPort}");
 }
 else if (mode == BridgeRunMode.Capture)
 {

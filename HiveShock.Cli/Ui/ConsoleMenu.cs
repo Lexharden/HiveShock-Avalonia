@@ -101,7 +101,7 @@ public sealed class ConsoleMenu
                 case "8":
                     _options.DevMode = true;
                     _options.CaptureOnly = false;
-                    _options.DisableCrowdControl = false;
+                    _options.DisableTestServer = false;
                     Console.Clear();
                     return true;
 

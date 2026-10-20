@@ -4,7 +4,7 @@
   "description": "Dusklight: entra en una partida y activa el puente en Mods.",
   "gameHost": "127.0.0.1",
   "gamePort": 43000,
-  "crowdControlPort": 43001,
+  "testPort": 43001,
   "eventPort": 43002,
   "protocol": "json-line",
   "supportsDeathEvents": true,

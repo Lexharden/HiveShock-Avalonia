@@ -24,7 +24,7 @@
                     <TextBox Text="{Binding GamePortText}" Width="120" HorizontalAlignment="Left"
                              IsEnabled="{Binding CanEdit}" />
                     <TextBlock Classes="fieldLabel" Text="Puerto pruebas" Margin="0,8,0,0" />
-                    <TextBox Text="{Binding CcPortText}" Width="120" HorizontalAlignment="Left"
+                    <TextBox Text="{Binding TestPortText}" Width="120" HorizontalAlignment="Left"
                              IsEnabled="{Binding CanEdit}" />
                     <TextBlock Classes="fieldLabel" Text="Puerto eventos" Margin="0,8,0,0" />
                     <TextBox Text="{Binding EventPortText}" Width="120" HorizontalAlignment="Left"

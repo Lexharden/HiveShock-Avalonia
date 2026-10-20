@@ -4,7 +4,7 @@
   "description": "Ship of Harkinian: entra en una partida y activa HiveShock en Enhancements. No abras 2s2h a la vez (mismo puerto).",
   "gameHost": "127.0.0.1",
   "gamePort": 43000,
-  "crowdControlPort": 43001,
+  "testPort": 43001,
   "eventPort": 43002,
   "protocol": "json-line",
   "supportsDeathEvents": true,
