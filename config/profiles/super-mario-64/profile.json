@@ -4,14 +4,18 @@
   "description": "Ghostship: abre el menú Network > HiveShock y activa \"Enable HiveShock\".",
   "gameHost": "127.0.0.1",
   "gamePort": 43000,
-  "crowdControlPort": 43001,
+  "testPort": 43001,
   "eventPort": 43002,
   "protocol": "json-line",
   "supportsDeathEvents": true,
-  "supportsDeleteSave": false,
+  "supportsDeleteSave": true,
   "supportsRescue": false,
   "singletonEffects": [
-    "clear_enemies"
+    "clear_enemies",
+    "delete_save",
+    "wipe_save",
+    "nuke_save",
+    "new_run"
   ],
   "enemyEffects": [
     "goomba",
@@ -63,7 +67,8 @@
     "poison_mushroom": "Enemigo — Hongo venenoso (te persigue, muerte instantánea)",
     "shotgun": "Escopeta (cae delante de Mario, se equipa al pasar)",
     "shotgun_give": "Dar escopeta equipada (cartuchos)",
-    "shotgun_fire": "Forzar un disparo"
+    "shotgun_fire": "Forzar un disparo",
+    "delete_save": "Borrar partida (no se puede deshacer)"
   },
   "helpNotes": "Entra en una partida y activa HiveShock en Network > HiveShock. Para usar el móvil u otro PC activa también \"Allow LAN connections\". Los efectos esperan en cola mientras Mario no es jugable (menús, cinemáticas)."
 }
