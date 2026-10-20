@@ -144,10 +144,11 @@ public static class UpdateApplier
             Directory.CreateDirectory(plan.BackupDir);
             var layout = new UpdateLayout(plan.TargetRoot, plan.SourceRoot, plan.DataPrefix, "");
 
+            var newProfiles = layout.FindNewProfiles();
             foreach (var file in Directory.EnumerateFiles(plan.SourceRoot, "*", SearchOption.AllDirectories))
             {
                 var rel = Path.GetRelativePath(plan.SourceRoot, file).Replace('\\', '/');
-                if (layout.IsProtected(rel))
+                if (layout.IsProtected(rel) && !UpdateLayout.IsInNewProfile(rel, newProfiles))
                 {
                     continue;
                 }

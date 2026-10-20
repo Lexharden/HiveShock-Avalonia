@@ -66,6 +66,39 @@ public sealed record UpdateLayout(string TargetRoot, string SourceRoot, string D
         return new UpdateLayout(appDir, source, "", exe);
     }
 
+    /// <summary>
+    /// Perfiles del paquete que el usuario todavía no tiene (carpeta inexistente en el destino), como «profiles/super-mario-64/».
+    /// Se instalan completos; los que ya existen no se tocan, para no pisar sus regalos y comandos editados.
+    /// </summary>
+    public IReadOnlySet<string> FindNewProfiles()
+    {
+        var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var sourceProfiles = Path.Combine(SourceRoot, (DataPrefix + "profiles").Replace('/', Path.DirectorySeparatorChar));
+        if (!Directory.Exists(sourceProfiles))
+        {
+            return found;
+        }
+
+        foreach (var dir in Directory.GetDirectories(sourceProfiles))
+        {
+            var name = Path.GetFileName(dir);
+            var installed = Path.Combine(TargetRoot, (DataPrefix + "profiles").Replace('/', Path.DirectorySeparatorChar), name);
+            if (!Directory.Exists(installed))
+            {
+                found.Add($"{DataPrefix}profiles/{name}/");
+            }
+        }
+
+        return found;
+    }
+
+    /// <summary>True si el archivo es de un perfil nuevo (ver <see cref="FindNewProfiles"/>).</summary>
+    public static bool IsInNewProfile(string relativePath, IReadOnlySet<string> newProfiles)
+    {
+        var rel = relativePath.Replace('\\', '/');
+        return newProfiles.Any(p => rel.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+    }
+
     /// <summary>True si la ruta (relativa al zip, con «/») es un dato del usuario que no se sobrescribe.</summary>
     public bool IsProtected(string relativePath)
     {

@@ -354,6 +354,36 @@ public sealed class UpdateApplierTests : TempDirTest
     }
 
     [Fact]
+    public void Installs_new_profiles_but_keeps_existing_ones()
+    {
+        var (plan, app) = Arrange();
+        Make("src/profiles/mario/profile.json", "NEW-PROFILE");
+        Make("src/profiles/mario/gifts.json", "NEW-PROFILE-GIFTS");
+        var host = new FakeHost { OkMarker = plan.OkMarker };
+
+        var result = UpdateApplier.Apply(plan, host);
+
+        Assert.True(result.Ok, result.Error);
+        Assert.Equal("NEW-PROFILE", File.ReadAllText(Path.Combine(app, "profiles", "mario", "profile.json")));
+        Assert.Equal("NEW-PROFILE-GIFTS", File.ReadAllText(Path.Combine(app, "profiles", "mario", "gifts.json")));
+        Assert.Equal("MY-GIFTS", File.ReadAllText(Path.Combine(app, "profiles", "oot", "gifts.json")));
+    }
+
+    [Fact]
+    public void Rollback_removes_the_profiles_it_installed()
+    {
+        var (plan, app) = Arrange();
+        Make("src/profiles/mario/profile.json", "NEW-PROFILE");
+        var host = new FakeHost { OkMarker = plan.OkMarker, ConfirmStart = false };
+
+        var result = UpdateApplier.Apply(plan, host);
+
+        Assert.True(result.RolledBack);
+        Assert.False(File.Exists(Path.Combine(app, "profiles", "mario", "profile.json")));
+        Assert.Equal("MY-GIFTS", File.ReadAllText(Path.Combine(app, "profiles", "oot", "gifts.json")));
+    }
+
+    [Fact]
     public void Rolls_back_when_new_version_never_confirms()
     {
         var (plan, app) = Arrange();
