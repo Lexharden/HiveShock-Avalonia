@@ -4,6 +4,16 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-10-19
+
+### Reiniciar el equipo (solo Windows)
+* **Nuevo efecto «Reiniciar el equipo (con cuenta atrás)»,** disponible en los selectores de Regalos, Chat, Eventos, Bits y Metas. En macOS y Linux todavía no existe y no aparece.
+* **Empieza desarmado en cada sesión.** Se arma en Moderación escribiendo REINICIAR; al reabrir HiveShock vuelve a estar desarmado. Al armarlo se asigna el regalo **León (Lion)** como disparador si tu perfil no lo usa ya.
+* **Cuenta atrás visible y cancelable:** de 10 a 300 segundos (30 por defecto), con un aviso rojo en la ventana, un botón Cancelar y el atajo global **Ctrl+Alt+Shift+F12**, que funciona aunque estés dentro del juego y solo existe mientras cuenta.
+* **Salvaguardas:** solo una vez por sesión, no se ejecuta con «Solo simular» ni con la pausa de emergencia (que además lo cancela), y desconectar el puente también lo cancela.
+* **Forzar** (opcional) cierra los programas sin preguntar, así que se pierde lo que no esté guardado. Sin forzar, Windows puede esperar a que cierres lo pendiente.
+* Un botón permite **probar la cuenta atrás sin reiniciar**.
+
 ## [2.5.2] - 2026-10-19
 
 ### Super Mario 64
