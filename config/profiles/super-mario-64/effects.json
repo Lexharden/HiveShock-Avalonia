@@ -307,5 +307,17 @@
   },
   "shotgun_fire": {
     "action": "shotgun_fire"
+  },
+  "delete_save": {
+    "action": "delete_save"
+  },
+  "wipe_save": {
+    "action": "delete_save"
+  },
+  "nuke_save": {
+    "action": "delete_save"
+  },
+  "new_run": {
+    "action": "delete_save"
   }
 }

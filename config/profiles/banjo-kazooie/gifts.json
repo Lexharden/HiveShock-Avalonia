@@ -1,0 +1,77 @@
+{
+  "_help": "Perfil Banjo-Kazooie (Recompiled). gift=nombre, id=recomendado, effect=efecto. Combos: minCount=mínimo xN (default 1), each=true → un efecto por unidad (x10→10). params={ value } override (panales, huevos, plumas...).",
+
+  "gifts": [
+    {
+      "gift": "Rose",
+      "also": ["Rosa"],
+      "id": "5655",
+      "effect": "eggs",
+      "what": "1 diamante. 10 huevos azules"
+    },
+    {
+      "gift": "Heart Me",
+      "id": "7934",
+      "effect": "heal",
+      "what": "Cura 1 panal"
+    },
+    {
+      "gift": "TikTok",
+      "effect": "heal",
+      "what": "Cura 1 panal"
+    },
+    {
+      "gift": "Finger Heart",
+      "id": "5827",
+      "effect": "red_feathers",
+      "what": "5 plumas rojas"
+    },
+    {
+      "gift": "Super Popular",
+      "id": "16690",
+      "effect": "gold_feathers",
+      "what": "2 plumas doradas"
+    },
+    {
+      "gift": "Capybara",
+      "id": "14488",
+      "effect": "damage",
+      "what": "Quita 1 panal"
+    },
+    {
+      "gift": "Doughnut",
+      "effect": "extra_life",
+      "what": "Vida extra"
+    }
+  ],
+
+  "likes": {
+    "every": 0,
+    "effect": "eggs",
+    "what": ""
+  },
+  "follow": {
+    "effect": "",
+    "what": ""
+  },
+  "share": {
+    "effect": "",
+    "what": ""
+  },
+  "chat": {
+    "enabled": false,
+    "prefix": "!",
+    "cooldownSec": 30,
+    "globalGapSec": 2,
+    "commands": {}
+  },
+
+  "unmappedGifts": "ignore",
+  "giftsByDiamonds": [
+    { "min": 1, "max": 9, "effect": "eggs" },
+    { "min": 10, "max": 49, "effect": "heal" },
+    { "min": 50, "max": 99, "effect": "red_feathers" },
+    { "min": 100, "max": 299, "effect": "damage" },
+    { "min": 300, "effect": "kill" }
+  ]
+}

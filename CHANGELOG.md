@@ -4,6 +4,13 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.6.3] - 2026-10-20
+
+### Perfiles
+* **Nuevo perfil «Banjo-Kazooie (Recompiled)».** Efectos sobre la salud, vidas, huevos y plumas, y enemigos (Snippet, Bigbutt, Shrapnel, murciélago), con regalos de ejemplo. Requiere instalar el mod HiveShock para Banjo-Kazooie: Recompiled y activarlo en su menú de mods.
+* **Super Mario 64:** nuevos efectos para borrar la partida (`delete_save`, `wipe_save`, `nuke_save`, `new_run`). El perfil ahora declara que lo soporta. No se puede deshacer, así que no los asignes a regalos baratos.
+* Los perfiles nuevos llegan a quien actualiza desde la app; los que ya tenías no se modifican.
+
 ## [2.6.2] - 2026-10-20
 
 ### Actualizar trae los perfiles nuevos
