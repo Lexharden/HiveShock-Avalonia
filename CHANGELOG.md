@@ -4,6 +4,12 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.5.2] - 2026-10-19
+
+### Super Mario 64
+* **Nuevo perfil «Super Mario 64 (Ghostship)».** 37 efectos: cáscara de plátano, escopeta (se equipa al pasar y dispara con L), enemigos (Goomba, Bob-omb, Chuckya que persigue por todo el terreno, hongo venenoso, Amp, Fly Guy, bolas de boliche), efectos sobre Mario (fuego, descarga, empujón, lanzamiento, gorras) y temporales (gravedad baja o alta, turbo). Incluye regalos de ejemplo y las etiquetas en español.
+* Se activa en Ghostship desde **Network > HiveShock**. Las muertes de Mario vuelven al puente por el puerto de eventos (43002).
+
 ## [2.5.1] - 2026-10-16
 
 ### Guardado

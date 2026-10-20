@@ -1,0 +1,311 @@
+{
+  "banana": {
+    "action": "banana"
+  },
+  "banana_peel": {
+    "action": "banana_peel"
+  },
+  "heal": {
+    "action": "heal",
+    "value": 2,
+    "_params": {
+      "value": {
+        "label": "Casillas",
+        "unit": "wedges",
+        "scale": 1,
+        "min": 1,
+        "max": 8,
+        "step": 1
+      }
+    }
+  },
+  "damage": {
+    "action": "damage",
+    "value": 2,
+    "_params": {
+      "value": {
+        "label": "Casillas",
+        "unit": "wedges",
+        "scale": 1,
+        "min": 1,
+        "max": 8,
+        "step": 1
+      }
+    }
+  },
+  "kill": {
+    "action": "kill"
+  },
+  "instakill": {
+    "action": "instakill"
+  },
+  "lives_add": {
+    "action": "lives_add",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "unit": "raw",
+        "scale": 1,
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "coins_add": {
+    "action": "coins_add",
+    "value": 10,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "unit": "raw",
+        "scale": 1,
+        "min": 1,
+        "max": 50,
+        "step": 1
+      }
+    }
+  },
+  "goomba": {
+    "action": "goomba",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "unit": "raw",
+        "scale": 1,
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "bobomb": {
+    "action": "bobomb",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "unit": "raw",
+        "scale": 1,
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "flyguy": {
+    "action": "flyguy",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "unit": "raw",
+        "scale": 1,
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "amp": {
+    "action": "amp",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "unit": "raw",
+        "scale": 1,
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "goomba_army": {
+    "action": "goomba_army"
+  },
+  "goomba_huge": {
+    "action": "goomba_huge"
+  },
+  "chuckya": {
+    "action": "chuckya"
+  },
+  "koopa_shell": {
+    "action": "koopa_shell"
+  },
+  "bowling_ball": {
+    "action": "bowling_ball"
+  },
+  "bowling_rain": {
+    "action": "bowling_rain"
+  },
+  "clear_enemies": {
+    "action": "clear_enemies"
+  },
+  "burn": {
+    "action": "burn"
+  },
+  "shock": {
+    "action": "shock"
+  },
+  "squish": {
+    "action": "squish"
+  },
+  "ground_pound": {
+    "action": "ground_pound"
+  },
+  "blow": {
+    "action": "blow"
+  },
+  "cap_off": {
+    "action": "cap_off"
+  },
+  "knockback": {
+    "action": "knockback",
+    "value": 40,
+    "_params": {
+      "value": {
+        "label": "Fuerza",
+        "unit": "raw",
+        "scale": 1,
+        "min": 10,
+        "max": 100,
+        "step": 5
+      }
+    }
+  },
+  "launch": {
+    "action": "launch",
+    "value": 90,
+    "_params": {
+      "value": {
+        "label": "Altura",
+        "unit": "raw",
+        "scale": 1,
+        "min": 30,
+        "max": 150,
+        "step": 5
+      }
+    }
+  },
+  "metal_cap": {
+    "action": "metal_cap",
+    "duration": 20,
+    "_params": {
+      "duration": {
+        "label": "Segundos",
+        "unit": "seconds",
+        "scale": 1,
+        "min": 3,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "wing_cap": {
+    "action": "wing_cap",
+    "duration": 30,
+    "_params": {
+      "duration": {
+        "label": "Segundos",
+        "unit": "seconds",
+        "scale": 1,
+        "min": 3,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "vanish_cap": {
+    "action": "vanish_cap",
+    "duration": 20,
+    "_params": {
+      "duration": {
+        "label": "Segundos",
+        "unit": "seconds",
+        "scale": 1,
+        "min": 3,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "low_gravity": {
+    "action": "low_gravity",
+    "duration": 20,
+    "_params": {
+      "duration": {
+        "label": "Segundos",
+        "unit": "seconds",
+        "scale": 1,
+        "min": 3,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "high_gravity": {
+    "action": "high_gravity",
+    "duration": 15,
+    "_params": {
+      "duration": {
+        "label": "Segundos",
+        "unit": "seconds",
+        "scale": 1,
+        "min": 3,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "speed_boost": {
+    "action": "speed_boost",
+    "duration": 20,
+    "_params": {
+      "duration": {
+        "label": "Segundos",
+        "unit": "seconds",
+        "scale": 1,
+        "min": 3,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "poison_mushroom": {
+    "action": "poison_mushroom",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "unit": "raw",
+        "scale": 1,
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "shotgun": {
+    "action": "shotgun"
+  },
+  "shotgun_give": {
+    "action": "shotgun_give",
+    "value": 8,
+    "_params": {
+      "value": {
+        "label": "Cartuchos",
+        "unit": "raw",
+        "scale": 1,
+        "min": 1,
+        "max": 24,
+        "step": 1
+      }
+    }
+  },
+  "shotgun_fire": {
+    "action": "shotgun_fire"
+  }
+}
