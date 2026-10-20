@@ -1,4 +1,5 @@
 using System.Globalization;
+using HiveShock.Input;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -37,6 +38,12 @@ public sealed class BridgeOptions
     public string? ProfileId { get; set; }
     /// <summary>Pausa mínima entre envíos TCP al juego (ms). 0 = sin pacing.</summary>
     public int EffectGapMs { get; set; } = 300;
+    /// <summary>
+    /// Cuánto insistir en entregar un efecto si el juego no está disponible (cerrado, cargando, reiniciando) antes
+    /// de darlo por perdido. Cero = no reintentar. Los efectos esperan en orden: un regalo pagado no se pierde por
+    /// un cierre breve del juego.
+    /// </summary>
+    public TimeSpan GameRetryWindow { get; set; } = TimeSpan.FromMinutes(10);
 
     public static BridgeOptions FromEnvironmentAndArgs(string[] args)
     {
@@ -75,6 +82,7 @@ public sealed class BridgeOptions
             DevMode = dev,
             ProfileId = string.IsNullOrWhiteSpace(profile) ? null : profile.Trim(),
             EffectGapMs = Math.Clamp(EnvInt("EFFECT_GAP_MS", 300), 0, 5000),
+            GameRetryWindow = TimeSpan.FromSeconds(Math.Clamp(EnvInt("GAME_RETRY_SECONDS", 600), 0, 3600)),
         };
     }
 
@@ -498,14 +506,17 @@ public sealed class EffectCatalog
     private readonly Dictionary<string, string> _labels;
     private readonly HashSet<string> _enemyEffectIds;
     private readonly HashSet<string> _singletonEffectIds;
+    private volatile KeyMacroCatalog _macros;
 
     public EffectCatalog(
         Dictionary<string, Dictionary<string, JsonElement>> effects,
         IReadOnlyDictionary<string, string>? labels = null,
         IEnumerable<string>? enemyEffects = null,
-        IEnumerable<string>? singletonEffects = null)
+        IEnumerable<string>? singletonEffects = null,
+        KeyMacroCatalog? macros = null)
     {
         _effects = effects;
+        _macros = macros ?? KeyMacroCatalog.Empty;
         _labels = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (labels != null)
         {
@@ -527,7 +538,7 @@ public sealed class EffectCatalog
             StringComparer.OrdinalIgnoreCase);
     }
 
-    public static EffectCatalog Load(string path, GameProfileInfo? profile = null)
+    public static EffectCatalog Load(string path, GameProfileInfo? profile = null, KeyMacroCatalog? macros = null)
     {
         var json = File.ReadAllText(path, Encoding.UTF8);
         var parsed = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, JsonElement>>>(
@@ -537,15 +548,36 @@ public sealed class EffectCatalog
             parsed,
             profile?.Labels,
             profile?.EnemyEffects,
-            profile?.SingletonEffects);
+            profile?.SingletonEffects,
+            macros);
     }
 
-    public IEnumerable<string> Ids => _effects.Keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase);
+    /// <summary>
+    /// Cambia las macros en caliente. El catálogo es el mismo objeto que usa el dispatcher del puente en marcha,
+    /// así que las macros editadas valen al instante sin reconectar.
+    /// </summary>
+    public void SetMacros(KeyMacroCatalog macros) => _macros = macros;
 
-    public int Count => _effects.Count;
+    public IReadOnlyCollection<KeyMacro> Macros => _macros.All;
+
+    /// <summary>Efectos del juego más macros de teclas (un efecto de effects.json con el mismo id gana).</summary>
+    public IEnumerable<string> Ids => _effects.Keys
+        .Concat(_macros.All.Select(m => m.Id).Where(id => !_effects.ContainsKey(id)))
+        .OrderBy(x => x, StringComparer.OrdinalIgnoreCase);
+
+    public int Count => Ids.Count();
 
     public bool Contains(string effectId) =>
-        !string.IsNullOrWhiteSpace(effectId) && _effects.ContainsKey(effectId);
+        !string.IsNullOrWhiteSpace(effectId) && (_effects.ContainsKey(effectId) || _macros.Contains(effectId));
+
+    /// <summary>Macro de teclas con ese id; false si no existe o si effects.json define un efecto con ese id.</summary>
+    public bool TryGetMacro(string effectId, out KeyMacro macro)
+    {
+        macro = null!;
+        return !string.IsNullOrWhiteSpace(effectId) &&
+               !_effects.ContainsKey(effectId) &&
+               _macros.TryGet(effectId, out macro);
+    }
 
     public bool IsSingletonEffect(string effectId) =>
         _singletonEffectIds.Contains(effectId);
@@ -554,7 +586,7 @@ public sealed class EffectCatalog
     {
         if (!_effects.TryGetValue(effectId, out var template))
         {
-            return null;
+            return TryGetMacro(effectId, out _) ? "keys" : null;
         }
 
         if (template.TryGetValue("action", out var action) && action.ValueKind == JsonValueKind.String)
@@ -567,6 +599,11 @@ public sealed class EffectCatalog
 
     public string Describe(string effectId)
     {
+        if (TryGetMacro(effectId, out var macro))
+        {
+            return string.IsNullOrWhiteSpace(macro.Label) ? $"Teclas: {macro.Id}" : macro.Label;
+        }
+
         var action = GetAction(effectId) ?? effectId;
         if (_labels.TryGetValue(action, out var byAction))
         {
@@ -628,6 +665,12 @@ public sealed class EffectCatalog
 
         if (!_effects.TryGetValue(effectId, out var template))
         {
+            if (_macros.Contains(effectId))
+            {
+                // Macro de teclas: no tiene comando TCP; la ejecuta el KeyMacroRunner.
+                return null;
+            }
+
             Console.Error.WriteLine($"[{ProductInfo.Name}] Efecto desconocido: {effectId}");
             return null;
         }

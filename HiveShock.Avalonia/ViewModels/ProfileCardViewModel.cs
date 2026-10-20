@@ -13,7 +13,11 @@ public sealed partial class ProfileCardViewModel : ObservableObject
             ? profile.Info.HelpNotes
             : profile.Info.Description;
         _isSelected = selected;
+        IsCustom = profile.IsCustom;
     }
+
+    /// <summary>Perfil propio del usuario (no del catálogo de juegos).</summary>
+    public bool IsCustom { get; }
 
     public string Id { get; }
     public string Title { get; }

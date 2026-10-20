@@ -131,6 +131,13 @@ jobs:
           )
           PY
 
+      - name: Sumas SHA-256
+        run: |
+          set -euo pipefail
+          cd artifacts
+          sha256sum * | grep -v SHA256SUMS.txt > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
       - name: Crear release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

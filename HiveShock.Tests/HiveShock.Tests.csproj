@@ -18,10 +18,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <!-- Core + Piper (net10.0): las pruebas usan dobles (fakes) de micrófono, audio y motores, así corren en Linux/CI. -->
+  <!-- Core (net10.0): las pruebas corren en Linux/CI. -->
   <ItemGroup>
     <ProjectReference Include="..\HiveShock.Core\HiveShock.Core.csproj" />
-    <ProjectReference Include="..\HiveShock.Voice.Piper\HiveShock.Voice.Piper.csproj" />
   </ItemGroup>
 
 </Project>

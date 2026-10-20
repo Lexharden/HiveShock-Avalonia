@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using HiveShock.Logging;
 
 namespace HiveShock.Configuration;
 
@@ -109,9 +110,27 @@ public sealed class GiftFileEditor
 
     public void Load()
     {
-        var text = File.ReadAllText(_path, Encoding.UTF8);
-        _root = JsonNode.Parse(text, new JsonNodeOptions { PropertyNameCaseInsensitive = true }) as JsonObject
-                ?? throw new InvalidDataException("gifts.json inválido");
+        static JsonObject? Parse(string text)
+        {
+            try
+            {
+                return JsonNode.Parse(text, new JsonNodeOptions { PropertyNameCaseInsensitive = true }) as JsonObject;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
+        // Si el archivo está cortado o vacío se recupera el respaldo en vez de abrir la app sin nada.
+        var text = AtomicFile.ReadAllTextWithBackup(_path, t => Parse(t) != null, out var usedBackup)
+                   ?? throw new InvalidDataException("gifts.json inválido");
+        if (usedBackup)
+        {
+            BridgeLog.Warn("gifts.json estaba dañado: se recuperó la copia anterior (.bak).");
+        }
+
+        _root = Parse(text) ?? throw new InvalidDataException("gifts.json inválido");
 
         _gifts = [];
         if (_root["gifts"] is JsonArray arr)
@@ -143,7 +162,8 @@ public sealed class GiftFileEditor
             WriteIndented = true,
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         });
-        File.WriteAllText(_path, json + Environment.NewLine, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        // Atómico + .bak: un cierre a mitad de escritura no deja gifts.json cortado (y sin comandos).
+        AtomicFile.WriteAllText(_path, json + Environment.NewLine);
     }
 
     private void LoadLiveEvents()
@@ -306,12 +326,13 @@ public sealed class GiftFileEditor
         var cmds = new JsonObject();
         foreach (var cmd in ChatCommands)
         {
-            if (string.IsNullOrWhiteSpace(cmd.Word) || string.IsNullOrWhiteSpace(cmd.Effect))
+            // Un comando sin efecto («Ninguno») se conserva: borrarlo en silencio al guardar era perder lo escrito.
+            if (string.IsNullOrWhiteSpace(cmd.Word))
             {
                 continue;
             }
 
-            cmds[cmd.Word.Trim()] = cmd.Effect.Trim();
+            cmds[cmd.Word.Trim()] = (cmd.Effect ?? "").Trim();
         }
 
         chat["commands"] = cmds;
@@ -329,12 +350,12 @@ public sealed class GiftFileEditor
         var twCmds = new JsonObject();
         foreach (var cmd in TwitchChatCommands)
         {
-            if (string.IsNullOrWhiteSpace(cmd.Word) || string.IsNullOrWhiteSpace(cmd.Effect))
+            if (string.IsNullOrWhiteSpace(cmd.Word))
             {
                 continue;
             }
 
-            twCmds[cmd.Word.Trim()] = cmd.Effect.Trim();
+            twCmds[cmd.Word.Trim()] = (cmd.Effect ?? "").Trim();
         }
 
         twChat["commands"] = twCmds;

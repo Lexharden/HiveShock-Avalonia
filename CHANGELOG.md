@@ -1,8 +1,92 @@
-# Changelog
+﻿# Changelog
 
 Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.props`.
 
 ## [Unreleased]
+
+### Super Mario 64
+* **Nuevo perfil «Super Mario 64 (Ghostship)».** 37 efectos: cáscara de plátano, escopeta (se equipa al pasar y dispara con L), enemigos (Goomba, Bob-omb, Chuckya que persigue por todo el terreno, hongo venenoso, Amp, Fly Guy, bolas de boliche), efectos sobre Mario (fuego, descarga, empujón, lanzamiento, gorras) y temporales (gravedad baja o alta, turbo). Incluye regalos de ejemplo y las etiquetas en español.
+* Se activa en Ghostship desde **Network > HiveShock**. Las muertes de Mario vuelven al puente por el puerto de eventos (43002).
+
+## [2.5.1] - 2026-10-16
+
+### Guardado
+* **Arreglo:** los comandos (y las reglas de bits, likes, seguir, compartir, regalos y metas) podían perder su efecto al cambiar de página, por ejemplo de Twitch a TikTok. Los selectores de efecto devolvían un valor vacío al quedarse sin opciones y el guardado automático lo tomaba como una edición. Ahora ese vacío se ignora.
+* Un comando sin efecto («Ninguno») ya no se borra al guardar: conserva su palabra. En vivo no hace nada ni gasta el tiempo de espera del espectador.
+
+## [2.5.0] - 2026-10-16
+
+### Perfiles propios
+* **Nuevo botón «+ Nuevo perfil» en Inicio.** Crea un perfil tuyo, sin juego del catálogo: solo comandos de chat y macros de teclas. Puede empezar en blanco, con un comando de ejemplo (`!saltar`) o como copia del perfil actual.
+* Los perfiles propios se guardan en tu carpeta de datos, así que las actualizaciones no los tocan. Llevan la etiqueta PROPIO y se pueden borrar (la carpeta se mueve a `profiles-deleted` por si fue un error). Los perfiles del catálogo no se pueden borrar.
+* El perfil activo se ve siempre en la barra superior, para saber a qué perfil pertenecen los regalos, comandos y metas que editas.
+* La página Eventos avisa en rojo de los comandos o reglas cuyo efecto ya no existe (por ejemplo, si borraste la macro a la que apuntaban).
+
+### Teclas
+* **Las macros y la ventana del juego ahora son globales:** ya no dependen del perfil elegido. Se guardan en `macros.json` en tu carpeta de datos (con una copia junto al programa). La primera vez se importan las del perfil activo; los `keys.json` antiguos no se tocan.
+
+### Guardado
+* **Arreglo:** los comandos y las macros recién creados podían perderse al cambiar de pestaña, cambiar de juego o cerrar la app. Ahora lo pendiente de todos los editores se guarda antes de navegar, cambiar de perfil, guardar el perfil o los efectos, y al cerrar; si algo no se puede guardar se avisa en vez de perderlo en silencio.
+* Recargar desde disco ya no pisa lo que acabas de escribir, y un guardado en espera ya no se escribe en el perfil equivocado.
+* **Escritura segura:** `gifts.json`, `profile.json`, `effects.json` y `active-profile.txt` se escriben a un temporal y se reemplazan, dejando la copia anterior como `.bak`. Si un archivo queda cortado o vacío, se recupera el `.bak` y el dañado se conserva como `.corrupt`.
+
+## [2.4.1] - 2026-10-15
+
+### Actualizaciones
+* **HiveShock ya no descarga nada por su cuenta.** Solo te avisa de que hay una versión nueva (chip arriba, punto en el menú y línea en «Qué está pasando»); la versión se descarga, se verifica e instala cuando tú pulsas Instalar. Se retira la casilla «Descargar solo la versión nueva en segundo plano».
+
+## [2.4.0] - 2026-10-15
+
+### Teclas
+* **Nueva página «Teclas»** (solo Windows): crea macros que pulsan teclas en la ventana del juego. Cada macro es una secuencia de pasos (pulsar, mantener, dejar pulsada, soltar) con repeticiones, esperas y una variación aleatoria opcional de los tiempos.
+* **Cada macro es un efecto más:** aparece en los selectores de Regalos, Chat y Eventos, así que `!saltar`, un regalo, bits, un follow o una meta pueden disparar teclas. Mantienen el cooldown, el anti-spam, el bloqueo de espectadores y la pausa de emergencia que ya tenían.
+* **Funciona aunque estés en otra ventana:** HiveShock trae el juego al frente, envía las teclas y te devuelve a la ventana que estabas usando. Si hay macros seguidas, no te devuelve el foco entre una y otra.
+* **Ventana del juego por perfil** (proceso, parte del título o expresión regular), con selector de ventanas abiertas y un indicador de estado: lista, minimizada, no encontrada o juego ejecutándose como administrador (en ese caso Windows exige que HiveShock también lo sea; se avisa).
+* **Atajo global opcional por macro** (por ejemplo `Ctrl+Alt+F5`) para lanzarla a mano desde cualquier ventana. Exige un modificador para no quitarle esa tecla al juego; si otra aplicación ya lo usa, se avisa.
+* **Sin teclas pegadas:** al cancelar, fallar, pausar o cerrar, se sueltan todas las teclas que la macro dejó pulsadas. Hay un tope de duración por macro.
+* **Combinaciones bloqueadas por defecto:** Win, Alt+F4, Alt+Tab, Ctrl+Alt+Supr y Ctrl+Esc; se pueden permitir en una macro concreta.
+* Los cambios en las macros valen al instante, también con el puente conectado. Se guardan en `keys.json` dentro de la carpeta del perfil.
+* Arreglo: guardar el perfil desde su editor ya no borra la ventana del juego de `profile.json`.
+
+## [2.3.1] - 2026-10-12
+
+### Actualizaciones
+* La lista de versiones ya no muestra el botón «Ver en GitHub»: cada versión solo ofrece instalarla.
+
+## [2.3.0] - 2026-10-12
+
+### Actualizaciones
+* **Nueva página «Actualizaciones»** (menú INFO). HiveShock consulta los releases de GitHub al abrir y cada pocas horas, y avisa con un chip «Nueva versión X» arriba, un punto en el menú y una línea en «Qué está pasando». Un solo aviso por versión; puedes omitir una.
+* **Descarga sola en segundo plano** la última versión estable y la verifica (SHA-256 y zip completo); instalar es siempre un clic tuyo: HiveShock nunca se cierra solo en medio de un directo. Se reanuda si se corta la conexión.
+* **Instala la última o cualquier versión publicada**, incluida una anterior (con confirmación). Casilla para incluir versiones de prueba (alpha, beta, rc), apagada por defecto.
+* **A prueba de fallos:** se respalda lo que se va a reemplazar, tus perfiles, regalos, metas y credenciales no se tocan, y si la versión nueva no arranca bien se restaura la anterior sola y te lo cuenta. Funciona en Windows, macOS y Linux (en macOS y Linux se ha cubierto con pruebas automáticas; confirma en un equipo real).
+* Los releases publican un `SHA256SUMS.txt`. Para instalar 2.3.0 hay que hacerlo a mano una vez: las versiones anteriores no traen el actualizador.
+
+## [2.2.0] - 2026-10-08
+
+HiveShock vuelve a ser solo el puente entre tu live y el juego. La **voz** y **Zeldatón** (con su cronómetro) salen de este programa; la voz pasará a ser una app aparte. Se quedan todas las mejoras que no dependían de ellas.
+
+### Retirado
+* **Voz (Smart TTS)**: página Voz, motores Edge, Piper y Windows, micrófono y atajos. Con esto HiveShock compila un único `net10.0` para Windows, macOS y Linux.
+* **Zeldatón**: conexión con el servidor de la carrera, reloj oficial, cierre del juego, tiempo por donaciones y el cronómetro en pantalla.
+* Los archivos que dejaron esas funciones en tu carpeta de datos se ignoran y no estorban.
+
+### Moderación
+* **Pausa de emergencia** (botón en la barra de arriba y en Moderación): los espectadores dejan de activar efectos y metas, y lo que ya esperaba turno se descarta. No se guarda: al abrir HiveShock siempre empieza reanudada. Las pruebas del streamer no se ven afectadas.
+* **Lista de bloqueo** (nueva página Moderación): ves quién activó efectos hace poco y lo bloqueas con un clic, o bloqueas por @usuario (TikTok o Twitch). Se reconoce por su **id**, así que cambiar de @usuario no lo libra, y otra persona que se quede con ese @usuario no queda bloqueada. Un bloqueado no activa efectos ni metas y no cuenta como seguidor.
+* **Anti-spam de seguir más difícil de esquivar**: el efecto de seguir se decide por el id de la persona. Cambiar de @usuario ya no permite repetir el efecto, y un evento sin id se reconoce por el @usuario recordado. Si la plataforma no manda ni id ni @usuario, el follow pasa sin recordarse (y se avisa una vez) en vez de bloquear a inocentes con el mismo nombre.
+
+### Cola de enemigos y entrega
+* **Los enemigos de los regalos ya no se pierden ni se borran para hacer sitio.** El juego (Shipwright) lleva un presupuesto de carga (`gRemote.HiveShock.MaxLoad`, 14 por defecto; cada enemigo pesa 1–4): los que no caben esperan en orden y entran conforme mueren otros. La cola sobrevive a cambios de escena, los enemigos vivos te siguen a la siguiente escena y la cola se guarda en disco (caduca a las 12 h). Ver `docs/spawn-queue.md`.
+* **Reintentos si el juego está cerrado:** cada efecto se reintenta hasta `GAME_RETRY_SECONDS` (600 s por defecto; 0 = no reintentar) en vez de perderse. La pausa de emergencia sigue descartando lo pendiente.
+* Nuevos eventos del juego `spawn_queue` (disponible en `BridgeRuntime.SpawnQueue`) y `spawn_rejected`, y acción `clear_queue`.
+
+### Efectos y guardado
+* Nuevo efecto **Ralentizar a Link** (`slow_down`) en el perfil Ocarina of Time: baja la velocidad de Link durante unos segundos (intensidad ajustable de 0.2 a 0.9).
+* **Guardado automático** en Regalos, Metas y Eventos con una etiqueta que dice si se guardó (verde), está pendiente (dorada) o falló (roja). Se puede desactivar.
+* Metas: botón **Del catálogo** para añadir regalos a una meta.
+* **Anti-spam de seguir**: cada usuario dispara el efecto de seguir una sola vez (TikTok y Twitch), aunque siga y deje de seguir en bucle. Se recuerda entre directos; opción y botón «Olvidar seguidores» en Eventos.
+* Limpiar la caché de imágenes de regalos ya no provoca «Cannot access a disposed object» en los overlays.
 
 ## [2.1.2-alpha.1] - 2026-09-26
 

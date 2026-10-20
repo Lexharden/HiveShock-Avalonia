@@ -25,10 +25,28 @@ public sealed partial class EventsViewModel : ViewModelBase
     public SaveStatusViewModel SaveStatus => _shell.Gifts.SaveStatus;
 
     [ObservableProperty] private string _likesEveryText = "0";
-    [ObservableProperty] private string _likesEffect = "";
-    [ObservableProperty] private string _followEffect = "";
+    private string _likesEffect = "";
+
+    public string LikesEffect
+    {
+        get => _likesEffect;
+        set => SetEffectId(ref _likesEffect, value);
+    }
+    private string _followEffect = "";
+
+    public string FollowEffect
+    {
+        get => _followEffect;
+        set => SetEffectId(ref _followEffect, value);
+    }
     [ObservableProperty] private bool _followOncePerUser = true;
-    [ObservableProperty] private string _shareEffect = "";
+    private string _shareEffect = "";
+
+    public string ShareEffect
+    {
+        get => _shareEffect;
+        set => SetEffectId(ref _shareEffect, value);
+    }
     [ObservableProperty] private bool _chatEnabled;
     [ObservableProperty] private string _chatPrefix = "!";
     [ObservableProperty] private string _chatCooldownText = "30";
@@ -38,7 +56,13 @@ public sealed partial class EventsViewModel : ViewModelBase
     [ObservableProperty] private string _twitchChatPrefix = "!";
     [ObservableProperty] private string _twitchChatCooldownText = "30";
     [ObservableProperty] private string _twitchChatGlobalGapText = "2";
-    [ObservableProperty] private string _twitchFollowEffect = "";
+    private string _twitchFollowEffect = "";
+
+    public string TwitchFollowEffect
+    {
+        get => _twitchFollowEffect;
+        set => SetEffectId(ref _twitchFollowEffect, value);
+    }
     [ObservableProperty] private ChatCommandRowViewModel? _selectedTwitchCommand;
     [ObservableProperty] private BitsRowViewModel? _selectedBitsRule;
 
@@ -50,6 +74,42 @@ public sealed partial class EventsViewModel : ViewModelBase
     public ObservableCollection<BitsRowViewModel> TwitchBits { get; } = [];
 
     public void NotifyEffects() => OnPropertyChanged(nameof(EffectsWithNone));
+
+    [ObservableProperty] private string _brokenText = "";
+
+    public bool HasBroken => BrokenText.Length > 0;
+
+    partial void OnBrokenTextChanged(string value) => OnPropertyChanged(nameof(HasBroken));
+
+    /// <summary>
+    /// Avisa de comandos y reglas cuyo efecto ya no existe (p. ej. se borró la macro a la que apuntaban):
+    /// en vivo no harían nada y nadie lo notaría.
+    /// </summary>
+    public void RefreshBroken()
+    {
+        var known = _shell.EffectChoices.Select(e => e.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        bool Missing(string? effect) => !string.IsNullOrWhiteSpace(effect) && !known.Contains(effect.Trim());
+
+        var broken = new List<string>();
+        broken.AddRange(ChatCommands.Where(c => Missing(c.Effect)).Select(c => $"{ChatPrefix}{c.Word} → {c.Effect}"));
+        broken.AddRange(TwitchChatCommands.Where(c => Missing(c.Effect)).Select(c => $"Twitch {TwitchChatPrefix}{c.Word} → {c.Effect}"));
+        broken.AddRange(TwitchBits.Where(b => Missing(b.Effect)).Select(b => $"Bits {b.MinText} → {b.Effect}"));
+        foreach (var (what, effect) in new[]
+                 {
+                     ("Likes", LikesEffect), ("Seguir", FollowEffect), ("Compartir", ShareEffect),
+                     ("Seguir en Twitch", TwitchFollowEffect),
+                 })
+        {
+            if (Missing(effect))
+            {
+                broken.Add($"{what} → {effect}");
+            }
+        }
+
+        BrokenText = broken.Count == 0
+            ? ""
+            : "Sin efecto (la macro o el efecto ya no existe): " + string.Join(" · ", broken);
+    }
 
     public void LoadFromEditor(GiftFileEditor editor)
     {
@@ -95,6 +155,7 @@ public sealed partial class EventsViewModel : ViewModelBase
         }
 
         SelectedBitsRule = TwitchBits.FirstOrDefault();
+        RefreshBroken();
     }
 
     public void ApplyToEditor(GiftFileEditor editor)

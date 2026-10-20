@@ -34,6 +34,9 @@ public sealed partial class StudioViewModel : ViewModelBase
 
     public IReadOnlyList<ProfileCardViewModel> Profiles { get; private set; } = [];
 
+    /// <summary>El perfil activo es uno propio: se puede borrar.</summary>
+    public bool ActiveIsCustom => _shell.Runtime.Profile.IsCustom;
+
     [ObservableProperty] private string _channel = "";
     [ObservableProperty] private BridgeRunMode _selectedMode = BridgeRunMode.Live;
     [ObservableProperty] private bool _simulate;
@@ -221,6 +224,7 @@ public sealed partial class StudioViewModel : ViewModelBase
             .Select(p => new ProfileCardViewModel(p, p.Id == _shell.Runtime.Profile.Id))
             .ToList();
         OnPropertyChanged(nameof(Profiles));
+        OnPropertyChanged(nameof(ActiveIsCustom));
         GameStatus = $"Listo: {_shell.Runtime.Profile.ShortDisplayName}.";
         RefreshCapabilities();
     }
@@ -650,6 +654,81 @@ public sealed partial class StudioViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private async Task NewProfileAsync()
+    {
+        if (_shell.IsRunning)
+        {
+            _shell.Dialogs.Info("Nuevo perfil", "Primero desconecta para crear o cambiar de perfil.");
+            return;
+        }
+
+        var request = await _shell.Dialogs.NewProfileAsync(_shell.Runtime.Profile.ShortDisplayName);
+        if (request is not { } req)
+        {
+            return;
+        }
+
+        // Lo pendiente se guarda en el perfil de origen antes de crear (la copia parte de lo guardado) y de cambiar.
+        if (!_shell.FlushPendingEdits("Nuevo perfil"))
+        {
+            return;
+        }
+
+        try
+        {
+            var created = _shell.Runtime.CreateProfile(req.Name, req.Template);
+            _shell.Runtime.SwitchProfile(created.Id);
+            _shell.OnProfileChanged();
+            BridgeLog.Info($"Perfil propio creado: {created.DisplayName}");
+        }
+        catch (Exception ex)
+        {
+            _shell.Dialogs.Error("Nuevo perfil", ex.Message);
+            RefreshProfiles();
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteProfileAsync()
+    {
+        var profile = _shell.Runtime.Profile;
+        if (!profile.IsCustom)
+        {
+            return;
+        }
+
+        if (_shell.IsRunning)
+        {
+            _shell.Dialogs.Info("Borrar perfil", "Primero desconecta para borrar un perfil.");
+            return;
+        }
+
+        if (!await _shell.Dialogs.ConfirmAsync(
+                "Borrar perfil",
+                $"¿Quitar «{profile.DisplayName}»? Sus comandos y regalos dejarán de estar disponibles. " +
+                "Las macros de teclas no se tocan (son de todos los perfiles)."))
+        {
+            return;
+        }
+
+        if (!_shell.FlushPendingEdits("Borrar perfil"))
+        {
+            return;
+        }
+
+        try
+        {
+            _shell.Runtime.DeleteProfile(profile.Id);
+            _shell.OnProfileChanged();
+        }
+        catch (Exception ex)
+        {
+            _shell.Dialogs.Error("Borrar perfil", ex.Message);
+            RefreshProfiles();
+        }
+    }
+
+    [RelayCommand]
     private void SelectProfile(ProfileCardViewModel? card)
     {
         if (card == null)
@@ -665,6 +744,13 @@ public sealed partial class StudioViewModel : ViewModelBase
         if (_shell.IsRunning)
         {
             _shell.Dialogs.Info("Cambia de juego", "Primero desconecta para elegir otro juego.");
+            return;
+        }
+
+        // Lo pendiente se guarda en el perfil de origen ANTES de cambiar; si no, se escribiría en el nuevo.
+        if (!_shell.FlushPendingEdits("Juego"))
+        {
+            RefreshProfiles();
             return;
         }
 

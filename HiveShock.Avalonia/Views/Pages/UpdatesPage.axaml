@@ -1,0 +1,97 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+             x:Class="HiveShock.Avalonia.Views.Pages.UpdatesPage"
+             x:DataType="vm:UpdatesViewModel">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+            <TextBlock Classes="pageTitle" Text="Actualizaciones" />
+            <TextBlock Classes="pageLead"
+                       Text="HiveShock busca las versiones publicadas, te avisa cuando hay una versión nueva y solo la descarga e instala cuando tú lo decides. Tus perfiles, regalos, metas y credenciales no se tocan." />
+
+            <TextBlock Classes="sectionTitle" Text="ESTADO" />
+            <Border Classes="card" Margin="0,0,0,16">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding CurrentVersionText}" FontSize="12"
+                               Foreground="{DynamicResource MutedBrush}" />
+                    <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold" FontSize="15" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding StatusDetail}" FontSize="12" TextWrapping="Wrap"
+                               Foreground="{DynamicResource MutedBrush}"
+                               IsVisible="{Binding StatusDetail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}"
+                                 IsVisible="{Binding ShowProgress}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                        <Button Content="{Binding InstallLatestText}"
+                                Command="{Binding InstallLatestCommand}"
+                                IsVisible="{Binding HasUpdate}"
+                                IsEnabled="{Binding !IsBusy}" />
+                        <Button Classes="secondary" Content="Buscar actualizaciones"
+                                Command="{Binding CheckNowCommand}"
+                                IsEnabled="{Binding !IsBusy}" />
+                        <Button Classes="secondary" Content="Omitir esta versión"
+                                Command="{Binding SkipLatestCommand}"
+                                IsVisible="{Binding HasUpdate}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Classes="sectionTitle" Text="AJUSTES" />
+            <Border Classes="card" Margin="0,0,0,16">
+                <StackPanel Spacing="6">
+                    <CheckBox IsChecked="{Binding CheckOnStart}"
+                              Content="Buscar actualizaciones al abrir HiveShock y cada pocas horas" />
+                    <CheckBox IsChecked="{Binding IncludePrereleases}"
+                              Content="Incluir versiones de prueba (alpha, beta, rc)" />
+                    <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"
+                               Text="HiveShock no descarga ni instala nada por su cuenta: solo te avisa. Al pulsar Instalar se descarga la versión, se verifica y empieza la instalación. Si la versión nueva no arranca bien, se restaura la anterior automáticamente." />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Classes="sectionTitle" Text="VERSIONES PUBLICADAS" />
+            <Border Classes="card" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Todavía no hay lista. Pulsa «Buscar actualizaciones»."
+                               Foreground="{DynamicResource MutedBrush}"
+                               IsVisible="{Binding !HasRows}" />
+                    <ItemsControl ItemsSource="{Binding Rows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ReleaseRow">
+                                <Border Padding="0,10" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Spacing="6" VerticalAlignment="Top"
+                                                    Margin="12,0,0,0">
+                                            <Button Content="{Binding ActionText}"
+                                                    IsVisible="{Binding CanInstall}"
+                                                    CommandParameter="{Binding}"
+                                                    Classes.secondary="{Binding !IsNewer}"
+                                                    Command="{Binding $parent[UserControl].((vm:UpdatesViewModel)DataContext).InstallRowCommand}" />
+                                        </StackPanel>
+                                        <StackPanel Spacing="3">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="{Binding Version}" FontWeight="SemiBold" FontSize="15" />
+                                                <TextBlock Text="{Binding Badge}" FontSize="12" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource BrandGoldBrush}" />
+                                                <TextBlock Text="pre-release" FontSize="12" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource MutedBrush}"
+                                                           IsVisible="{Binding IsPrerelease}" />
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding DateText}" FontSize="12"
+                                                       Foreground="{DynamicResource MutedBrush}" />
+                                            <TextBlock Text="{Binding Unavailable}" FontSize="12"
+                                                       Foreground="{DynamicResource MutedBrush}"
+                                                       IsVisible="{Binding IsUnavailable}" />
+                                            <TextBlock Text="{Binding Notes}" FontSize="12" TextWrapping="Wrap"
+                                                       MaxHeight="120" TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource MutedBrush}"
+                                                       IsVisible="{Binding HasNotes}" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

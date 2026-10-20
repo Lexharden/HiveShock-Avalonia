@@ -6,8 +6,6 @@ using HiveShock.Avalonia.Services;
 using HiveShock.Avalonia.Themes;
 using HiveShock.Hosting;
 using HiveShock.Logging;
-using HiveShock.Voice;
-using HiveShock.Voice.Piper;
 
 namespace HiveShock.Avalonia.ViewModels;
 
@@ -27,7 +25,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Dialogs = dialogs;
         Overlays = overlays;
         Runtime = BridgeRuntime.Create();
-        AttachVoiceIfSupported();
         Prefs = UiPreferences.Load();
         if (Application.Current != null)
         {
@@ -45,9 +42,11 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         ProfileEditor = new ProfileEditorViewModel(this);
         TikTok = new TikTokViewModel(this);
         Twitch = new TwitchViewModel(this);
-        SmartTts = new SmartTtsViewModel(this);
+        Moderation = new ModerationViewModel(this);
+        KeyMacros = new KeyMacrosViewModel(this);
         Help = new HelpViewModel();
         About = new AboutViewModel();
+        Updates = new UpdatesViewModel(this);
         Events.LoadFromEditor(Gifts.Editor);
         Goals.LoadFromEditor(Gifts.Editor);
 
@@ -83,6 +82,8 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         });
         Runtime.Overlay.GiftReceived += OnOverlayGift;
         Runtime.Ports.Changed += OnPortsChanged;
+        ViewerEffectsPaused = Runtime.Guard.IsPaused;
+        Runtime.Guard.PausedChanged += OnViewerPauseChanged;
         BridgeLog.Logged += OnLogged;
         BridgeLog.Init();
         BridgeLog.Info($"UI lista · perfil {Runtime.Profile.DisplayName}");
@@ -91,6 +92,8 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     public BridgeRuntime Runtime { get; }
     public UiPreferences Prefs { get; }
+
+    /// <summary>Lo que muestra el cronómetro en pantalla (reloj oficial o local).</summary>
     public DialogService Dialogs { get; }
     public OverlayService Overlays { get; }
 
@@ -102,9 +105,11 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public ProfileEditorViewModel ProfileEditor { get; }
     public TikTokViewModel TikTok { get; }
     public TwitchViewModel Twitch { get; }
-    public SmartTtsViewModel SmartTts { get; }
+    public ModerationViewModel Moderation { get; }
+    public KeyMacrosViewModel KeyMacros { get; }
     public HelpViewModel Help { get; }
     public AboutViewModel About { get; }
+    public UpdatesViewModel Updates { get; }
 
     public System.Collections.ObjectModel.ObservableCollection<EffectChoice> EffectChoices { get; }
 
@@ -140,13 +145,18 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private string _detailLogText = "";
     [ObservableProperty] private string _selectedThemeId = "system";
     [ObservableProperty] private bool _navExpanded = true;
+    [ObservableProperty] private bool _viewerEffectsPaused;
+
+    public string PauseButtonText => ViewerEffectsPaused ? "▶ Efectos en pausa · Reanudar" : "⏸ Pausar efectos";
 
     public bool IsStudioNav => CurrentPageKey == "studio";
     public bool IsTikTokNav => CurrentPageKey is "tiktok" or "gifts" or "catalog";
     public bool IsTwitchNav => CurrentPageKey == "twitch";
-    public bool IsSmartTtsNav => CurrentPageKey == "voz";
+    public bool IsModerationNav => CurrentPageKey == "moderacion";
+    public bool IsKeyMacrosNav => CurrentPageKey == "teclas";
     public bool IsHelpNav => CurrentPageKey == "help";
     public bool IsAboutNav => CurrentPageKey == "about";
+    public bool IsUpdatesNav => CurrentPageKey == "updates";
     public bool CanInteract => !IsBusy;
     public bool StatusDotVisible => StatusTone is "connecting" or "ok" or "live";
     public bool IsToneIdle => StatusTone == "idle";
@@ -160,6 +170,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     public void Attach()
     {
+        Updates.Start();
         if (Prefs.DeathOverlayEnabled)
         {
             Overlays.ShowCounter(Runtime.DeathCounter, Prefs.ResolveOverlayTitle(), Prefs);
@@ -174,6 +185,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         {
             Overlays.ShowGoals(Runtime.Goals.Snapshots(), Prefs);
         }
+
     }
 
     public void ReloadEffectChoices()
@@ -183,11 +195,63 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         {
             EffectChoices.Add(new EffectChoice(id, label));
         }
+
+        Events?.RefreshBroken();
     }
+
+    /// <summary>
+    /// Pone al día la lista de efectos tras editar macros sin vaciarla: los selectores de regalos y comandos
+    /// no deben perder lo que ya tenían elegido.
+    /// </summary>
+    public void SyncEffectChoices()
+    {
+        var entries = Runtime.Effects.ListEntries();
+        var wanted = entries.Select(e => e.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        for (var i = EffectChoices.Count - 1; i >= 0; i--)
+        {
+            if (!wanted.Contains(EffectChoices[i].Id))
+            {
+                EffectChoices.RemoveAt(i);
+            }
+        }
+
+        var have = EffectChoices.Select(e => e.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var (id, label) in entries.Where(e => !have.Contains(e.Id)))
+        {
+            EffectChoices.Add(new EffectChoice(id, label));
+        }
+
+        Events?.RefreshBroken();
+    }
+
+    /// <summary>
+    /// Guarda lo que haya pendiente en todos los editores (regalos, comandos, metas, teclas…) antes de
+    /// recargar algo desde disco. False si algo no se pudo guardar: entonces NO se debe recargar, o se perdería.
+    /// </summary>
+    public bool FlushPendingEdits(string? warnTitle = null)
+    {
+        if (AutoSaver.FlushAll(out var error))
+        {
+            return true;
+        }
+
+        BridgeLog.Warn($"Cambios sin guardar: {error}");
+        if (warnTitle != null)
+        {
+            Dialogs.Warn(warnTitle, $"Hay cambios sin guardar que no se pudieron guardar ({error}). Corrígelos o guárdalos antes de continuar.");
+        }
+
+        return false;
+    }
+
+    /// <summary>Perfil activo, siempre visible en la barra superior para no confundir a qué perfil pertenece lo que editas.</summary>
+    public string ActiveProfileText => $"Perfil: {Runtime.Profile.ShortDisplayName}";
 
     public void OnProfileChanged()
     {
+        OnPropertyChanged(nameof(ActiveProfileText));
         ReloadEffectChoices();
+        KeyMacros.Load();
         Studio.RefreshProfiles();
         Gifts.Load();
         Catalog.Load();
@@ -249,17 +313,16 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     partial void OnCurrentPageKeyChanged(string value)
     {
+        // Al salir de una página no se queda nada a medias en la cola de guardado.
+        FlushPendingEdits();
         OnPropertyChanged(nameof(IsStudioNav));
         OnPropertyChanged(nameof(IsTikTokNav));
         OnPropertyChanged(nameof(IsTwitchNav));
-        OnPropertyChanged(nameof(IsSmartTtsNav));
+        OnPropertyChanged(nameof(IsModerationNav));
+        OnPropertyChanged(nameof(IsKeyMacrosNav));
         OnPropertyChanged(nameof(IsHelpNav));
         OnPropertyChanged(nameof(IsAboutNav));
-        if (value != "voz")
-        {
-            // La prueba de micrófono solo tiene sentido con el medidor a la vista.
-            SmartTts.StopMicTest();
-        }
+        OnPropertyChanged(nameof(IsUpdatesNav));
     }
 
     public async Task ToggleConnectionAsync()
@@ -323,47 +386,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         }
     }
 
-    /// <summary>
-    /// Arma Smart TTS con las implementaciones concretas de escritorio (viven en
-    /// HiveShock.Desktop) y lo conecta a Runtime. Solo existe en la compilación
-    /// net10.0-windows10.0.19041.0 (HIVESHOCK_WINDOWS_DESKTOP): es el único TFM que
-    /// referencia HiveShock.Desktop, porque NAudio/SharpHook solo exponen WASAPI/WinMM/
-    /// Media Foundation bajo un TFM Windows-versionado. En la compilación net10.0 normal
-    /// (Mac/Linux, y Windows sin -f) este método es un no-op y Runtime.Voice queda en
-    /// null; la página "Voz" lo muestra como no disponible en vez de intentar algo que
-    /// no existe en ese binario.
-    /// </summary>
-    private void AttachVoiceIfSupported()
-    {
-#if HIVESHOCK_WINDOWS_DESKTOP
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
-        try
-        {
-            var settings = TtsSettings.Load();
-            // Orden = preferencia y orden de respaldo: Edge (más natural) → Piper (natural, sin
-            // internet, si está instalado) → Windows (siempre disponible).
-            var engines = new TtsEngineRegistry([new EdgeTtsEngine(), new PiperTtsEngine(), new WindowsTtsEngine()]);
-            var voice = new SmartVoiceManager(
-                new WindowsMicrophoneCapture(),
-                engines,
-                new WindowsAudioPlayer(),
-                new SharpHookGlobalHotkeyListener(),
-                new VoiceActivityDetector(),
-                settings);
-            Runtime.AttachVoice(voice);
-        }
-        catch (Exception ex)
-        {
-            // Sin voz la app sigue siendo útil: la página "Voz" queda como no disponible.
-            BridgeLog.Error($"Smart TTS no se pudo iniciar: {ex.Message}");
-        }
-#endif
-    }
-
     private static string FriendlyStartError(string message)
     {
         if (message.Contains("canal", StringComparison.OrdinalIgnoreCase) ||
@@ -408,10 +430,15 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     public void GoTikTok()
     {
-        Gifts.Load();
+        // Solo se relee de disco si lo editado ya quedó guardado: nunca se pisa lo que acabas de escribir.
+        if (FlushPendingEdits())
+        {
+            Gifts.Load();
+            Events.LoadFromEditor(Gifts.Editor);
+            Goals.LoadFromEditor(Gifts.Editor);
+        }
+
         Catalog.Load();
-        Events.LoadFromEditor(Gifts.Editor);
-        Goals.LoadFromEditor(Gifts.Editor);
         ProfileEditor.Load();
         CurrentPage = TikTok;
         CurrentPageKey = "tiktok";
@@ -419,9 +446,26 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     public void GoTwitch()
     {
-        Events.LoadFromEditor(Gifts.Editor);
+        // El editor solo conoce lo ya guardado: si hay cambios pendientes, lo que hay en pantalla manda.
+        if (FlushPendingEdits())
+        {
+            Events.LoadFromEditor(Gifts.Editor);
+        }
+
         CurrentPage = Twitch;
         CurrentPageKey = "twitch";
+    }
+
+    public void GoModeration()
+    {
+        CurrentPage = Moderation;
+        CurrentPageKey = "moderacion";
+    }
+
+    public void GoKeyMacros()
+    {
+        CurrentPage = KeyMacros;
+        CurrentPageKey = "teclas";
     }
 
     public void GoGifts(bool reload = true)
@@ -439,17 +483,27 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         GoTikTok();
     }
 
-    public void GoSmartTts()
-    {
-        CurrentPage = SmartTts;
-        CurrentPageKey = "voz";
-    }
-
     public void GoHelp()
     {
         CurrentPage = Help;
         CurrentPageKey = "help";
     }
+
+    public void GoUpdates()
+    {
+        CurrentPage = Updates;
+        CurrentPageKey = "updates";
+    }
+
+    /// <summary>La página Actualizaciones avisa de que apareció o desapareció una versión nueva.</summary>
+    public void NotifyUpdateBadge()
+    {
+        OnPropertyChanged(nameof(UpdateBadgeVisible));
+        OnPropertyChanged(nameof(UpdateBadgeText));
+    }
+
+    public bool UpdateBadgeVisible => Updates.BadgeVisible;
+    public string UpdateBadgeText => Updates.BadgeText;
 
     public void GoAbout()
     {
@@ -467,7 +521,13 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     private void NavTwitch() => GoTwitch();
 
     [RelayCommand]
-    private void NavSmartTts() => GoSmartTts();
+    private void NavModeration() => GoModeration();
+
+    [RelayCommand]
+    private void NavKeyMacros() => GoKeyMacros();
+
+    [RelayCommand]
+    private void ToggleViewerEffectsPause() => Runtime.Guard.SetPaused(!Runtime.Guard.IsPaused);
 
     [RelayCommand]
     private void ToggleNav() => NavExpanded = !NavExpanded;
@@ -477,6 +537,9 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     [RelayCommand]
     private void NavAbout() => GoAbout();
+
+    [RelayCommand]
+    private void NavUpdates() => GoUpdates();
 
     [RelayCommand]
     private void ClearActivity()
@@ -489,6 +552,10 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     [RelayCommand]
     private void ClearLog() => ClearActivity();
+
+    partial void OnViewerEffectsPausedChanged(bool value) => OnPropertyChanged(nameof(PauseButtonText));
+
+    private void OnViewerPauseChanged(bool paused) => Dispatch(() => ViewerEffectsPaused = paused);
 
     partial void OnNavExpandedChanged(bool value)
     {
@@ -616,11 +683,16 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         }
 
         _closing = true;
-        Gifts.AutoSaver.FlushIfDirty();
+        if (!AutoSaver.FlushAll(out var flushError))
+        {
+            BridgeLog.Error($"Al cerrar quedaron cambios sin guardar: {flushError}");
+        }
+
         Studio.PersistDeath();
         Overlays.CloseAll(Prefs);
         Runtime.Overlay.GiftReceived -= OnOverlayGift;
         Runtime.Ports.Changed -= OnPortsChanged;
+        Runtime.Guard.PausedChanged -= OnViewerPauseChanged;
         BridgeLog.Logged -= OnLogged;
 
         try

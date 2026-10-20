@@ -1,10 +1,10 @@
 using HiveShock;
 using HiveShock.Configuration;
+using HiveShock.Input;
 using HiveShock.Live;
 using HiveShock.Logging;
 using HiveShock.Networking;
 using HiveShock.Services;
-using HiveShock.Voice;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -26,9 +26,12 @@ public sealed class BridgeRuntime : IAsyncDisposable
     private Task? _runTask;
     private readonly GameTcpClient _gameClient;
     private readonly GameEventServer _events;
+    private readonly CancellationTokenSource _keyCts = new();
+    private Task? _keyPump;
     private EffectCatalog _effects;
     private GiftConfigStore _gifts;
     private LoadedGameProfile _profile;
+    private MacroLibrary _library;
 
     public BridgeOptions Options { get; }
     public EffectCatalog Effects => _effects;
@@ -42,14 +45,20 @@ public sealed class BridgeRuntime : IAsyncDisposable
     public GiftGoalBank Goals { get; } = new();
     public LivePortHub Ports { get; } = new();
 
-    /// <summary>
-    /// Smart TTS, de vida larga como Overlay/Goals. Null en plataformas sin implementación
-    /// todavía (Android, o escritorio no-Windows): quien compone la app (HiveShock.Avalonia)
-    /// decide si hay algo que conectar aquí y lo hace con <see cref="AttachVoice"/> — Core no
-    /// conoce las implementaciones concretas (viven en HiveShock.Desktop) para no arrastrar
-    /// sus dependencias nativas a Android.
-    /// </summary>
-    public SmartVoiceManager? Voice { get; private set; }
+    /// <summary>Teclas hacia la ventana del juego. Vive con el runtime: sirve al puente en marcha y a las pruebas de la UI.</summary>
+    public KeyMacroRunner KeyRunner { get; }
+
+    private readonly IGameInput _keyInput = GameInputFactory.Create();
+    private readonly IGlobalHotkeys _hotkeys = GameInputFactory.CreateHotkeys();
+
+    /// <summary>Atajos de macros que no se pudieron registrar (id de macro → motivo). Vacío si todo va bien.</summary>
+    public IReadOnlyDictionary<string, string> HotkeyProblems { get; private set; } = new Dictionary<string, string>();
+
+    /// <summary>Si este sistema puede enviar teclas a otra ventana (hoy solo Windows).</summary>
+    public bool SupportsKeyInput => OperatingSystem.IsWindows();
+
+    /// <summary>Pausa de emergencia y lista de bloqueo de espectadores. Vive aunque se desconecte el puente.</summary>
+    public ViewerGuard Guard { get; } = new();
 
 #if DEBUG
     public Live.LiveDiagnosticSink Diagnostics { get; } = new();
@@ -84,14 +93,17 @@ public sealed class BridgeRuntime : IAsyncDisposable
         LoadedGameProfile profile,
         EffectCatalog effects,
         GiftConfigStore gifts,
-        GiftCatalogStore catalog)
+        GiftCatalogStore catalog,
+        MacroLibrary library)
     {
         Options = options;
         _profile = profile;
+        _library = library;
         _effects = effects;
         _gifts = gifts;
         Catalog = catalog;
         _gameClient = new GameTcpClient(options);
+        KeyRunner = new KeyMacroRunner(_keyInput, () => _library.Window, () => Options.DryRun);
         _events = new GameEventServer(options);
         _events.EventReceived += OnGameEvent;
         _events.Start();
@@ -103,14 +115,16 @@ public sealed class BridgeRuntime : IAsyncDisposable
         var profile = ProfileStore.LoadActive(options.ProfileId);
         ApplyProfileToOptions(options, profile, forcePortsFromProfile: false);
 
-        var effects = EffectCatalog.Load(profile.EffectsPath, profile.Info);
+        var library = MacroLibraryStore.LoadOrImport(profile);
+        var effects = LoadEffects(profile, library);
         var gifts = new GiftConfigStore(effects);
         gifts.Reload(profile.GiftsPath);
         var catalog = GiftCatalogStore.LoadOrCreate();
 
         BridgeLog.Info($"Perfil activo: {profile.DisplayName} ({profile.Id}) → {options.GameHost}:{options.GamePort}");
-        var runtime = new BridgeRuntime(options, profile, effects, gifts, catalog);
+        var runtime = new BridgeRuntime(options, profile, effects, gifts, catalog, library);
         runtime.Goals.ApplyDefinitions(gifts.Snapshot.Goals);
+        runtime.ApplyHotkeys();
         return runtime;
     }
 
@@ -126,7 +140,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         ProfileStore.SaveActiveId(profile.Id);
         ApplyProfileToOptions(Options, profile, forcePortsFromProfile: true);
 
-        var effects = EffectCatalog.Load(profile.EffectsPath, profile.Info);
+        var effects = LoadEffects(profile, _library);
         var gifts = new GiftConfigStore(effects);
         gifts.Reload(profile.GiftsPath);
 
@@ -137,14 +151,163 @@ public sealed class BridgeRuntime : IAsyncDisposable
         Goals.ResetAll();
         Goals.ApplyDefinitions(_gifts.Snapshot.Goals);
 
+        ApplyHotkeys();
         BridgeLog.Info($"Perfil cambiado: {profile.DisplayName} ({profile.Id}) → {Options.GameHost}:{Options.GamePort}");
         ProfileChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Conecta Smart TTS ya armado (mic/voz/hotkey concretos elegidos por el host de escritorio).</summary>
-    public void AttachVoice(SmartVoiceManager voice) => Voice = voice;
-
     public IReadOnlyList<LoadedGameProfile> ListProfiles() => ProfileStore.ListProfiles();
+
+    /// <summary>Crea un perfil propio (sin cambiar al actual). «Copia» parte del perfil activo.</summary>
+    public LoadedGameProfile CreateProfile(string name, ProfileTemplate template)
+    {
+        var starterMacro = template == ProfileTemplate.Starter ? EnsureStarterMacro() : null;
+        return CustomProfileStore.Create(name, template, template == ProfileTemplate.CopyOf ? _profile : null, starterMacro);
+    }
+
+    /// <summary>Quita un perfil propio. Si es el activo pasa antes a otro. Con el puente detenido.</summary>
+    public void DeleteProfile(string profileId)
+    {
+        if (IsRunning)
+        {
+            throw new InvalidOperationException("Detén el bridge antes de borrar un perfil.");
+        }
+
+        var target = ProfileStore.LoadById(profileId);
+        if (!target.IsCustom)
+        {
+            throw new InvalidOperationException("Solo se pueden borrar los perfiles propios.");
+        }
+
+        if (string.Equals(target.Id, _profile.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            var fallback = ProfileStore.ListProfiles().FirstOrDefault(p => !p.IsCustom)
+                           ?? throw new InvalidOperationException("No hay otro perfil al que cambiar.");
+            SwitchProfile(fallback.Id);
+        }
+
+        CustomProfileStore.Delete(target);
+        BridgeLog.Info($"Perfil propio quitado: {target.DisplayName} (queda en profiles-deleted por si fue un error)");
+    }
+
+    /// <summary>Macro de ejemplo para la plantilla básica: reutiliza la primera que exista o crea una.</summary>
+    private string EnsureStarterMacro()
+    {
+        var existing = _library.Macros.OrderBy(m => m.Label, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+        if (existing != null)
+        {
+            return existing.Id;
+        }
+
+        var sample = new KeyMacro
+        {
+            Id = "teclas_1",
+            Label = "Pulsar Espacio",
+            Steps = [new KeyStep { Key = "Space" }],
+        };
+        SaveMacroLibrary([sample], _library.Window);
+        return sample.Id;
+    }
+
+    /// <summary>Macros de la biblioteca global (no dependen del juego elegido).</summary>
+    public IReadOnlyList<KeyMacro> LoadKeyMacros() =>
+        [.. _library.Macros.OrderBy(m => m.Label, StringComparer.OrdinalIgnoreCase)];
+
+    /// <summary>Ventana a la que se envían las teclas (global, no por perfil).</summary>
+    public WindowTarget? GameWindow => _library.Window;
+
+    /// <summary>
+    /// Guarda la biblioteca (macros + ventana) y deja las macros activas al instante, también con el puente en
+    /// marcha. Si no se puede escribir en disco lanza y NO cambia lo que está activo.
+    /// </summary>
+    public void SaveMacroLibrary(IReadOnlyCollection<KeyMacro> macros, WindowTarget? window)
+    {
+        var library = new MacroLibrary
+        {
+            Window = window is { IsEmpty: false } ? window : null,
+            Macros = [.. macros],
+        };
+        MacroLibraryStore.Save(library);
+        _library = library;
+        _effects.SetMacros(new KeyMacroCatalog(library.Macros));
+        ApplyHotkeys();
+    }
+
+    /// <summary>Registra los atajos globales de las macros del perfil activo (sustituye los anteriores).</summary>
+    public void ApplyHotkeys()
+    {
+        var problems = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var bindings = new List<HotkeyBinding>();
+        foreach (var macro in _effects.Macros.Where(m => !string.IsNullOrWhiteSpace(m.Hotkey)))
+        {
+            if (!HotkeyCombo.TryParse(macro.Hotkey, out var combo))
+            {
+                problems[macro.Id] = $"Atajo «{macro.Hotkey}» no válido.";
+                continue;
+            }
+
+            var id = macro.Id;
+            bindings.Add(new HotkeyBinding(id, combo, () => TryRunMacro(id, "Atajo", "atajo")));
+        }
+
+        foreach (var failure in _hotkeys.Apply(bindings))
+        {
+            problems[failure.Id] = failure.Reason;
+        }
+
+        foreach (var (id, reason) in problems)
+        {
+            BridgeLog.Warn($"Atajo de «{id}»: {reason}");
+        }
+
+        HotkeyProblems = problems;
+    }
+
+
+    public WindowStatus GetGameWindowStatus(WindowTarget window) =>
+        window.IsEmpty ? WindowStatus.NotFound : _keyInput.GetStatus(window);
+
+    /// <summary>Ventanas abiertas para elegir el juego. Vacío fuera de Windows.</summary>
+    public IReadOnlyList<Platform.Windows.WindowInfo> ListGameWindows() =>
+        OperatingSystem.IsWindows() ? Platform.Windows.Win32GameInput.ListWindows() : [];
+
+    /// <summary>Prueba una macro (aunque no esté guardada). Devuelve los errores de validación; vacío = en marcha.</summary>
+    public IReadOnlyList<string> TestKeyMacro(KeyMacro macro)
+    {
+        var errors = KeyMacroValidator.Validate(macro);
+        if (errors.Count == 0)
+        {
+            EnsureKeyPump();
+            KeyRunner.Enqueue(macro, "Prueba", "prueba");
+        }
+
+        return errors;
+    }
+
+    private static EffectCatalog LoadEffects(LoadedGameProfile profile, MacroLibrary library) =>
+        EffectCatalog.Load(profile.EffectsPath, profile.Info, new KeyMacroCatalog(library.Macros));
+
+    /// <summary>Arranca (una sola vez) el bucle que ejecuta las macros de teclas.</summary>
+    private void EnsureKeyPump()
+    {
+        lock (_gate)
+        {
+            _keyPump ??= Task.Run(() => KeyRunner.RunAsync(_keyCts.Token));
+        }
+    }
+
+    /// <summary>Si el efecto es una macro de teclas la ejecuta y devuelve true (pruebas de la UI, que no pasan por el dispatcher).</summary>
+    private bool TryRunMacro(string effectId, string user, string reason)
+    {
+        if (!_effects.TryGetMacro(effectId, out var macro))
+        {
+            return false;
+        }
+
+        EnsureKeyPump();
+        KeyRunner.Enqueue(macro, user, reason);
+        return true;
+    }
 
     public void ReloadGifts()
     {
@@ -154,7 +317,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
     public void ReloadEffectsAndGifts()
     {
-        _effects = EffectCatalog.Load(EffectsPath, _profile.Info);
+        _effects = LoadEffects(_profile, _library);
         _gifts = new GiftConfigStore(_effects);
         _gifts.Reload(GiftsPath);
         Goals.ApplyDefinitions(_gifts.Snapshot.Goals);
@@ -211,6 +374,11 @@ public sealed class BridgeRuntime : IAsyncDisposable
         }
 
         BridgeLog.Info($"Meta {tick.Label} -> {tick.Effect}");
+        if (TryRunMacro(tick.Effect, "Test", "meta"))
+        {
+            return Task.CompletedTask;
+        }
+
         return _gameClient.SendAsync(
             _effects.Resolve(tick.Effect, "Test") ??
             throw new InvalidOperationException($"Efecto desconocido: {tick.Effect}"),
@@ -258,6 +426,11 @@ public sealed class BridgeRuntime : IAsyncDisposable
             BridgeLog.Info($"Meta {tick.Label} {tick.Count}/{tick.Need} ({testerName} +{tick.Added})");
             if (tick.Fired && !string.IsNullOrWhiteSpace(tick.Effect))
             {
+                if (TryRunMacro(tick.Effect, testerName, "meta"))
+                {
+                    BridgeLog.Info($"Meta {tick.Label} -> {tick.Effect}");
+                }
+
                 var goalCmd = _effects.Resolve(tick.Effect, testerName);
                 if (goalCmd != null)
                 {
@@ -300,6 +473,11 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
         for (var i = 0; i < times; i++)
         {
+            if (TryRunMacro(gift.Effect, testerName, "prueba"))
+            {
+                continue;
+            }
+
             var overrides = gift.Params.Count > 0 ? gift.Params : null;
             var cmd = _effects.Resolve(gift.Effect, testerName, overrides);
             if (cmd is null)
@@ -314,8 +492,32 @@ public sealed class BridgeRuntime : IAsyncDisposable
         Overlay.Notify(gift.Gift, gift.Id);
     }
 
+    /// <summary>Último estado de la cola de enemigos que reportó el juego (HiveShock en Shipwright).</summary>
+    public GameSpawnQueue SpawnQueue { get; private set; } = GameSpawnQueue.Empty;
+
+    /// <summary>Cambió <see cref="SpawnQueue"/> (llega desde el hilo del lector de eventos).</summary>
+    public event EventHandler? SpawnQueueChanged;
+
     private void OnGameEvent(object? sender, GameEventArgs e)
     {
+        if (string.Equals(e.Event, "spawn_queue", StringComparison.OrdinalIgnoreCase))
+        {
+            if (e.Data is { } queueData && GameSpawnQueue.TryParse(queueData, out var queue))
+            {
+                SpawnQueue = queue;
+                SpawnQueueChanged?.Invoke(this, EventArgs.Empty);
+            }
+
+            return;
+        }
+
+        if (string.Equals(e.Event, "spawn_rejected", StringComparison.OrdinalIgnoreCase))
+        {
+            var action = e.Data is { } rejected && rejected.TryGetProperty("action", out var a) ? a.GetString() : null;
+            BridgeLog.Warn($"El juego rechazó un spawn ({action ?? "?"}): la cola de enemigos está llena.");
+            return;
+        }
+
         if (!_profile.Info.SupportsDeathEvents)
         {
             return;
@@ -352,6 +554,11 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
     public Task SendEffectAsync(string effectId, string testerName = "Test", CancellationToken ct = default)
     {
+        if (TryRunMacro(effectId, testerName, "prueba"))
+        {
+            return Task.CompletedTask;
+        }
+
         var cmd = _effects.Resolve(effectId, testerName)
                   ?? throw new InvalidOperationException($"Efecto desconocido: {effectId}");
         return _gameClient.SendAsync(cmd, ct);
@@ -462,12 +669,9 @@ public sealed class BridgeRuntime : IAsyncDisposable
         builder.Services.AddSingleton(Overlay);
         builder.Services.AddSingleton(Goals);
         builder.Services.AddSingleton(Ports);
-        if (Voice != null)
-        {
-            builder.Services.AddSingleton(Voice);
-        }
-
+        builder.Services.AddSingleton(Guard);
         builder.Services.AddSingleton(_gameClient);
+        builder.Services.AddSingleton(KeyRunner);
         builder.Services.AddSingleton<EffectDispatcher>();
         builder.Services.AddSingleton<LiveEffectRouter>();
         builder.Services.AddSingleton<CrowdControlServer>();
@@ -481,6 +685,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         builder.Services.AddHostedService<TwitchLiveHostedService>();
 
         var host = builder.Build();
+        EnsureKeyPump();
         var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
         lock (_gate)
@@ -587,9 +792,11 @@ public sealed class BridgeRuntime : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await StopAsync().ConfigureAwait(false);
+        KeyRunner.CancelAll();
+        _hotkeys.Dispose();
+        await _keyCts.CancelAsync().ConfigureAwait(false);
         _events.EventReceived -= OnGameEvent;
         await _events.DisposeAsync().ConfigureAwait(false);
-        Voice?.Dispose();
     }
 
     private static void ApplyProfileToOptions(BridgeOptions options, LoadedGameProfile profile, bool forcePortsFromProfile)

@@ -2,12 +2,20 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace HiveShock.Avalonia.ViewModels;
 
-public sealed partial class GoalRowViewModel : ObservableObject
+public sealed partial class GoalRowViewModel : ViewModelBase
 {
+    private string _effect = "";
+
     [ObservableProperty] private string _goalId = "";
     [ObservableProperty] private string _label = "";
     [ObservableProperty] private string _needText = "2";
-    [ObservableProperty] private string _effect = "";
+
+    public string Effect
+    {
+        get => _effect;
+        set => SetEffectId(ref _effect, value);
+    }
+
     [ObservableProperty] private string _giftsText = "";
     [ObservableProperty] private bool _alsoInstant = true;
     [ObservableProperty] private bool _repeat = true;

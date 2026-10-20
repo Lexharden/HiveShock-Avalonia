@@ -6,7 +6,7 @@ using HiveShock.Configuration;
 
 namespace HiveShock.Avalonia.ViewModels;
 
-public sealed partial class GiftRowViewModel : ObservableObject
+public sealed partial class GiftRowViewModel : ViewModelBase
 {
     private readonly EffectCatalog _effects;
 
@@ -44,7 +44,21 @@ public sealed partial class GiftRowViewModel : ObservableObject
 
     [ObservableProperty] private string _name = "";
     [ObservableProperty] private string _id = "";
-    [ObservableProperty] private string _effect = "";
+    private string _effect = "";
+
+    public string Effect
+    {
+        get => _effect;
+        set
+        {
+            if (SetEffectId(ref _effect, value))
+            {
+                Model.Effect = value;
+                RebuildParamFields();
+                OnPropertyChanged(nameof(ShowInstaKillHint));
+            }
+        }
+    }
     [ObservableProperty] private string _note = "";
     [ObservableProperty] private int _minCount = 1;
     [ObservableProperty] private bool _each;
@@ -68,13 +82,6 @@ public sealed partial class GiftRowViewModel : ObservableObject
     {
         Model.Id = value;
         OnPropertyChanged(nameof(Thumb));
-    }
-
-    partial void OnEffectChanged(string value)
-    {
-        Model.Effect = value;
-        RebuildParamFields();
-        OnPropertyChanged(nameof(ShowInstaKillHint));
     }
 
     partial void OnNoteChanged(string value) => Model.What = value;

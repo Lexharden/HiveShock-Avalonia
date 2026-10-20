@@ -27,6 +27,8 @@
                                 ToolTip.Tip="{Binding Subtitle}">
                             <StackPanel VerticalAlignment="Top">
                                 <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" />
+                                <TextBlock Text="PROPIO" IsVisible="{Binding IsCustom}" FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource MutedBrush}" Margin="0,2,0,0" />
                                 <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource MutedBrush}"
                                            TextWrapping="Wrap" MaxWidth="260" MaxLines="2"
                                            TextTrimming="CharacterEllipsis" Margin="0,6,0,0" FontSize="12" />
@@ -35,6 +37,13 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+            <WrapPanel Margin="0,-8,0,20">
+                <Button Classes="secondary" Content="+ Nuevo perfil" Command="{Binding NewProfileCommand}"
+                        IsEnabled="{Binding CanEditSetup}"
+                        ToolTip.Tip="Perfil propio, sin juego: comandos de chat y macros de teclas." />
+                <Button Classes="secondary" Content="Borrar este perfil" Command="{Binding DeleteProfileCommand}"
+                        IsVisible="{Binding ActiveIsCustom}" IsEnabled="{Binding CanEditSetup}" />
+            </WrapPanel>
 
             <TextBlock Classes="sectionTitle" Text="SESIÓN" />
             <Border Classes="card" Margin="0,0,0,16">

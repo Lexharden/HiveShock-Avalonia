@@ -76,6 +76,8 @@ public sealed partial class GiftsViewModel : ViewModelBase
             _shell.Events?.LoadFromEditor(_editor);
             _shell.Goals?.LoadFromEditor(_editor);
             _shell.Overlays.RefreshGifts(Models);
+            // Lo de pantalla acaba de venir de disco: un guardado en espera ya no tiene nada que escribir.
+            AutoSaver.Discard();
         }
         catch (Exception ex)
         {
@@ -100,6 +102,7 @@ public sealed partial class GiftsViewModel : ViewModelBase
         _shell.Studio.RefreshStats();
         _shell.Overlays.RefreshGifts(Models);
         _shell.Overlays.RefreshGoals(_shell.Runtime.Goals.Snapshots(), _shell.Prefs);
+        _shell.Events?.RefreshBroken();
         if (!automatic)
         {
             BridgeLog.Info("Regalos guardados.");

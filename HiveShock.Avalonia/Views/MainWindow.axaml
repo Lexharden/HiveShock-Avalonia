@@ -37,6 +37,22 @@
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
                             HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="12">
+                    <TextBlock Text="{Binding ActiveProfileText}" FontSize="12" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Foreground="{DynamicResource MutedBrush}"
+                               ToolTip.Tip="Los regalos, comandos y metas que ves pertenecen a este perfil. Las macros de teclas son de todos." />
+                    <Button Classes="secondary" Margin="0" Padding="12,7" VerticalAlignment="Center"
+                            IsVisible="{Binding UpdateBadgeVisible}"
+                            Command="{Binding NavUpdatesCommand}"
+                            ToolTip.Tip="Hay una versión nueva de HiveShock. Pulsa para verla e instalarla.">
+                        <TextBlock Text="{Binding UpdateBadgeText}" FontWeight="SemiBold" FontSize="12"
+                                   Foreground="{DynamicResource BrandGoldBrush}" />
+                    </Button>
+                    <Button Classes="secondary" Classes.danger="{Binding ViewerEffectsPaused}"
+                            Margin="0" Padding="12,7" VerticalAlignment="Center"
+                            Command="{Binding ToggleViewerEffectsPauseCommand}"
+                            ToolTip.Tip="Pausa de emergencia: los espectadores dejan de activar efectos en el juego. Se reanuda sola al reabrir HiveShock.">
+                        <TextBlock Text="{Binding PauseButtonText}" FontWeight="SemiBold" FontSize="12" />
+                    </Button>
                     <ComboBox Width="150"
                               ItemsSource="{Binding ThemeOptions}"
                               SelectedItem="{Binding SelectedTheme}">
@@ -135,6 +151,20 @@
                                 <TextBlock Text="Ayuda" IsVisible="{Binding NavExpanded}" />
                             </Panel>
                         </Button>
+                        <Button Classes="nav" Classes.active="{Binding IsUpdatesNav}"
+                                Classes.compact="{Binding NavCollapsed}"
+                                Command="{Binding NavUpdatesCommand}" ToolTip.Tip="Actualizaciones">
+                            <Panel>
+                                <TextBlock Text="Up" HorizontalAlignment="Center"
+                                           IsVisible="{Binding NavCollapsed}" />
+                                <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding NavExpanded}">
+                                    <TextBlock Text="Actualizaciones" />
+                                    <TextBlock Text="●" FontSize="10" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource BrandGoldBrush}"
+                                               IsVisible="{Binding UpdateBadgeVisible}" />
+                                </StackPanel>
+                            </Panel>
+                        </Button>
                         <Button Classes="nav" Classes.active="{Binding IsAboutNav}"
                                 Classes.compact="{Binding NavCollapsed}"
                                 Command="{Binding NavAboutCommand}" ToolTip.Tip="Acerca de">
@@ -173,18 +203,22 @@
                                 <TextBlock Text="Twitch" IsVisible="{Binding NavExpanded}" />
                             </Panel>
                         </Button>
-                        <Button Classes="nav" Classes.active="{Binding IsSmartTtsNav}"
+                        <Button Classes="nav" Classes.active="{Binding IsModerationNav}"
                                 Classes.compact="{Binding NavCollapsed}"
-                                Command="{Binding NavSmartTtsCommand}" ToolTip.Tip="Voz (Alpha: en pruebas)">
+                                Command="{Binding NavModerationCommand}" ToolTip.Tip="Moderación">
                             <Panel>
-                                <TextBlock Text="Vz" HorizontalAlignment="Center"
+                                <TextBlock Text="Md" HorizontalAlignment="Center"
                                            IsVisible="{Binding NavCollapsed}" />
-                                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding NavExpanded}">
-                                    <TextBlock Text="Voz" VerticalAlignment="Center" />
-                                    <Border Classes="alphaBadge">
-                                        <TextBlock Text="ALPHA" />
-                                    </Border>
-                                </StackPanel>
+                                <TextBlock Text="Moderación" IsVisible="{Binding NavExpanded}" />
+                            </Panel>
+                        </Button>
+                        <Button Classes="nav" Classes.active="{Binding IsKeyMacrosNav}"
+                                Classes.compact="{Binding NavCollapsed}"
+                                Command="{Binding NavKeyMacrosCommand}" ToolTip.Tip="Teclas">
+                            <Panel>
+                                <TextBlock Text="Tc" HorizontalAlignment="Center"
+                                           IsVisible="{Binding NavCollapsed}" />
+                                <TextBlock Text="Teclas" IsVisible="{Binding NavExpanded}" />
                             </Panel>
                         </Button>
                     </StackPanel>
