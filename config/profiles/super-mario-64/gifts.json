@@ -1,0 +1,127 @@
+{
+  "_help": "Perfil Super Mario 64 (Ghostship). Combos: minCount, each. overlay=true muestra chip OBS.",
+  "gifts": [
+    {
+      "gift": "Rose",
+      "also": [
+        "Rosa"
+      ],
+      "id": "5655",
+      "effect": "banana",
+      "what": "Cáscara de plátano"
+    },
+    {
+      "gift": "Heart Me",
+      "id": "7934",
+      "effect": "heal",
+      "what": "Cura 2 casillas"
+    },
+    {
+      "gift": "TikTok",
+      "effect": "coins_add",
+      "what": "+10 monedas"
+    },
+    {
+      "gift": "Finger Heart",
+      "id": "5827",
+      "effect": "goomba",
+      "what": "Un Goomba"
+    },
+    {
+      "gift": "GG",
+      "effect": "bobomb",
+      "what": "Un Bob-omb"
+    },
+    {
+      "gift": "Doughnut",
+      "effect": "wing_cap",
+      "what": "Gorra de alas 30 s"
+    },
+    {
+      "gift": "Capybara",
+      "id": "14488",
+      "effect": "low_gravity",
+      "what": "Gravedad baja 20 s"
+    },
+    {
+      "gift": "Popular Vote",
+      "id": "13651",
+      "effect": "knockback",
+      "what": "Empujón"
+    },
+    {
+      "gift": "Guardian Wings",
+      "id": "15104",
+      "effect": "launch",
+      "what": "Mario sale volando"
+    },
+    {
+      "gift": "Super Popular",
+      "id": "16690",
+      "effect": "lives_add",
+      "what": "+1 vida"
+    },
+    {
+      "gift": "Money Gun",
+      "effect": "poison_mushroom",
+      "what": "Hongo venenoso"
+    },
+    {
+      "gift": "Galaxy",
+      "effect": "shotgun",
+      "what": "Escopeta para Mario"
+    }
+  ],
+  "likes": {
+    "every": 0,
+    "effect": "heal",
+    "what": ""
+  },
+  "follow": {
+    "effect": "heal",
+    "what": ""
+  },
+  "share": {
+    "effect": "banana",
+    "what": ""
+  },
+  "chat": {
+    "enabled": false,
+    "prefix": "!",
+    "cooldownSec": 30,
+    "globalGapSec": 2,
+    "commands": {}
+  },
+  "unmappedGifts": "ignore",
+  "giftsByDiamonds": [
+    {
+      "min": 1,
+      "max": 9,
+      "effect": "heal"
+    },
+    {
+      "min": 10,
+      "max": 49,
+      "effect": "banana"
+    },
+    {
+      "min": 50,
+      "max": 99,
+      "effect": "goomba_army"
+    },
+    {
+      "min": 100,
+      "max": 199,
+      "effect": "chuckya"
+    },
+    {
+      "min": 200,
+      "max": 499,
+      "effect": "bowling_rain"
+    },
+    {
+      "min": 500,
+      "effect": "shock"
+    }
+  ]
+}
