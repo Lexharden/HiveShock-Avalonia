@@ -4,6 +4,13 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.6.2] - 2026-10-20
+
+### Actualizar trae los perfiles nuevos
+* **Al actualizar desde la app ahora se instalan los perfiles nuevos del catálogo** (por ejemplo Super Mario 64). Antes el paquete de actualización no los traía y el actualizador protegía toda la carpeta `profiles/`, así que quien ya tenía HiveShock nunca los recibía.
+* **Tus perfiles no se tocan:** solo se copian las carpetas de perfil que todavía no existen. Los que ya tienes conservan tus regalos, comandos y ajustes. Si algo falla y se deshace la actualización, también se quitan los perfiles recién instalados.
+* **Para recibirlos** hay que instalar una vez esta versión de la forma normal; las actualizaciones siguientes ya traerán los perfiles nuevos.
+
 ## [2.6.1] - 2026-10-20
 
 ### Limpieza de nombres

@@ -1,7 +1,7 @@
 HiveShock {VERSION} — actualización
 ====================================
 
-Solo el programa. No toca tu configuración ni tus perfiles.
+El programa y los perfiles nuevos del catálogo. No toca tu configuración ni los perfiles que ya tienes.
 
 1. Cierra HiveShock.
 2. Sustituye {REPLACE}
