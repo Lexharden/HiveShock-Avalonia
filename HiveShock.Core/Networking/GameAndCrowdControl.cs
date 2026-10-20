@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 using HiveShock.Configuration;
+using HiveShock.Hosting;
 using HiveShock.Input;
 using HiveShock.Live;
 using HiveShock.Logging;
@@ -102,11 +103,18 @@ public sealed class EffectDispatcher : IDisposable
     private readonly GameTcpClient _game;
     private readonly ViewerGuard? _guard;
     private readonly KeyMacroRunner? _keys;
+    private readonly SystemEffectService? _system;
     private int _pendingChat;
     private int _generation;
 
-    public EffectDispatcher(EffectCatalog effects, GameTcpClient game, ViewerGuard? guard = null, KeyMacroRunner? keys = null)
+    public EffectDispatcher(
+        EffectCatalog effects,
+        GameTcpClient game,
+        ViewerGuard? guard = null,
+        KeyMacroRunner? keys = null,
+        SystemEffectService? system = null)
     {
+        _system = system;
         _effects = effects;
         _game = game;
         _guard = guard;
@@ -151,6 +159,20 @@ public sealed class EffectDispatcher : IDisposable
         bool fromChat = false,
         IReadOnlyDictionary<string, double>? paramOverrides = null)
     {
+        if (SystemEffectIds.IsSystemEffect(effectId) && _effects.Contains(effectId))
+        {
+            if (_system is null)
+            {
+                BridgeLog.Warn($"«{effectId}» es un efecto del sistema pero no hay servicio activo.");
+            }
+            else
+            {
+                _system.Trigger(effectId, user, reason);
+            }
+
+            return;
+        }
+
         if (_effects.TryGetMacro(effectId, out var macro))
         {
             // Las teclas no van al juego por TCP: las ejecuta su propio runner (cola y solape propios).

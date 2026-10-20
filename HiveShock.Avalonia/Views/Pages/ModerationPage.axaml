@@ -21,6 +21,36 @@
                 </StackPanel>
             </Border>
 
+            <StackPanel IsVisible="{Binding SystemFx.IsSupported}">
+                <TextBlock Classes="sectionTitle" Text="REINICIAR EL EQUIPO" />
+                <Border Classes="card" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="{Binding SystemFx.StatusText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,6,0,10"
+                                   Text="Un efecto más («Sistema: Reiniciar el equipo»): puedes asignarlo a un regalo, comando, bits o meta. Empieza desarmado en cada sesión. Al dispararse hay una cuenta atrás visible que puedes cancelar. Solo se ejecuta una vez por sesión y no lo hace con «Solo simular» ni con la pausa de emergencia." />
+                        <WrapPanel>
+                            <Button Classes="secondary" Classes.danger="{Binding SystemFx.Armed}"
+                                    Content="{Binding SystemFx.ArmLabel}" Command="{Binding SystemFx.ToggleArmCommand}"
+                                    MinWidth="190" Margin="0,0,8,0" />
+                            <Button Classes="secondary" Content="Probar cuenta atrás (no reinicia)"
+                                    Command="{Binding SystemFx.PreviewCommand}" />
+                        </WrapPanel>
+                        <DockPanel Margin="0,12,0,0">
+                            <TextBlock Classes="fieldLabel" Text="Cuenta atrás (s)" Width="120" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding SystemFx.CountdownText}" Width="90" HorizontalAlignment="Left" />
+                        </DockPanel>
+                        <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" Margin="120,2,0,0"
+                                   Text="Entre 10 y 300 segundos." />
+                        <CheckBox Content="Forzar: cerrar los programas sin preguntar (se pierde lo no guardado)"
+                                  IsChecked="{Binding SystemFx.Force}" Margin="0,10,0,0" />
+                        <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                   Text="Al armarlo se asigna el regalo León (Lion) como disparador, si tu perfil no lo usa ya. Mientras cuenta, Ctrl+Alt+Shift+F12 lo cancela aunque estés dentro del juego." />
+                        <TextBlock Text="{Binding SystemFx.Message}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0"
+                                   IsVisible="{Binding SystemFx.Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
             <TextBlock Classes="sectionTitle" Text="QUIÉN ACTIVÓ EFECTOS HACE POCO" />
             <Border Classes="card" Margin="0,0,0,16">
                 <StackPanel>

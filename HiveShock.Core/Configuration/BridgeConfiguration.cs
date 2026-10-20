@@ -558,17 +558,29 @@ public sealed class EffectCatalog
     /// </summary>
     public void SetMacros(KeyMacroCatalog macros) => _macros = macros;
 
+    /// <summary>Efectos del sistema que este equipo puede ejecutar (p. ej. reiniciar). Vacío por defecto.</summary>
+    public void SetSystemEffects(IReadOnlyList<string> ids) => _systemIds = ids ?? [];
+
+    private volatile IReadOnlyList<string> _systemIds = [];
+
+    private bool IsSystem(string effectId) =>
+        !string.IsNullOrWhiteSpace(effectId) &&
+        !_effects.ContainsKey(effectId) &&
+        _systemIds.Contains(effectId, StringComparer.OrdinalIgnoreCase);
+
     public IReadOnlyCollection<KeyMacro> Macros => _macros.All;
 
     /// <summary>Efectos del juego más macros de teclas (un efecto de effects.json con el mismo id gana).</summary>
     public IEnumerable<string> Ids => _effects.Keys
         .Concat(_macros.All.Select(m => m.Id).Where(id => !_effects.ContainsKey(id)))
+        .Concat(_systemIds.Where(id => !_effects.ContainsKey(id)))
         .OrderBy(x => x, StringComparer.OrdinalIgnoreCase);
 
     public int Count => Ids.Count();
 
     public bool Contains(string effectId) =>
-        !string.IsNullOrWhiteSpace(effectId) && (_effects.ContainsKey(effectId) || _macros.Contains(effectId));
+        !string.IsNullOrWhiteSpace(effectId) &&
+        (_effects.ContainsKey(effectId) || _macros.Contains(effectId) || IsSystem(effectId));
 
     /// <summary>Macro de teclas con ese id; false si no existe o si effects.json define un efecto con ese id.</summary>
     public bool TryGetMacro(string effectId, out KeyMacro macro)
@@ -586,6 +598,11 @@ public sealed class EffectCatalog
     {
         if (!_effects.TryGetValue(effectId, out var template))
         {
+            if (IsSystem(effectId))
+            {
+                return "system";
+            }
+
             return TryGetMacro(effectId, out _) ? "keys" : null;
         }
 
@@ -599,6 +616,13 @@ public sealed class EffectCatalog
 
     public string Describe(string effectId)
     {
+        if (IsSystem(effectId))
+        {
+            return "Sistema: " + (string.Equals(effectId, "reiniciar_pc", StringComparison.OrdinalIgnoreCase)
+                ? "Reiniciar el equipo (con cuenta atrás)"
+                : effectId);
+        }
+
         if (TryGetMacro(effectId, out var macro))
         {
             return string.IsNullOrWhiteSpace(macro.Label) ? $"Teclas: {macro.Id}" : macro.Label;
@@ -665,9 +689,9 @@ public sealed class EffectCatalog
 
         if (!_effects.TryGetValue(effectId, out var template))
         {
-            if (_macros.Contains(effectId))
+            if (_macros.Contains(effectId) || IsSystem(effectId))
             {
-                // Macro de teclas: no tiene comando TCP; la ejecuta el KeyMacroRunner.
+                // Macro de teclas o efecto del sistema: no tienen comando TCP; los ejecuta su propio servicio.
                 return null;
             }
 

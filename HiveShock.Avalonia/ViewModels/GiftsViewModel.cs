@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HiveShock.Avalonia.Services;
 using HiveShock.Configuration;
+using HiveShock.Hosting;
 using HiveShock;
 using HiveShock.Logging;
 
@@ -215,6 +216,42 @@ public sealed partial class GiftsViewModel : ViewModelBase
         Selected = row;
         _shell.Overlays.RefreshGifts(Models);
         BridgeLog.Info($"Añadido a regalos: {gift.Gift} (pulsa Guardar)");
+    }
+
+    /// <summary>
+    /// Deja el regalo León (Lion, 29 999 diamantes) como disparador por defecto del reinicio del equipo, si el perfil
+    /// no lo tiene ya asignado a otra cosa. Devuelve un texto para mostrar al usuario.
+    /// </summary>
+    public string EnsureRestartGift()
+    {
+        const string lionId = "6369";
+        var inUse = Rows.FirstOrDefault(r => SystemEffectIds.IsSystemEffect(r.Effect));
+        if (inUse != null)
+        {
+            return $"El reinicio ya está asignado al regalo «{inUse.Name}».";
+        }
+
+        var taken = Rows.FirstOrDefault(r =>
+            string.Equals(r.Id, lionId, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(r.Name, "Lion", StringComparison.OrdinalIgnoreCase));
+        if (taken != null)
+        {
+            return $"El regalo León ya hace otra cosa en este perfil ({taken.EffectLabel}). Asigna «{SystemEffectIds.RestartPcLabel}» al regalo que quieras.";
+        }
+
+        var gift = new EditableGift
+        {
+            Gift = "Lion",
+            Id = lionId,
+            Also = ["León"],
+            Diamonds = 29999,
+            Effect = SystemEffectIds.RestartPc,
+            What = "Reinicia el equipo con cuenta atrás",
+        };
+        var row = Wrap(gift);
+        Rows.Add(row);
+        Selected = row;
+        return "Asigné el regalo León (Lion) para que dispare el reinicio. Puedes cambiarlo en Regalos.";
     }
 
     [RelayCommand]

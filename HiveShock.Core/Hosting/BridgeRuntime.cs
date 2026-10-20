@@ -4,6 +4,7 @@ using HiveShock.Input;
 using HiveShock.Live;
 using HiveShock.Logging;
 using HiveShock.Networking;
+using HiveShock.Platform;
 using HiveShock.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -47,6 +48,11 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
     /// <summary>Teclas hacia la ventana del juego. Vive con el runtime: sirve al puente en marcha y a las pruebas de la UI.</summary>
     public KeyMacroRunner KeyRunner { get; }
+
+    /// <summary>Reinicio del equipo como efecto (hoy solo Windows). Desarmado en cada sesión.</summary>
+    public SystemEffectService SystemEffects { get; }
+
+    private bool _cancelHotkeyOn;
 
     private readonly IGameInput _keyInput = GameInputFactory.Create();
     private readonly IGlobalHotkeys _hotkeys = GameInputFactory.CreateHotkeys();
@@ -104,6 +110,15 @@ public sealed class BridgeRuntime : IAsyncDisposable
         Catalog = catalog;
         _gameClient = new GameTcpClient(options);
         KeyRunner = new KeyMacroRunner(_keyInput, () => _library.Window, () => Options.DryRun);
+        SystemEffects = new SystemEffectService(PowerControlFactory.Create(), () => Options.DryRun, () => Guard.IsPaused);
+        // El atajo de cancelar solo existe mientras hay una cuenta atrás: no le quita una tecla al juego el resto del tiempo.
+        SystemEffects.Changed += () =>
+        {
+            if (SystemEffects.IsCountingDown != _cancelHotkeyOn)
+            {
+                ApplyHotkeys();
+            }
+        };
         _events = new GameEventServer(options);
         _events.EventReceived += OnGameEvent;
         _events.Start();
@@ -250,6 +265,12 @@ public sealed class BridgeRuntime : IAsyncDisposable
             bindings.Add(new HotkeyBinding(id, combo, () => TryRunMacro(id, "Atajo", "atajo")));
         }
 
+        _cancelHotkeyOn = SystemEffects.IsCountingDown;
+        if (_cancelHotkeyOn && HotkeyCombo.TryParse(SystemEffectService.CancelHotkey, out var cancelCombo))
+        {
+            bindings.Add(new HotkeyBinding("__cancelar_reinicio", cancelCombo, () => SystemEffects.Cancel("atajo de cancelar")));
+        }
+
         foreach (var failure in _hotkeys.Apply(bindings))
         {
             problems[failure.Id] = failure.Reason;
@@ -284,8 +305,12 @@ public sealed class BridgeRuntime : IAsyncDisposable
         return errors;
     }
 
-    private static EffectCatalog LoadEffects(LoadedGameProfile profile, MacroLibrary library) =>
-        EffectCatalog.Load(profile.EffectsPath, profile.Info, new KeyMacroCatalog(library.Macros));
+    private static EffectCatalog LoadEffects(LoadedGameProfile profile, MacroLibrary library)
+    {
+        var catalog = EffectCatalog.Load(profile.EffectsPath, profile.Info, new KeyMacroCatalog(library.Macros));
+        catalog.SetSystemEffects(SystemEffectIds.Supported(PowerControlFactory.Create()));
+        return catalog;
+    }
 
     /// <summary>Arranca (una sola vez) el bucle que ejecuta las macros de teclas.</summary>
     private void EnsureKeyPump()
@@ -297,6 +322,18 @@ public sealed class BridgeRuntime : IAsyncDisposable
     }
 
     /// <summary>Si el efecto es una macro de teclas la ejecuta y devuelve true (pruebas de la UI, que no pasan por el dispatcher).</summary>
+    /// <summary>Efecto del sistema (reiniciar…) lanzado desde las pruebas de la UI. True si lo era.</summary>
+    private bool TryRunSystemEffect(string effectId, string user, string reason)
+    {
+        if (!SystemEffectIds.IsSystemEffect(effectId) || !_effects.Contains(effectId))
+        {
+            return false;
+        }
+
+        SystemEffects.Trigger(effectId, user, reason);
+        return true;
+    }
+
     private bool TryRunMacro(string effectId, string user, string reason)
     {
         if (!_effects.TryGetMacro(effectId, out var macro))
@@ -464,7 +501,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
             return;
         }
 
-        var isSingleton = _effects.IsSingletonEffect(gift.Effect);
+        var isSingleton = _effects.IsSingletonEffect(gift.Effect) || SystemEffectIds.IsSystemEffect(gift.Effect);
         var times = isSingleton ? 1 : (gift.Each ? Math.Min(repeat, 100) : 1);
 
         BridgeLog.Info(
@@ -473,7 +510,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
         for (var i = 0; i < times; i++)
         {
-            if (TryRunMacro(gift.Effect, testerName, "prueba"))
+            if (TryRunMacro(gift.Effect, testerName, "prueba") || TryRunSystemEffect(gift.Effect, testerName, "prueba"))
             {
                 continue;
             }
@@ -672,6 +709,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         builder.Services.AddSingleton(Guard);
         builder.Services.AddSingleton(_gameClient);
         builder.Services.AddSingleton(KeyRunner);
+        builder.Services.AddSingleton(SystemEffects);
         builder.Services.AddSingleton<EffectDispatcher>();
         builder.Services.AddSingleton<LiveEffectRouter>();
         builder.Services.AddSingleton<CrowdControlServer>();
@@ -734,6 +772,8 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
     public async Task StopAsync()
     {
+        // Una cuenta atrás no debe sobrevivir a desconectar: quien se va del live no espera un reinicio.
+        SystemEffects.Cancel("se desconectó el puente");
         IHost? host;
         CancellationTokenSource? cts;
         Task? runTask;
@@ -793,6 +833,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
     {
         await StopAsync().ConfigureAwait(false);
         KeyRunner.CancelAll();
+        SystemEffects.Dispose();
         _hotkeys.Dispose();
         await _keyCts.CancelAsync().ConfigureAwait(false);
         _events.EventReceived -= OnGameEvent;

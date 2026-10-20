@@ -39,6 +39,8 @@ public sealed partial class ModerationViewModel : ViewModelBase
         Refresh();
     }
 
+    public SystemEffectsViewModel SystemFx => _shell.SystemFx;
+
     public ObservableCollection<RecentViewerRow> Recent { get; } = [];
     public ObservableCollection<BlockedViewerRow> Blocked { get; } = [];
 
