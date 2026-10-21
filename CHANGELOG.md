@@ -4,6 +4,12 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.7.3] - 2026-10-21
+
+### Perfiles
+* **La lista de efectos ya no repite entradas.** Los perfiles de Ocarina of Time, Majora's Mask, Banjo-Kazooie y Super Mario 64 traían varios ids que hacían lo mismo (`instakill`/`kill`, `wipe_save`/`nuke_save`/`new_run`, `warp_random`, `times_up`/`time_zero`, `enemy`, `banana_peel`…) y cada uno salía como una línea igual. Se dejó un único id por acción.
+* Los perfiles que ya tienes instalados no se modifican: si quieres limpiar la lista en ellos, reasigna lo que usaba esos ids y bórralos del perfil, o reinstala el perfil.
+
 ## [2.7.2] - 2026-10-21
 
 ### Los perfiles nuevos llegan a todos al actualizar
@@ -30,7 +36,7 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ### Perfiles
 * **Nuevo perfil «Banjo-Kazooie (Recompiled)».** Efectos sobre la salud, vidas, huevos y plumas, y enemigos (Snippet, Bigbutt, Shrapnel, murciélago), con regalos de ejemplo. Requiere instalar el mod HiveShock para Banjo-Kazooie: Recompiled y activarlo en su menú de mods.
-* **Super Mario 64:** nuevos efectos para borrar la partida (`delete_save`, `wipe_save`, `nuke_save`, `new_run`). El perfil ahora declara que lo soporta. No se puede deshacer, así que no los asignes a regalos baratos.
+* **Super Mario 64:** nuevo efecto para borrar la partida (`delete_save`). El perfil ahora declara que lo soporta. No se puede deshacer, así que no los asignes a regalos baratos.
 * Los perfiles nuevos llegan a quien actualiza desde la app; los que ya tenías no se modifican.
 
 ## [2.6.2] - 2026-10-20
