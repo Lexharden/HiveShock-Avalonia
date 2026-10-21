@@ -4,6 +4,13 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.7.2] - 2026-10-21
+
+### Los perfiles nuevos llegan a todos al actualizar
+* **Quien venía de la 2.6.1 o anterior ahora recibe los perfiles que le faltan** (Super Mario 64, Banjo-Kazooie…). Su actualizador viejo protege toda la carpeta `profiles/`, así que los perfiles viajan también en `profiles-catalog/` (una carpeta que sí se copia) y HiveShock los instala solo al arrancar.
+* **No cambia nada de lo que ya tienes.** Solo se instalan los perfiles que no existen en tu carpeta `profiles/`; los demás, con sus regalos, comandos y ajustes, quedan exactamente igual. Un perfil que borres a propósito no vuelve.
+* Tras actualizar, abre HiveShock una vez para que los instale; el log lo dice («Perfiles nuevos instalados: …»).
+
 ## [2.7.1] - 2026-10-21
 
 ### Recuperar lo que pasó durante un corte
