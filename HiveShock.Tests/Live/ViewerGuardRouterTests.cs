@@ -170,6 +170,68 @@ public sealed class ViewerGuardRouterTests : IDisposable
         Assert.Equal(1, _log.Count(m => m.StartsWith("OK impulse <- solo_handle ", StringComparison.Ordinal)));
     }
 
+    private static WebcastGiftMessage HeartMe(string who, long msgId, long createTimeMs = 0) => new()
+    {
+        GiftId = 7934,
+        GiftDetails = new GiftDetails { GiftName = "Heart Me", DiamondCount = 1, Id = 7934 },
+        User = new UserIdentity { UserId = 700, UniqueId = who, Nickname = who },
+        Common = new CommonMessageData { MsgId = msgId, CreateTime = createTimeMs },
+    };
+
+    [Fact]
+    public void The_same_gift_message_delivered_twice_runs_the_effect_once()
+    {
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        _router.HandleTikTokGift(HeartMe("dup_gift", 9001, now), _cts.Token);
+        _router.HandleTikTokGift(HeartMe("dup_gift", 9001, now), _cts.Token); // reenviado tras reconectar
+
+        WaitSent("dup_gift");
+        Flush("control_dup");
+        Assert.Equal(1, _log.Count(m => m.StartsWith("OK impulse <- dup_gift ", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void A_different_gift_message_from_the_same_viewer_still_counts()
+    {
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        _router.HandleTikTokGift(HeartMe("two_gifts", 9101, now), _cts.Token);
+        _router.HandleTikTokGift(HeartMe("two_gifts", 9102, now), _cts.Token);
+
+        Flush("control_two");
+        Assert.Equal(2, _log.Count(m => m.StartsWith("OK impulse <- two_gifts ", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void A_gift_that_arrives_far_too_late_is_ignored_but_a_fresh_one_after_it_runs()
+    {
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        _router.HandleTikTokGift(HeartMe("late_ref", 9201, now), _cts.Token); // fija la referencia del reloj
+        _router.HandleTikTokGift(HeartMe("late_gift", 9202, now - 3_600_000), _cts.Token);
+        _router.HandleTikTokGift(HeartMe("fresh_gift", 9203, now), _cts.Token);
+
+        WaitSent("fresh_gift");
+        Flush("control_late");
+        Assert.False(Sent("late_gift"));
+    }
+
+    [Fact]
+    public void A_replayed_chat_command_does_not_run_twice()
+    {
+        // Lo que hace TikTokLiveHostedService con el historial de chat al reconectar.
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        for (var i = 0; i < 2; i++)
+        {
+            if (_router.Accept("tt:chat", "9301", now, LiveEffectRouter.ChatMaxAge, "Comentario"))
+            {
+                _router.HandleChat(Tt("720", "chat_dup"), "!salto", _cts.Token);
+            }
+        }
+
+        WaitSent("chat_dup");
+        Flush("control_chat_dup");
+        Assert.Equal(1, _log.Count(m => m.StartsWith("OK impulse <- chat_dup ", StringComparison.Ordinal)));
+    }
+
     [Fact]
     public void Pause_stops_follow_share_chat_gift_like_and_bits_and_resume_restores_them()
     {

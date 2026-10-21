@@ -701,7 +701,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
         try
         {
-            await Runtime.StopAsync().ConfigureAwait(true);
+            await Runtime.StopAsync(keepPending: true).ConfigureAwait(true);
         }
         catch
         {

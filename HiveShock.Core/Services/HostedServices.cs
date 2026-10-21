@@ -86,13 +86,20 @@ public sealed class ConfigWatchService : BackgroundService
 public sealed class EffectPumpService : BackgroundService
 {
     private readonly EffectDispatcher _dispatcher;
+    private readonly BridgeOptions _options;
 
-    public EffectPumpService(EffectDispatcher dispatcher) => _dispatcher = dispatcher;
+    public EffectPumpService(EffectDispatcher dispatcher, BridgeOptions options)
+    {
+        _dispatcher = dispatcher;
+        _options = options;
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
         {
+            // Lo aceptado en una sesión anterior y que no llegó al juego (cierre, crasheo) vuelve a la cola.
+            _dispatcher.ReplayPending(TimeSpan.FromSeconds(Math.Max(120, _options.GameRetryWindow.TotalSeconds)));
             await _dispatcher.RunAsync(stoppingToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -167,6 +174,8 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
 #endif
     }
 
+    private readonly ConnectionGap _gap = new();
+
     public string Id => LivePortIds.TikTok;
     public string DisplayName => "TikTok";
     public bool IsEnabled => _options.TikTokEnabled;
@@ -231,6 +240,7 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
                 _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Error, ex.Message);
             }
 
+            _gap.NoteDown();
             var wait = backoff.NextDelay(reachedLive);
             BridgeLog.Warn($"TikTok desconectado. Reintento en {wait.TotalSeconds:0}s");
             if (!await DelayAsync(wait, stoppingToken).ConfigureAwait(false))
@@ -259,7 +269,7 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
     {
         var client = new TikTokLiveClient(_options.TikTokUniqueId)
             .MaxRetries(8)
-            .StaleTimeout(TimeSpan.FromSeconds(90))
+            .StaleTimeout(TimeSpan.FromSeconds(45))
             .Timeout(TimeSpan.FromSeconds(15));
 
         if (!string.IsNullOrWhiteSpace(_options.TikTokTtwid))
@@ -276,8 +286,14 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         client.OnConnected += roomId =>
         {
             onLive();
-            _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Live, "");
+            var gap = _gap.NoteUp();
+            var note = gap is { } g ? ConnectionGap.Describe("TikTok", g) : "";
+            _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Live, note);
             BridgeLog.Info($"TikTok conectado room={roomId}");
+            if (note.Length > 0)
+            {
+                BridgeLog.Warn(note);
+            }
         };
 
         client.OnDisconnected += () =>
@@ -286,7 +302,10 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         };
 
         client.OnReconnecting += info =>
+        {
+            _gap.NoteDown();
             BridgeLog.Warn($"TikTok reconectando {info.Attempt}/{info.MaxRetries}");
+        };
 
         client.OnLiveEnded += _ =>
         {
@@ -302,6 +321,13 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
         client.OnChat += chat =>
         {
             var viewer = ViewerIdentity.TikTok(chat.User);
+            // El historial que TikTok manda al reconectar no debe volver a ejecutar comandos.
+            if (!_router.Accept("tt:chat", chat.Common?.MsgId.ToString(), chat.Common?.CreateTime ?? 0,
+                    LiveEffectRouter.ChatMaxAge, $"Comentario de {viewer.Label}"))
+            {
+                return;
+            }
+
             // Bloqueado: ni comandos.
             if (_guard.IsBlocked(viewer))
             {

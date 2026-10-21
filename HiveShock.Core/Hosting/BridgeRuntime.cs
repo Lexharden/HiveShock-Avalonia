@@ -52,6 +52,9 @@ public sealed class BridgeRuntime : IAsyncDisposable
     /// <summary>Reinicio del equipo como efecto (hoy solo Windows). Desarmado en cada sesión.</summary>
     public SystemEffectService SystemEffects { get; }
 
+    /// <summary>Qué regalos y mensajes ya se vieron (sin duplicados) y qué efectos aceptados aún no llegaron al juego.</summary>
+    public GiftLedger Ledger { get; } = GiftLedger.OpenDefault();
+
     private bool _cancelHotkeyOn;
 
     private readonly IGameInput _keyInput = GameInputFactory.Create();
@@ -710,6 +713,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         builder.Services.AddSingleton(_gameClient);
         builder.Services.AddSingleton(KeyRunner);
         builder.Services.AddSingleton(SystemEffects);
+        builder.Services.AddSingleton(Ledger);
         builder.Services.AddSingleton<EffectDispatcher>();
         builder.Services.AddSingleton<LiveEffectRouter>();
         builder.Services.AddSingleton<TestServer>();
@@ -770,8 +774,17 @@ public sealed class BridgeRuntime : IAsyncDisposable
         }
     }
 
-    public async Task StopAsync()
+    /// <param name="keepPending">
+    /// Al cerrar la aplicación se conservan los efectos aceptados que no llegaron al juego para entregarlos al volver a abrir;
+    /// al desconectar a propósito se descartan.
+    /// </param>
+    public async Task StopAsync(bool keepPending = false)
     {
+        if (!keepPending)
+        {
+            Ledger.DiscardAllPending();
+        }
+
         // Una cuenta atrás no debe sobrevivir a desconectar: quien se va del live no espera un reinicio.
         SystemEffects.Cancel("se desconectó el puente");
         IHost? host;
@@ -831,9 +844,10 @@ public sealed class BridgeRuntime : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        await StopAsync().ConfigureAwait(false);
+        await StopAsync(keepPending: true).ConfigureAwait(false);
         KeyRunner.CancelAll();
         SystemEffects.Dispose();
+        Ledger.Dispose();
         _hotkeys.Dispose();
         await _keyCts.CancelAsync().ConfigureAwait(false);
         _events.EventReceived -= OnGameEvent;
