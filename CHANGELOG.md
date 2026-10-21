@@ -4,6 +4,14 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-10-21
+
+### Regalos sin duplicados y sin perder lo ya recibido
+* **Cada mensaje se ejecuta una sola vez.** HiveShock lleva un registro (`.hiveshock-ledger.jsonl`, en tu carpeta de datos) con el id de cada regalo, comentario y evento de Twitch. Si TikTok o Twitch reenvían algo al reconectar, el repetido se ignora. Antes un regalo reenviado o el historial de chat que TikTok manda al reconectar podían ejecutarse de nuevo.
+* **Los comandos de chat viejos no se ejecutan** (más de 60 s de retraso) y los regalos que llegan con más retraso que la ventana de reintento del juego (mínimo 2 min) se ignoran con un aviso. Se mide contra el retraso de los mensajes en vivo, así que un reloj del equipo desajustado no descarta regalos buenos.
+* **Lo aceptado y no entregado sobrevive a un cierre.** Si cierras HiveShock (o falla) con efectos en cola porque el juego estaba apagado, al volver a abrirlo se entregan una vez, siempre que no hayan caducado. Desconectar a propósito o la pausa de emergencia los descartan. Los efectos del sistema (reiniciar el equipo) y las macros de teclas nunca se repiten.
+* **Cortes de conexión avisados.** El corte se detecta antes (45 s sin señal en vez de 90) y al reconectar el log y el estado del canal dicen cuánto duró. TikTok y Twitch no reenvían lo que pasó durante un corte, así que esos regalos no se pueden recuperar; lo que sí se garantiza es no duplicar nada.
+
 ## [2.6.3] - 2026-10-20
 
 ### Perfiles
