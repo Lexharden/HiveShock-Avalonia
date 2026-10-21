@@ -156,6 +156,56 @@ public sealed class ConnectionGap
 }
 
 /// <summary>
+/// Reconoce los mensajes que el canal reenvía justo después de reconectar (anteriores a la reconexión).
+/// Sirve para saber con datos reales si la reanudación por cursor de TikTok recupera algo.
+/// </summary>
+public sealed class ReplayProbe
+{
+    public static readonly TimeSpan Window = TimeSpan.FromSeconds(20);
+    public static readonly TimeSpan MinAge = TimeSpan.FromSeconds(3);
+
+    private readonly Func<DateTimeOffset> _clock;
+    private DateTimeOffset? _connectedAt;
+    private long _replayedGifts;
+    private long _replayedChats;
+
+    public ReplayProbe(Func<DateTimeOffset>? clock = null) => _clock = clock ?? (() => DateTimeOffset.UtcNow);
+
+    public long ReplayedGifts => Interlocked.Read(ref _replayedGifts);
+
+    public long ReplayedChats => Interlocked.Read(ref _replayedChats);
+
+    public void NoteConnected() => _connectedAt = _clock();
+
+    /// <summary>True si el mensaje (hora de creación en ms o s) es de antes de reconectar y llegó en la ventana inicial.</summary>
+    public bool IsReplay(long createTimeMs, bool isGift)
+    {
+        if (_connectedAt is not { } connected || createTimeMs <= 0)
+        {
+            return false;
+        }
+
+        var created = DateTimeOffset.FromUnixTimeMilliseconds(createTimeMs > 100_000_000_000 ? createTimeMs : createTimeMs * 1000);
+        var now = _clock();
+        if (now - connected > Window || connected - created < MinAge)
+        {
+            return false;
+        }
+
+        if (isGift)
+        {
+            Interlocked.Increment(ref _replayedGifts);
+        }
+        else
+        {
+            Interlocked.Increment(ref _replayedChats);
+        }
+
+        return true;
+    }
+}
+
+/// <summary>
 /// Backoff creciente para el bucle de reconexión de un canal: si el streamer
 /// lleva horas sin empezar el live, no tiene sentido tocar la API cada 8s
 /// indefinidamente. Vuelve al mínimo en cuanto se llega a "en vivo" una vez.

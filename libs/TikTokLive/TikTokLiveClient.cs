@@ -25,6 +25,7 @@ namespace TikTokLive
         private string? _language;
         private string? _region;
         private bool _compress = true;
+        private Connection.ResumePoint? _resume;
 
         // lifecycle
         public event Action<string>? OnConnected;
@@ -145,6 +146,16 @@ namespace TikTokLive
             return this;
         }
 
+        /// <summary>
+        /// Experimental: al reconectar manda el último cursor leído a TikTok por si reenvía lo perdido. Pasa el mismo
+        /// <see cref="Connection.ResumePoint"/> a cada cliente nuevo para que el punto sobreviva entre conexiones.
+        /// </summary>
+        public TikTokLiveClient ResumeFrom(Connection.ResumePoint point)
+        {
+            _resume = point;
+            return this;
+        }
+
         public TikTokLiveClient Compress(bool enabled)
         {
             _compress = enabled;
@@ -184,11 +195,11 @@ namespace TikTokLive
                 string ttwid = await TtwidAuth.FetchTtwidAsync(_timeout, ua, _proxy, ct)
                     .ConfigureAwait(false);
 
-                string wssUrl = WssUrlBuilder.Build(_cdnHost, room.RoomId, tz, lang, reg, _compress);
+                string wssUrl = WssUrlBuilder.Build(_cdnHost, room.RoomId, tz, lang, reg, _compress, _resume);
 
                 var loop = new SocketLoop(wssUrl, ttwid, room.RoomId,
                     ua, _cookies, _proxy,
-                    _heartbeatInterval, _staleTimeout, EmitEvent);
+                    _heartbeatInterval, _staleTimeout, EmitEvent, _resume);
 
                 bool isDeviceBlocked = false;
                 try { await loop.RunAsync(ct).ConfigureAwait(false); }

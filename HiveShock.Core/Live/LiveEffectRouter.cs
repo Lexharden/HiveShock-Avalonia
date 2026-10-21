@@ -421,6 +421,27 @@ public sealed class LiveEffectRouter : IDisposable
         return false;
     }
 
+    /// <summary>
+    /// Procesa seguidores de Twitch que llegaron mientras no había conexión (consultados por la API). Solo cuenta los
+    /// posteriores a <paramref name="since"/> y los que no se habían visto ya en vivo. Devuelve cuántos se procesaron.
+    /// </summary>
+    public int RecoverTwitchFollows(IEnumerable<TwitchFollower> followers, DateTimeOffset since, CancellationToken ct)
+    {
+        var recovered = 0;
+        foreach (var f in followers.Where(f => f.FollowedAt >= since).OrderBy(f => f.FollowedAt))
+        {
+            if (!_ledger.TryClaim("tw:" + TwitchEventSubClient.FollowKey(f.UserId, f.FollowedAtRaw)))
+            {
+                continue;
+            }
+
+            HandleFollow(ViewerIdentity.Twitch(f.UserId, f.Login, f.DisplayName), ct);
+            recovered++;
+        }
+
+        return recovered;
+    }
+
     public void HandleTikTokGift(WebcastGiftMessage gift, CancellationToken ct)
     {
         if (!Accept("tt:gift", gift.Common?.MsgId.ToString(), gift.Common?.CreateTime ?? 0, GiftMaxAge,

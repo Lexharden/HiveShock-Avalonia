@@ -175,6 +175,8 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
     }
 
     private readonly ConnectionGap _gap = new();
+    private readonly TikTokLive.Connection.ResumePoint _resume = new();
+    private readonly ReplayProbe _probe = new();
 
     public string Id => LivePortIds.TikTok;
     public string DisplayName => "TikTok";
@@ -283,9 +285,15 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
             client.Cookies(_options.TikTokCookies);
         }
 
+        if (_options.TikTokResume)
+        {
+            client.ResumeFrom(_resume);
+        }
+
         client.OnConnected += roomId =>
         {
             onLive();
+            _probe.NoteConnected();
             var gap = _gap.NoteUp();
             var note = gap is { } g ? ConnectionGap.Describe("TikTok", g) : "";
             _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Live, note);
@@ -309,11 +317,22 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
 
         client.OnLiveEnded += _ =>
         {
+            _resume.Clear();
             _hub.Set(LivePortIds.TikTok, "TikTok", LivePortStatus.Ended, "Live cerrado");
             BridgeLog.Info("TikTok live terminado");
         };
 
-        client.OnGift += gift => _router.HandleTikTokGift(gift, ct);
+        client.OnGift += gift =>
+        {
+            if (_probe.IsReplay(gift.Common?.CreateTime ?? 0, isGift: true))
+            {
+                BridgeLog.Warn(
+                    $"TikTok reenvió un regalo de antes de reconectar ({ViewerIdentity.TikTok(gift.User).Label}, " +
+                    $"{gift.GiftDetails?.GiftName}); total reenviados: {_probe.ReplayedGifts}.");
+            }
+
+            _router.HandleTikTokGift(gift, ct);
+        };
         client.OnLike += like =>
             _router.HandleLike(ViewerIdentity.TikTok(like.User), like.LikeCount > 0 ? like.LikeCount : 1, ct);
         client.OnFollow += social => _router.HandleFollow(ViewerIdentity.TikTok(social.User), ct);
@@ -332,6 +351,11 @@ public sealed class TikTokLiveHostedService : BackgroundService, ILivePort
             if (_guard.IsBlocked(viewer))
             {
                 return;
+            }
+
+            if (_probe.IsReplay(chat.Common?.CreateTime ?? 0, isGift: false) && _probe.ReplayedChats % 10 == 1)
+            {
+                BridgeLog.Info($"TikTok reenvió comentarios de antes de reconectar (van {_probe.ReplayedChats}).");
             }
 
             var comment = chat.Comment ?? "";

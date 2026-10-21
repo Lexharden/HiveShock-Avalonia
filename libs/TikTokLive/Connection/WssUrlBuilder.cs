@@ -4,8 +4,12 @@ namespace TikTokLive.Connection
 {
     internal static class WssUrlBuilder
     {
+        /// <summary>Un punto de lectura más viejo que esto ya no sirve para reanudar.</summary>
+        public static readonly TimeSpan ResumeMaxAge = TimeSpan.FromMinutes(10);
+
         public static string Build(string cdnHost, string roomId, string timezone,
-            string language = "en", string region = "US", bool compress = true)
+            string language = "en", string region = "US", bool compress = true,
+            ResumePoint? resume = null)
         {
             double lastRtt = 100.0 + new Random().NextDouble() * 100.0;
             string rttStr = lastRtt.ToString("F3");
@@ -42,6 +46,14 @@ namespace TikTokLive.Connection
                 "resp_content_type=protobuf",
                 "did_rule=3",
             });
+
+            // Experimental: reanudar desde el último punto leído (si TikTok lo acepta, reenvía lo que se perdió).
+            if (resume != null && resume.TryGet(roomId, ResumeMaxAge, out string cursor, out string internalExt))
+            {
+                query += "&cursor=" + Uri.EscapeDataString(cursor);
+                if (internalExt.Length > 0)
+                    query += "&internal_ext=" + Uri.EscapeDataString(internalExt);
+            }
 
             return $"wss://{cdnHost}/webcast/im/ws_proxy/ws_reuse_supplement/?{query}";
         }
