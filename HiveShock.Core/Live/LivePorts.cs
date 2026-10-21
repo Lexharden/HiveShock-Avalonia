@@ -120,6 +120,42 @@ public sealed class LivePortHub
 }
 
 /// <summary>
+/// Mide cuánto duró un corte de conexión a un canal. Se avisa al usuario porque lo que se envió durante el corte
+/// no se puede recuperar (TikTok y Twitch no reenvían ese tramo).
+/// </summary>
+public sealed class ConnectionGap
+{
+    public static readonly TimeSpan ReportAfter = TimeSpan.FromSeconds(5);
+
+    private readonly Func<DateTimeOffset> _clock;
+    private DateTimeOffset? _downSince;
+    private bool _everUp;
+
+    public ConnectionGap(Func<DateTimeOffset>? clock = null) => _clock = clock ?? (() => DateTimeOffset.UtcNow);
+
+    /// <summary>La conexión se cayó o se detectó muerta (solo cuenta el primer aviso hasta que vuelva).</summary>
+    public void NoteDown() => _downSince ??= _everUp ? _clock() : null;
+
+    /// <summary>Se (re)conectó. Devuelve la duración del corte si fue largo y ya habíamos estado conectados antes.</summary>
+    public TimeSpan? NoteUp()
+    {
+        var since = _downSince;
+        _downSince = null;
+        _everUp = true;
+        if (since is null)
+        {
+            return null;
+        }
+
+        var gap = _clock() - since.Value;
+        return gap >= ReportAfter ? gap : null;
+    }
+
+    public static string Describe(string channel, TimeSpan gap) =>
+        $"Corte de {gap.TotalSeconds:0} s en {channel}: lo enviado en ese tramo no se puede recuperar; los repetidos se ignoran.";
+}
+
+/// <summary>
 /// Backoff creciente para el bucle de reconexión de un canal: si el streamer
 /// lleva horas sin empezar el live, no tiene sentido tocar la API cada 8s
 /// indefinidamente. Vuelve al mínimo en cuanto se llega a "en vivo" una vez.

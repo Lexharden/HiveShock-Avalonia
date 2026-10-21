@@ -18,7 +18,8 @@ public sealed class TwitchEventSubClient
         Action<ViewerIdentity> onFollow,
         Action<ViewerIdentity, int> onCheer,
         Action connected,
-        CancellationToken ct)
+        CancellationToken ct,
+        Func<string, bool>? isNew = null)
     {
         var url = DefaultSocket;
         while (!ct.IsCancellationRequested)
@@ -91,7 +92,7 @@ public sealed class TwitchEventSubClient
 
                         goto NextSocket;
                     case "notification":
-                        HandleNotification(root, onChat, onFollow, onCheer);
+                        HandleNotification(root, onChat, onFollow, onCheer, isNew);
                         break;
                     case "revocation":
                         throw new InvalidOperationException("Twitch canceló la suscripción. Vuelve a conectar.");
@@ -106,12 +107,26 @@ public sealed class TwitchEventSubClient
         }
     }
 
-    private static void HandleNotification(
+    /// <summary>
+    /// Atiende una notificación de EventSub. Twitch puede repetir una notificación (mismo <c>message_id</c>):
+    /// <paramref name="isNew"/> decide si ese id es nuevo; si no lo es, se ignora.
+    /// </summary>
+    public static void HandleNotification(
         JsonElement root,
         Action<ViewerIdentity, string> onChat,
         Action<ViewerIdentity> onFollow,
-        Action<ViewerIdentity, int> onCheer)
+        Action<ViewerIdentity, int> onCheer,
+        Func<string, bool>? isNew = null)
     {
+        if (isNew != null &&
+            root.TryGetProperty("metadata", out var meta) &&
+            meta.TryGetProperty("message_id", out var idEl) &&
+            idEl.GetString() is { Length: > 0 } messageId &&
+            !isNew(messageId))
+        {
+            return;
+        }
+
         var subType = root.GetProperty("metadata").TryGetProperty("subscription_type", out var st)
             ? st.GetString()
             : "";

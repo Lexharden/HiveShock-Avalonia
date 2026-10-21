@@ -23,6 +23,10 @@ public sealed class LiveEffectRouter : IDisposable
     private readonly object _streakGate = new();
     private readonly Timer _streakFlushTimer;
     private readonly ChatCommandGate _chatGate = new();
+    private readonly GiftLedger _ledger;
+    private readonly bool _ownsLedger;
+    private long _lagLogTicks;
+    private long _minLagMs = long.MaxValue;
     private readonly FollowGate _followGate;
     private readonly bool _ownsFollowGate;
     private long _followIgnored;
@@ -42,8 +46,11 @@ public sealed class LiveEffectRouter : IDisposable
         OverlayNotifier overlay,
         GiftGoalBank goals,
         ViewerGuard guard,
-        FollowGate? followGate = null)
+        FollowGate? followGate = null,
+        GiftLedger? ledger = null)
     {
+        _ownsLedger = ledger == null;
+        _ledger = ledger ?? new GiftLedger();
         _options = options;
         _effects = effects;
         _gifts = gifts;
@@ -64,6 +71,11 @@ public sealed class LiveEffectRouter : IDisposable
     public void Dispose()
     {
         _streakFlushTimer.Dispose();
+        if (_ownsLedger)
+        {
+            _ledger.Dispose();
+        }
+
         if (_ownsFollowGate)
         {
             _followGate.Dispose();
@@ -357,8 +369,66 @@ public sealed class LiveEffectRouter : IDisposable
         }
     }
 
+    /// <summary>Los comentarios de chat son efímeros: uno más viejo que esto (p. ej. el historial al reconectar) no ejecuta comandos.</summary>
+    public static readonly TimeSpan ChatMaxAge = TimeSpan.FromSeconds(60);
+
+    /// <summary>Un regalo se ejecuta si llegó dentro de la ventana de reintento del juego (mínimo 2 min).</summary>
+    private TimeSpan GiftMaxAge => TimeSpan.FromSeconds(Math.Max(120, _options.GameRetryWindow.TotalSeconds));
+
+    /// <summary>
+    /// Deja pasar un mensaje solo si es nuevo (no visto antes) y no es demasiado viejo. <paramref name="messageId"/> 0 o vacío
+    /// no se puede deduplicar y pasa. <paramref name="createTimeMs"/> es la marca de tiempo del mensaje en ms o s (0 = desconocida).
+    /// </summary>
+    public bool Accept(string source, string? messageId, long createTimeMs, TimeSpan maxAge, string what)
+    {
+        if (createTimeMs > 0)
+        {
+            var created = createTimeMs > 100_000_000_000 ? createTimeMs : createTimeMs * 1000;
+            var lagMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - created;
+            // El reloj de este equipo puede ir adelantado o atrasado respecto a TikTok/Twitch: la edad se mide contra el
+            // menor retraso visto (el de un mensaje en vivo), así un reloj desfasado no descarta regalos buenos.
+            long known;
+            while (lagMs < (known = Interlocked.Read(ref _minLagMs)) && Interlocked.CompareExchange(ref _minLagMs, lagMs, known) != known)
+            {
+            }
+
+            var age = TimeSpan.FromMilliseconds(Math.Max(0, lagMs - Math.Min(lagMs, Interlocked.Read(ref _minLagMs))));
+            if (age > maxAge)
+            {
+                _ledger.NoteTooOld();
+                BridgeLog.Warn($"{what} ignorado: llegó con {age.TotalSeconds:0} s de retraso (más que el máximo de {maxAge.TotalSeconds:0} s).");
+                return false;
+            }
+
+            if (age > TimeSpan.FromSeconds(20) && Environment.TickCount64 - Interlocked.Read(ref _lagLogTicks) > 5000)
+            {
+                Interlocked.Exchange(ref _lagLogTicks, Environment.TickCount64);
+                BridgeLog.Info($"{what} con {age.TotalSeconds:0} s de retraso (¿reenviado tras un corte?).");
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(messageId) || messageId == "0")
+        {
+            return true;
+        }
+
+        if (_ledger.TryClaim($"{source}:{messageId}"))
+        {
+            return true;
+        }
+
+        BridgeLog.Info($"{what} repetido ({source}), se ignora.");
+        return false;
+    }
+
     public void HandleTikTokGift(WebcastGiftMessage gift, CancellationToken ct)
     {
+        if (!Accept("tt:gift", gift.Common?.MsgId.ToString(), gift.Common?.CreateTime ?? 0, GiftMaxAge,
+                $"Regalo de {ViewerName(gift.User)}"))
+        {
+            return;
+        }
+
         var name = gift.GiftDetails?.GiftName ?? "";
         var id = gift.GiftId != 0
             ? gift.GiftId.ToString()

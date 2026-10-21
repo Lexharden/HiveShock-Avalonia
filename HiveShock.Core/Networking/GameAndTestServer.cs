@@ -104,6 +104,7 @@ public sealed class EffectDispatcher : IDisposable
     private readonly ViewerGuard? _guard;
     private readonly KeyMacroRunner? _keys;
     private readonly SystemEffectService? _system;
+    private readonly GiftLedger? _ledger;
     private int _pendingChat;
     private int _generation;
 
@@ -112,8 +113,10 @@ public sealed class EffectDispatcher : IDisposable
         GameTcpClient game,
         ViewerGuard? guard = null,
         KeyMacroRunner? keys = null,
-        SystemEffectService? system = null)
+        SystemEffectService? system = null,
+        GiftLedger? ledger = null)
     {
+        _ledger = ledger;
         _system = system;
         _effects = effects;
         _game = game;
@@ -138,6 +141,7 @@ public sealed class EffectDispatcher : IDisposable
     {
         if (paused)
         {
+            _ledger?.DiscardAllPending();
             DiscardPending();
             _keys?.CancelAll();
         }
@@ -150,6 +154,60 @@ public sealed class EffectDispatcher : IDisposable
     public void DiscardPending() => Interlocked.Increment(ref _generation);
 
     public int PendingChat => Volatile.Read(ref _pendingChat);
+
+    /// <summary>
+    /// Re-encola los efectos que se aceptaron en una sesión anterior y no llegaron al juego (cierre, crasheo).
+    /// Solo vuelven los del juego y los que aún no caducaron; nunca efectos del sistema ni macros de teclas.
+    /// </summary>
+    public int ReplayPending(TimeSpan maxAge)
+    {
+        if (_ledger is null)
+        {
+            return 0;
+        }
+
+        var replayed = 0;
+        foreach (var item in _ledger.TakeReplayable(maxAge))
+        {
+            if (SystemEffectIds.IsSystemEffect(item.EffectId) || _effects.TryGetMacro(item.EffectId, out _))
+            {
+                _ledger.MarkDiscarded(item.Id);
+                continue;
+            }
+
+            var cmd = _effects.Resolve(item.EffectId, item.User, item.Params);
+            if (cmd is null)
+            {
+                _ledger.MarkDiscarded(item.Id);
+                continue;
+            }
+
+            if (item.FromChat)
+            {
+                Interlocked.Increment(ref _pendingChat);
+            }
+
+            var generation = Volatile.Read(ref _generation);
+            if (!_channel.Writer.TryWrite(new EffectWorkItem(item.EffectId, item.User, item.Reason, cmd, item.FromChat, generation, item.Id)))
+            {
+                if (item.FromChat)
+                {
+                    Interlocked.Decrement(ref _pendingChat);
+                }
+
+                continue;
+            }
+
+            replayed++;
+        }
+
+        if (replayed > 0)
+        {
+            BridgeLog.Warn($"Recuperados {replayed} efecto(s) que no llegaron al juego en la sesión anterior.");
+        }
+
+        return replayed;
+    }
 
     public async ValueTask EnqueueAsync(
         string effectId,
@@ -200,14 +258,16 @@ public sealed class EffectDispatcher : IDisposable
             Interlocked.Increment(ref _pendingChat);
         }
 
+        var pendingId = _ledger?.AddPending(effectId, user, reason, fromChat, paramOverrides);
         try
         {
             var generation = Volatile.Read(ref _generation);
-            await _channel.Writer.WriteAsync(new EffectWorkItem(effectId, user, reason, cmd, fromChat, generation), ct)
+            await _channel.Writer.WriteAsync(new EffectWorkItem(effectId, user, reason, cmd, fromChat, generation, pendingId), ct)
                 .ConfigureAwait(false);
         }
         catch
         {
+            _ledger?.MarkDiscarded(pendingId);
             if (fromChat)
             {
                 Interlocked.Decrement(ref _pendingChat);
@@ -228,14 +288,17 @@ public sealed class EffectDispatcher : IDisposable
                     if (item.Generation != Volatile.Read(ref _generation))
                     {
                         BridgeLog.Info($"Descartado {item.EffectId} <- {item.User ?? "anon"} ({item.Reason}): efectos en pausa");
+                        _ledger?.MarkDiscarded(item.PendingId);
                         continue;
                     }
 
                     if (!await SendWithRetryAsync(item, ct).ConfigureAwait(false))
                     {
+                        _ledger?.MarkDiscarded(item.PendingId);
                         continue;
                     }
 
+                    _ledger?.MarkDelivered(item.PendingId);
                     BridgeLog.Info($"OK {item.EffectId} <- {item.User ?? "anon"} ({item.Reason})");
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -244,6 +307,7 @@ public sealed class EffectDispatcher : IDisposable
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
+                    _ledger?.MarkDiscarded(item.PendingId);
                     BridgeLog.Error($"Fallo {item.EffectId}: {ex.Message}");
                 }
                 finally
@@ -314,7 +378,8 @@ public sealed class EffectDispatcher : IDisposable
         string Reason,
         Dictionary<string, object?> Command,
         bool FromChat,
-        int Generation);
+        int Generation,
+        string? PendingId = null);
 }
 
 public sealed class TestServer

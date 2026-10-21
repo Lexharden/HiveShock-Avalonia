@@ -10,6 +10,7 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
     private readonly LiveEffectRouter _router;
     private readonly LivePortHub _hub;
     private readonly ViewerGuard _guard;
+    private readonly ConnectionGap _gap = new();
 
     public TwitchLiveHostedService(
         BridgeOptions options,
@@ -67,6 +68,7 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
                 _hub.Set(LivePortIds.Twitch, "Twitch", LivePortStatus.Error, ex.Message);
             }
 
+            _gap.NoteDown();
             var wait = backoff.NextDelay(reachedLive);
             BridgeLog.Warn($"Twitch desconectado. Reintento en {wait.TotalSeconds:0}s");
             try
@@ -136,10 +138,17 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
             () =>
             {
                 onLive();
-                _hub.Set(LivePortIds.Twitch, "Twitch", LivePortStatus.Live, "");
+                var gap = _gap.NoteUp();
+                var note = gap is { } g ? ConnectionGap.Describe("Twitch", g) : "";
+                _hub.Set(LivePortIds.Twitch, "Twitch", LivePortStatus.Live, note);
                 BridgeLog.Info($"Twitch conectado @{_options.TwitchUserLogin}");
+                if (note.Length > 0)
+                {
+                    BridgeLog.Warn(note);
+                }
             },
-            ct).ConfigureAwait(false);
+            ct,
+            id => _router.Accept("tw", id, 0, TimeSpan.MaxValue, "Evento de Twitch")).ConfigureAwait(false);
     }
 }
 
