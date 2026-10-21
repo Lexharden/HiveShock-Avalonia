@@ -10,7 +10,7 @@
   "supportsDeathEvents": true,
   "supportsDeleteSave": true,
   "supportsRescue": true,
-  "singletonEffects": [ "delete_save", "wipe_save", "nuke_save", "new_run" ],
+  "singletonEffects": [ "delete_save" ],
   "enemyEffects": [
     "enemy", "like_like", "guay", "keese", "chuchu", "redead", "wolfos", "stalchild",
     "bubble", "skulltula", "bat", "tektite", "freezard", "random_enemy", "cucco", "cucco_army",
@@ -67,7 +67,6 @@
     "damage_up": "Más daño (naranja)",
     "haste": "Prisa (velocidad + daño)",
     "warp": "Teletransporte — búho aleatorio",
-    "warp_random": "Teletransporte — búho aleatorio",
     "warp_clock_town": "Teletransporte — Clock Town",
     "warp_woodfall": "Teletransporte — Woodfall",
     "warp_southern_swamp": "Teletransporte — Pantano",
@@ -84,10 +83,7 @@
     "resume_time": "Reanudar tiempo",
     "jinx": "Jinx (sin espada)",
     "rescue": "Rescatar a Link",
-    "delete_save": "Borrar partida (no se puede deshacer)",
-    "wipe_save": "Borrar partida (no se puede deshacer)",
-    "nuke_save": "Borrar partida (no se puede deshacer)",
-    "new_run": "Borrar partida (no se puede deshacer)"
+    "delete_save": "Borrar partida (no se puede deshacer)"
   },
   "helpNotes": "Entra en una partida y activa HiveShock en Cheats."
 }

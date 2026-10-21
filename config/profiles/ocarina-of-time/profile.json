@@ -10,9 +10,8 @@
   "supportsDeathEvents": true,
   "supportsDeleteSave": true,
   "supportsRescue": false,
-  "singletonEffects": [ "delete_save", "wipe_save", "nuke_save", "new_run" ],
-  "enemyEffects": [
-    "enemy", "like_like", "guay", "keese", "fire_keese", "ice_keese", "tektite", "redead", "gibdo",
+  "singletonEffects": [ "delete_save" ],
+  "enemyEffects": [ "like_like", "guay", "keese", "fire_keese", "ice_keese", "tektite", "redead", "gibdo",
     "wolfos", "stalchild", "stalfos", "bubble", "skulltula", "freezard",
     "dinolfos", "iron_knuckle", "wallmaster", "floormaster",
     "dark_link", "arwing", "random_enemy", "cucco", "cucco_army"
@@ -26,12 +25,9 @@
     "heal": "Curar corazones",
     "damage": "Daño",
     "insta_kill": "Muerte instantánea",
-    "instakill": "Muerte instantánea",
-    "kill": "Muerte instantánea",
     "rupees": "Dar rupias",
     "magic": "Magia",
     "bomb": "Bomba",
-    "enemy": "Enemigo — Like Like",
     "like_like": "Enemigo — Like Like",
     "guay": "Enemigo — Guay",
     "keese": "Enemigo — Keese",
@@ -79,10 +75,7 @@
     "time_skip": "Saltar la hora del día",
     "freeze_time": "Congelar tiempo",
     "resume_time": "Reanudar tiempo",
-    "delete_save": "Borrar partida (no se puede deshacer)",
-    "wipe_save": "Borrar partida (no se puede deshacer)",
-    "nuke_save": "Borrar partida (no se puede deshacer)",
-    "new_run": "Borrar partida (no se puede deshacer)"
+    "delete_save": "Borrar partida (no se puede deshacer)"
   },
   "helpNotes": "Entra en una partida y activa HiveShock en Enhancements. No abras 2s2h a la vez (mismo puerto 43000)."
 }

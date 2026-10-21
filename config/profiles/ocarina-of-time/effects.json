@@ -19,12 +19,9 @@
     }
   },
   "insta_kill": { "action": "insta_kill" },
-  "instakill": { "action": "insta_kill" },
-  "kill": { "action": "insta_kill" },
   "rupees": { "action": "rupees", "value": 10 },
   "magic": { "action": "magic", "value": 48 },
   "bomb": { "action": "bomb" },
-  "enemy": { "action": "like_like" },
   "like_like": { "action": "like_like" },
   "guay": { "action": "guay" },
   "keese": { "action": "keese" },
@@ -72,8 +69,5 @@
   "time_skip": { "action": "time_skip" },
   "freeze_time": { "action": "freeze_time", "duration": 20 },
   "resume_time": { "action": "resume_time" },
-  "delete_save": { "action": "delete_save" },
-  "wipe_save": { "action": "delete_save" },
-  "nuke_save": { "action": "delete_save" },
-  "new_run": { "action": "delete_save" }
+  "delete_save": { "action": "delete_save" }
 }
