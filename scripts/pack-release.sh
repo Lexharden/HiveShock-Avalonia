@@ -623,6 +623,13 @@ elif [[ "$GUI_NAME" == *.exe ]]; then
     "$PUBLISH_GUI/$GUI_NAME" \
     "$STAGE_UPDATE/"
 
+  # Perfiles nuevos: profiles-catalog llega aunque el actualizador viejo proteja profiles/; el programa la instala al arrancar.
+  for d in profiles profiles-catalog; do
+    if [[ -d "$PUBLISH_GUI/$d" ]]; then
+      cp -R "$PUBLISH_GUI/$d" "$STAGE_UPDATE/$d"
+    fi
+  done
+
 else
 
   # Linux no publica en un solo archivo: el ejecutable necesita sus librerías.

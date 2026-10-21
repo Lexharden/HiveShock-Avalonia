@@ -130,6 +130,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
     public static BridgeRuntime Create(string[]? args = null)
     {
         var options = BridgeOptions.FromEnvironmentAndArgs(args ?? []);
+        ProfileSeeder.SeedFromApp(); // perfiles nuevos del catálogo (los que ya tiene no se tocan)
         var profile = ProfileStore.LoadActive(options.ProfileId);
         ApplyProfileToOptions(options, profile, forcePortsFromProfile: false);
 
