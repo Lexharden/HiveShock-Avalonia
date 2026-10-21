@@ -31,8 +31,6 @@
     }
   },
   "insta_kill": { "action": "insta_kill" },
-  "instakill": { "action": "insta_kill" },
-  "kill": { "action": "insta_kill" },
   "rupees": { "action": "rupees", "value": 10 },
   "magic": { "action": "magic", "value": 48 },
   "bomb": { "action": "bomb" },
@@ -74,7 +72,6 @@
   "damage_up": { "action": "damage_up", "duration": 20, "strength": 3 },
   "haste": { "action": "haste", "duration": 20 },
   "warp": { "action": "warp" },
-  "warp_random": { "action": "warp" },
   "warp_clock_town": { "action": "warp_clock_town" },
   "warp_woodfall": { "action": "warp_woodfall" },
   "warp_southern_swamp": { "action": "warp_southern_swamp" },
@@ -87,13 +84,8 @@
   "warp_stone_tower": { "action": "warp_stone_tower" },
   "time_skip": { "action": "time_skip" },
   "time_up": { "action": "time_up" },
-  "times_up": { "action": "time_up" },
-  "time_zero": { "action": "time_up" },
   "freeze_time": { "action": "freeze_time", "duration": 20 },
   "resume_time": { "action": "resume_time" },
   "jinx": { "action": "jinx", "duration": 30 },
-  "delete_save": { "action": "delete_save" },
-  "wipe_save": { "action": "wipe_save" },
-  "nuke_save": { "action": "nuke_save" },
-  "new_run": { "action": "delete_save" }
+  "delete_save": { "action": "delete_save" }
 }

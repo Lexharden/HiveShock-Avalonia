@@ -12,10 +12,7 @@
   "supportsRescue": false,
   "singletonEffects": [
     "clear_enemies",
-    "delete_save",
-    "wipe_save",
-    "nuke_save",
-    "new_run"
+    "delete_save"
   ],
   "enemyEffects": [
     "goomba",
@@ -32,11 +29,9 @@
   ],
   "labels": {
     "banana": "Cáscara de plátano (Mario resbala)",
-    "banana_peel": "Cáscara de plátano (Mario resbala)",
     "heal": "Curar (casillas de vida)",
     "damage": "Daño (casillas de vida)",
     "kill": "Muerte instantánea",
-    "instakill": "Muerte instantánea",
     "lives_add": "Dar vidas",
     "coins_add": "Dar monedas",
     "goomba": "Enemigo — Goomba",

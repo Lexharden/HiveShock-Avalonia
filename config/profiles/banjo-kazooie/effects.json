@@ -26,9 +26,6 @@
   "kill": {
     "action": "kill"
   },
-  "insta_kill": {
-    "action": "kill"
-  },
   "extra_life": {
     "action": "extra_life",
     "value": 1

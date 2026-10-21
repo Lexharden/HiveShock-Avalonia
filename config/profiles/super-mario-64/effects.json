@@ -2,9 +2,6 @@
   "banana": {
     "action": "banana"
   },
-  "banana_peel": {
-    "action": "banana_peel"
-  },
   "heal": {
     "action": "heal",
     "value": 2,
@@ -35,9 +32,6 @@
   },
   "kill": {
     "action": "kill"
-  },
-  "instakill": {
-    "action": "instakill"
   },
   "lives_add": {
     "action": "lives_add",
@@ -309,15 +303,6 @@
     "action": "shotgun_fire"
   },
   "delete_save": {
-    "action": "delete_save"
-  },
-  "wipe_save": {
-    "action": "delete_save"
-  },
-  "nuke_save": {
-    "action": "delete_save"
-  },
-  "new_run": {
     "action": "delete_save"
   }
 }
