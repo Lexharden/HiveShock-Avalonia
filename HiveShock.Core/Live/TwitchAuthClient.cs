@@ -168,8 +168,76 @@ public sealed class TwitchAuthClient : IDisposable
     public void Dispose() => _http.Dispose();
 }
 
+public sealed record TwitchFollower(string UserId, string Login, string DisplayName, string FollowedAtRaw, DateTimeOffset FollowedAt);
+
 public static class TwitchApi
 {
+    /// <summary>
+    /// Seguidores más recientes del canal (el más nuevo primero). Requiere el permiso moderator:read:followers y que
+    /// la cuenta sea el dueño del canal o moderador.
+    /// </summary>
+    public static async Task<IReadOnlyList<TwitchFollower>> GetRecentFollowersAsync(
+        string clientId,
+        string accessToken,
+        string broadcasterId,
+        CancellationToken ct,
+        HttpClient? http = null)
+    {
+        var own = http is null;
+        http ??= new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        try
+        {
+            using var request = new HttpRequestMessage(
+                HttpMethod.Get,
+                $"https://api.twitch.tv/helix/channels/followers?broadcaster_id={Uri.EscapeDataString(broadcasterId)}&first=100");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            request.Headers.TryAddWithoutValidation("Client-Id", clientId);
+            using var response = await http.SendAsync(request, ct).ConfigureAwait(false);
+            var json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(json);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException(ReadHelixError(doc.RootElement, "Twitch no devolvió los seguidores."));
+            }
+
+            return ParseFollowers(doc.RootElement);
+        }
+        finally
+        {
+            if (own)
+            {
+                http.Dispose();
+            }
+        }
+    }
+
+    public static IReadOnlyList<TwitchFollower> ParseFollowers(JsonElement root)
+    {
+        var list = new List<TwitchFollower>();
+        if (!root.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
+        {
+            return list;
+        }
+
+        foreach (var item in data.EnumerateArray())
+        {
+            string Str(string name) => item.TryGetProperty(name, out var el) && el.ValueKind == JsonValueKind.String
+                ? el.GetString() ?? ""
+                : "";
+
+            var raw = Str("followed_at");
+            if (raw.Length == 0 || !DateTimeOffset.TryParse(raw, System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AssumeUniversal, out var at))
+            {
+                continue;
+            }
+
+            list.Add(new TwitchFollower(Str("user_id"), Str("user_login"), Str("user_name"), raw, at));
+        }
+
+        return list;
+    }
+
     public static string ReadHelixError(JsonElement root, string fallback)
     {
         if (root.TryGetProperty("message", out var message) && message.GetString() is { Length: > 0 } text)

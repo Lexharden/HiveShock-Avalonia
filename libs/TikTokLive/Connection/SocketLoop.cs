@@ -25,6 +25,7 @@ namespace TikTokLive.Connection
         private readonly TimeSpan _heartbeatInterval;
         private readonly TimeSpan _staleTimeout;
         private readonly Action<TikTokLiveEvent> _emit;
+        private readonly ResumePoint? _resume;
         private ClientWebSocket? _ws;
         private readonly SemaphoreSlim _sendLock = new SemaphoreSlim(1, 1);
 
@@ -32,8 +33,9 @@ namespace TikTokLive.Connection
             string wssUrl, string ttwid, string roomId,
             string userAgent, string? extraCookies, IWebProxy? proxy,
             TimeSpan heartbeatInterval, TimeSpan staleTimeout,
-            Action<TikTokLiveEvent> emit)
+            Action<TikTokLiveEvent> emit, ResumePoint? resume = null)
         {
+            _resume = resume;
             _wssUrl = wssUrl;
             _ttwid = ttwid;
             _roomId = roomId;
@@ -175,6 +177,8 @@ namespace TikTokLive.Connection
                     {
                         response = Serializer.Deserialize<WebcastResponse>(ms);
                     }
+
+                    _resume?.Update(_roomId, response.Cursor, response.InternalExt);
 
                     if (response.NeedsAck && !string.IsNullOrEmpty(response.InternalExt))
                     {

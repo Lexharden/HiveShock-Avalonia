@@ -26,6 +26,8 @@ public sealed class BridgeOptions
     /// <summary>Conecta a TikTok solo para capturar regalos al catálogo (sin efectos ni servidor de pruebas).</summary>
     public bool CaptureOnly { get; set; }
     public bool TikTokEnabled { get; set; } = true;
+    /// <summary>Experimental: al reconectar a TikTok manda el último cursor leído por si reenvía lo perdido (HIVESHOCK_TIKTOK_RESUME=1).</summary>
+    public bool TikTokResume { get; set; }
     public bool TwitchEnabled { get; set; } = true;
     public string TwitchClientId { get; set; } = "";
     public string? TwitchAccessToken { get; set; }
@@ -65,6 +67,7 @@ public sealed class BridgeOptions
             TikTokTtwid = Env("TIKTOK_TTWID"),
             TikTokCookies = Env("TIKTOK_COOKIES"),
             TikTokEnabled = EnvFlag("TIKTOK_ENABLED", defaultValue: true),
+            TikTokResume = EnvBool("HIVESHOCK_TIKTOK_RESUME"),
             TwitchEnabled = EnvFlag("TWITCH_ENABLED", defaultValue: true),
             TwitchClientId = Env("TWITCH_CLIENT_ID") ?? TwitchApp.ClientId,
             TwitchAccessToken = Env("TWITCH_ACCESS_TOKEN"),

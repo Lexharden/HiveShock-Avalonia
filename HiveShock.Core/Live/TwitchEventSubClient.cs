@@ -152,6 +152,13 @@ public sealed class TwitchEventSubClient
 
         if (string.Equals(subType, "channel.follow", StringComparison.OrdinalIgnoreCase))
         {
+            // Misma clave que usa la recuperación tras un corte: un seguidor no cuenta dos veces.
+            if (isNew != null && evt.TryGetProperty("followed_at", out var at) && at.GetString() is { Length: > 0 } followedAt &&
+                !isNew(FollowKey(ReadString(evt, "user_id"), followedAt)))
+            {
+                return;
+            }
+
             onFollow(ReadViewer(evt, "user_id", "user_login", "user_name"));
             return;
         }
@@ -178,6 +185,8 @@ public sealed class TwitchEventSubClient
                 bits);
         }
     }
+
+    public static string FollowKey(string userId, string followedAt) => $"follow:{userId}:{followedAt}";
 
     private static ViewerIdentity ReadViewer(JsonElement evt, string idProp, string loginProp, string nameProp) =>
         ViewerIdentity.Twitch(ReadString(evt, idProp), ReadString(evt, loginProp), ReadString(evt, nameProp));

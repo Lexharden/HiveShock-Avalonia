@@ -84,6 +84,23 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
         _hub.Set(LivePortIds.Twitch, "Twitch", LivePortStatus.Off, "");
     }
 
+    /// <summary>Tras un corte, pide a Twitch los seguidores nuevos de ese tramo (EventSub no reenvía lo perdido).</summary>
+    private async Task RecoverFollowsAsync(string clientId, string accessToken, string userId, DateTimeOffset since, CancellationToken ct)
+    {
+        try
+        {
+            var followers = await TwitchApi.GetRecentFollowersAsync(clientId, accessToken, userId, ct).ConfigureAwait(false);
+            var recovered = _router.RecoverTwitchFollows(followers, since, ct);
+            BridgeLog.Info(recovered > 0
+                ? $"Twitch: recuperados {recovered} seguidor(es) del corte."
+                : "Twitch: no había seguidores nuevos del corte.");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            BridgeLog.Warn($"Twitch: no se pudieron recuperar seguidores del corte ({ex.Message}).");
+        }
+    }
+
     private async Task ConnectOnceAsync(CancellationToken ct, Action onLive)
     {
         var clientId = _options.ResolvedTwitchClientId();
@@ -142,9 +159,10 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
                 var note = gap is { } g ? ConnectionGap.Describe("Twitch", g) : "";
                 _hub.Set(LivePortIds.Twitch, "Twitch", LivePortStatus.Live, note);
                 BridgeLog.Info($"Twitch conectado @{_options.TwitchUserLogin}");
-                if (note.Length > 0)
+                if (gap is { } cut)
                 {
                     BridgeLog.Warn(note);
+                    _ = RecoverFollowsAsync(clientId, access, userId, DateTimeOffset.UtcNow - cut - TimeSpan.FromSeconds(30), ct);
                 }
             },
             ct,
