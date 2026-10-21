@@ -286,6 +286,9 @@ if (Test-Path $refImages) { Copy-Item $refImages (Join-Path $StageUpdate "gifts-
 # Perfiles del catalogo: el actualizador solo instala los que el usuario aun no tiene; los existentes no se tocan.
 $refProfiles = Join-Path $PublishGui "profiles"
 if (Test-Path $refProfiles) { Copy-Item $refProfiles (Join-Path $StageUpdate "profiles") -Recurse -Force }
+# profiles-catalog: lo mismo en una carpeta que los actualizadores viejos (que protegen profiles/) si copian; el programa la instala al arrancar.
+$refCatalog = Join-Path $PublishGui "profiles-catalog"
+if (Test-Path $refCatalog) { Copy-Item $refCatalog (Join-Path $StageUpdate "profiles-catalog") -Recurse -Force }
 $cliWinU = Join-Path $PublishCli "HiveShock.Cli.exe"
 $cliUnixU = Join-Path $PublishCli "HiveShock.Cli"
 if ($IncludeCli -and (Test-Path $cliWinU)) { Copy-Item $cliWinU $StageUpdate -Force }
