@@ -4,6 +4,13 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.7.1] - 2026-10-21
+
+### Recuperar lo que pasó durante un corte
+* **Twitch: seguidores recuperados.** Al reconectar tras un corte de más de 5 s, HiveShock consulta a Twitch los seguidores nuevos de ese tramo (EventSub no los reenvía) y los procesa una sola vez; si ya se habían visto en vivo, no se repiten. Usa el permiso que ya tenías (`moderator:read:followers`). Si falta, el log lo avisa y el resto sigue igual.
+* **TikTok: reanudación experimental.** Con `HIVESHOCK_TIKTOK_RESUME=1` en el `.env`, al reconectar se manda a TikTok el último punto leído (cursor) por si reenvía lo perdido. TikTok no documenta esto, así que viene **apagado**: el log indica «TikTok reenvió un regalo de antes de reconectar» y cuántos, para saber con datos reales si funciona. Lo reenviado pasa por el registro de la 2.7.0: lo ya ejecutado se ignora y lo nuevo, dentro de la ventana, se ejecuta.
+* El cursor solo se usa en la misma sala y durante 10 minutos; se borra al cerrar el live.
+
 ## [2.7.0] - 2026-10-21
 
 ### Regalos sin duplicados y sin perder lo ya recibido
