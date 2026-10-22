@@ -4,6 +4,11 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-10-21
+
+### Metas
+* **El overlay de metas enseña el regalo de cada meta.** Encima del título de la meta aparece el icono del regalo (hasta 4) tomado del catálogo, con su nombre al pasar el ratón, para que quien mira sepa qué regalo enviar. Si el regalo no tiene imagen en el catálogo se escribe su nombre.
+
 ## [2.7.3] - 2026-10-21
 
 ### Perfiles
