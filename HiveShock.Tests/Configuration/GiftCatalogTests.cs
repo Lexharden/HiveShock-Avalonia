@@ -121,6 +121,20 @@ public sealed class GiftCatalogStoreTests : IDisposable
     }
 
     [Fact]
+    public void A_goal_key_finds_the_gift_by_id_or_by_any_of_its_names()
+    {
+        var store = Store();
+        store.Observe("5655", "Rose", 1);
+        store.Observe("423360", "RalBatin", 5);
+
+        Assert.Equal("5655", store.FindByKey("5655")!.Id);
+        Assert.Equal("5655", store.FindByKey("rose")!.Id);
+        Assert.Equal("423360", store.FindByKey("  ralbatin ")!.Id);
+        Assert.Null(store.FindByKey("no existe"));
+        Assert.Null(store.FindByKey(""));
+    }
+
+    [Fact]
     public void Lists_seen_gifts_plus_reference_ones_enriched()
     {
         var store = Store();

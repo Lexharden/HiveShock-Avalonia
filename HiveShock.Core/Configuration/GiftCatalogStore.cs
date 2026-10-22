@@ -446,6 +446,36 @@ public sealed class GiftCatalogStore
         }
     }
 
+    /// <summary>
+    /// Regalo del catálogo al que apunta una clave de meta o de regalo: su id o cualquiera de sus nombres
+    /// (sin distinguir mayúsculas ni acentos). Null si no se conoce.
+    /// </summary>
+    public CatalogGift? FindByKey(string? key)
+    {
+        var wanted = GiftKeyNormalizer.Normalize(key);
+        if (wanted.Length == 0)
+        {
+            return null;
+        }
+
+        if (Find(key) is { } byId)
+        {
+            return byId;
+        }
+
+        foreach (var gift in ListSorted())
+        {
+            if (new[] { gift.NameEn, gift.NameEs }.Concat(gift.Also)
+                .Any(n => string.Equals(GiftKeyNormalizer.Normalize(n), wanted, StringComparison.OrdinalIgnoreCase)) ||
+                gift.OtherIds.Contains(key!.Trim()))
+            {
+                return gift;
+            }
+        }
+
+        return null;
+    }
+
     public CatalogGift? GetByIndex(int zeroBased)
     {
         var list = ListSorted();
