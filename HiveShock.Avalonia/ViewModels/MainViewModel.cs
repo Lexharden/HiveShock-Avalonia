@@ -59,6 +59,9 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         NavExpanded = Prefs.NavExpanded;
         SelectedThemeId = Prefs.Theme is "dark" or "light" ? Prefs.Theme : "system";
 
+        Overlays.GiftLookup = key => Runtime.Catalog.FindByKey(key) is { } gift
+            ? new GoalGiftInfo(gift.PrimaryName is { Length: > 0 } n ? n : gift.DisplayName, gift.ImagePath)
+            : null;
         Overlays.CounterClosedByUser += () =>
         {
             Studio.ShowCounterOnStream = false;

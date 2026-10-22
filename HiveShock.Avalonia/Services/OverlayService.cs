@@ -7,6 +7,9 @@ using HiveShock.Live;
 
 namespace HiveShock.Avalonia.Services;
 
+/// <summary>Regalo de una meta tal como se dibuja en el overlay: su nombre y, si se tiene, su imagen del catálogo.</summary>
+public sealed record GoalGiftInfo(string Name, string? ImagePath);
+
 public sealed class OverlayService
 {
     private CounterOverlayWindow? _counter;
@@ -15,6 +18,9 @@ public sealed class OverlayService
     private bool _suppressClose;
 
     public Window? Owner { get; set; }
+
+    /// <summary>Resuelve la clave de un regalo de meta (id o nombre) contra el catálogo.</summary>
+    public Func<string, GoalGiftInfo?>? GiftLookup { get; set; }
 
     public event Action? CounterClosedByUser;
     public event Action? GiftsClosedByUser;
@@ -164,7 +170,7 @@ public sealed class OverlayService
     {
         if (_goals == null)
         {
-            _goals = new GoalOverlayWindow();
+            _goals = new GoalOverlayWindow { GiftLookup = key => GiftLookup?.Invoke(key) };
             _goals.Closed += (_, _) =>
             {
                 if (_goals != null)

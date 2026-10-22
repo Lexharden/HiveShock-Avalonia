@@ -24,6 +24,10 @@ public sealed class GoalOverlayWindow : Window
     private bool _applyingLayout;
     private UiPreferences _look = new();
     private IReadOnlyList<GoalSnapshot> _goals = [];
+    private readonly Dictionary<string, GoalGiftInfo?> _giftCache = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Busca el regalo (nombre e imagen) de una clave de meta; sin él solo se muestra el texto de la meta.</summary>
+    public Func<string, GoalGiftInfo?>? GiftLookup { get; set; }
 
     public GoalOverlayWindow()
     {
@@ -73,6 +77,7 @@ public sealed class GoalOverlayWindow : Window
     public void ApplyLook(UiPreferences prefs, double scale)
     {
         _look = prefs;
+        _giftCache.Clear();
         ApplyScale(scale);
         Paint();
         Rebuild();
@@ -143,6 +148,12 @@ public sealed class GoalOverlayWindow : Window
                 Margin = new Thickness(0, 0, 0, many ? 10 * _scale : 0),
                 HorizontalAlignment = align,
             };
+            var gifts = GiftsOf(goal);
+            if (gifts.Count > 0)
+            {
+                block.Children.Add(BuildGiftRow(gifts, align, titleSize, titleBrush));
+            }
+
             block.Children.Add(new TextBlock
             {
                 Text = string.IsNullOrWhiteSpace(goal.Label) ? "Meta" : goal.Label,
@@ -165,6 +176,75 @@ public sealed class GoalOverlayWindow : Window
             });
             _stack.Children.Add(block);
         }
+    }
+
+    private List<GoalGiftInfo> GiftsOf(GoalSnapshot goal)
+    {
+        var list = new List<GoalGiftInfo>();
+        foreach (var key in goal.Keys.Where(k => !string.IsNullOrWhiteSpace(k)))
+        {
+            if (!_giftCache.TryGetValue(key, out var info))
+            {
+                try
+                {
+                    info = GiftLookup?.Invoke(key);
+                }
+                catch (Exception)
+                {
+                    info = null;
+                }
+
+                _giftCache[key] = info;
+            }
+
+            // Sin catálogo se enseña al menos el nombre que puso el usuario.
+            var shown = info ?? new GoalGiftInfo(key, null);
+            if (!list.Any(g => string.Equals(g.Name, shown.Name, StringComparison.OrdinalIgnoreCase)))
+            {
+                list.Add(shown);
+            }
+        }
+
+        return list;
+    }
+
+    private Control BuildGiftRow(IReadOnlyList<GoalGiftInfo> gifts, HorizontalAlignment align, double titleSize, IBrush titleBrush)
+    {
+        var size = 40 * _scale;
+        var row = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 6 * _scale,
+            HorizontalAlignment = align,
+            Margin = new Thickness(0, 0, 0, 4 * _scale),
+        };
+        foreach (var gift in gifts.Take(4))
+        {
+            var bmp = GiftImageLoader.Load(gift.ImagePath);
+            if (bmp != null)
+            {
+                row.Children.Add(new Image
+                {
+                    Source = bmp,
+                    Width = size,
+                    Height = size,
+                    Stretch = Stretch.Uniform,
+                });
+                ToolTip.SetTip(row.Children[^1], gift.Name);
+            }
+            else
+            {
+                row.Children.Add(new TextBlock
+                {
+                    Text = gift.Name,
+                    FontSize = Math.Max(12, titleSize * 0.8),
+                    Foreground = titleBrush,
+                    VerticalAlignment = VerticalAlignment.Center,
+                });
+            }
+        }
+
+        return row;
     }
 
     private void OnThemeChanged(AppTheme _) => Paint();
