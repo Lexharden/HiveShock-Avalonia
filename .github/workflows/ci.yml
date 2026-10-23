@@ -64,3 +64,13 @@ jobs:
 
       - name: Build APK (unsigned debug)
         run: dotnet build HiveShock.Android/HiveShock.Android.csproj -c Release
+
+      - name: versionCode coincide con Version
+        run: |
+          set -euo pipefail
+          VER=$(grep -m1 '<Version>' Directory.Build.props | sed -E 's/.*<Version>([^<]+)<\/Version>.*/\1/' | tr -d '[:space:]')
+          CORE="${VER%%-*}"; IFS=. read -r MA MI PA <<< "$CORE"
+          EXPECTED=$((MA * 10000 + MI * 100 + PA))
+          ACTUAL=$(dotnet msbuild HiveShock.Android/HiveShock.Android.csproj -getProperty:ApplicationVersion | tr -d '[:space:]')
+          echo "esperado=$EXPECTED real=$ACTUAL"
+          [[ "$EXPECTED" == "$ACTUAL" ]]

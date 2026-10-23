@@ -91,11 +91,73 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  pack-android:
+    name: Pack android
+    needs: version
+    runs-on: ubuntu-latest
+    env:
+      # Un tag publica de verdad: exige la firma de release (otra clave no actualizaría sobre la instalada).
+      # En una ejecución manual (borrador) se permite la clave de depuración, avisando.
+      ANDROID_REQUIRE_SIGNING: ${{ github.ref_type == 'tag' && '1' || '0' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Workload Android
+        run: dotnet workload install android
+
+      - name: Keystore de release
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_SIGNING_ALIAS: ${{ secrets.ANDROID_SIGNING_ALIAS }}
+          ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${KEYSTORE_B64:-}" || -z "${ANDROID_SIGNING_ALIAS:-}" || -z "${ANDROID_SIGNING_PASSWORD:-}" ]]; then
+            echo "::warning::Faltan los secrets ANDROID_KEYSTORE_BASE64 / ANDROID_SIGNING_ALIAS / ANDROID_SIGNING_PASSWORD."
+            exit 0
+          fi
+          KS="$RUNNER_TEMP/hiveshock-release.keystore"
+          echo "$KEYSTORE_B64" | base64 -d > "$KS"
+          {
+            echo "ANDROID_SIGNING_KEYSTORE=$KS"
+            echo "ANDROID_SIGNING_ALIAS=$ANDROID_SIGNING_ALIAS"
+            echo "ANDROID_SIGNING_PASSWORD=$ANDROID_SIGNING_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - name: Pack (Android)
+        run: |
+          chmod +x scripts/Pack-Android.sh
+          ./scripts/Pack-Android.sh ${{ needs.version.outputs.version }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: HiveShock-${{ needs.version.outputs.version }}-android
+          path: dist/*
+          if-no-files-found: error
+
   publish:
     name: GitHub Release
-    needs: [version, pack]
+    needs: [version, pack, pack-android]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.inputs.create_draft == 'true'
+    # El escritorio no se queda sin release si Android falla (p. ej. faltan los secrets de firma):
+    # el job de Android queda en rojo y el APK se añade al relanzar.
+    if: >-
+      ${{ !cancelled() && needs.pack.result == 'success'
+      && (github.event_name == 'push' || github.event.inputs.create_draft == 'true') }}
     steps:
       - uses: actions/checkout@v4
 

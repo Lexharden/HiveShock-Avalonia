@@ -60,7 +60,24 @@ dotnet run --project HiveShock.Android/HiveShock.Android.csproj
 
 En el **emulador**, si el juego está en el PC usa `10.0.2.2`. En un móvil, `127.0.0.1` para el APK local o la IP LAN del PC (firewall al puerto 43000).
 
-Pack (APK desde la carpeta `publish/`, no intermedios de `bin/`):
+**Qué hace y qué no, frente al escritorio**
+
+| Función | Android |
+| --- | --- |
+| TikTok / Twitch, regalos, eventos, metas (mapeo y efectos) | Sí |
+| Editor de perfil, copiar y borrar perfiles propios | Sí |
+| Perfiles del catálogo nuevos (p. ej. Super Mario 64) | Sí, se instalan solos al abrir la app |
+| Aviso de versión nueva | Sí (Acerca de → abre el release; no descarga solo) |
+| Overlays OBS | No, por diseño |
+| Teclas / macros hacia el juego | No (solo Windows) |
+
+La app guarda sus datos en la carpeta privada de la app y **no entra en las copias de seguridad de Android** (`allowBackup=false`): contiene tokens de Twitch.
+
+Android corta los servicios en segundo plano de tipo *datos* a las ~6 h (Android 15+). HiveShock lo avisa en el log; vuelve a pulsar **Conectar**.
+
+**Instalar:** baja `HiveShock-<ver>-android.apk` del [Release](https://github.com/) de la versión, permite instalar de orígenes desconocidos y ábrelo. Para actualizar, instala el APK nuevo encima (misma firma; no hace falta desinstalar). Comprueba la integridad con `SHA256SUMS.txt` del release.
+
+Pack local (APK desde la carpeta `publish/`, no intermedios de `bin/`):
 
 ```bash
 ./scripts/Pack-Android.sh
@@ -69,6 +86,16 @@ adb install -r dist/HiveShock-*-android.apk
 ```
 
 En Windows: `.\scripts\Pack-Android.ps1`. Firma opcional con `ANDROID_SIGNING_*`. No subas el `.keystore` al git.
+
+**Firma del release (una sola vez).** Un APK solo actualiza a otro firmado con la **misma clave**: guarda el keystore a buen recaudo (si se pierde, nadie podrá actualizar). Crea uno y súbelo como secrets del repo:
+
+```bash
+keytool -genkeypair -v -keystore hiveshock-release.keystore -alias hiveshock -keyalg RSA -keysize 4096 -validity 10000
+base64 -w0 hiveshock-release.keystore   # → secret ANDROID_KEYSTORE_BASE64
+# además: ANDROID_SIGNING_ALIAS (hiveshock) y ANDROID_SIGNING_PASSWORD
+```
+
+El `versionCode` se calcula solo desde `Version` (`major*10000 + minor*100 + patch`), así que subir la versión con `bump-version` basta.
 
 El CI de escritorio **no** restaura el `.slnx` entero (el proyecto Android exige el workload). Hay un job aparte `android`.
 
@@ -110,7 +137,7 @@ git tag v1.0.1
 git push && git push --tags
 ```
 
-El tag `vX.Y.Z` tiene que coincidir con `Directory.Build.props`. GitHub Actions empaqueta Windows, macOS y Linux y crea el Release.
+El tag `vX.Y.Z` tiene que coincidir con `Directory.Build.props`. GitHub Actions empaqueta Windows, macOS, Linux y Android y crea el Release.
 
 ## Publicar en local
 
@@ -138,6 +165,7 @@ Salida en `dist/`:
 | `HiveShock-<ver>-win-x64-full.zip` | Windows, instalación nueva |
 | `HiveShock-<ver>-linux-x64-full.zip` | Linux |
 | `HiveShock-<ver>-<rid>-update.zip` | Actualizar sin pisar perfiles |
+| `HiveShock-<ver>-android.apk` | Teléfono Android (compañero, sin overlays) |
 
 En otra Mac: abre el DMG, arrastra HiveShock a Aplicaciones, **clic derecho → Abrir** (solo la primera vez). En Tahoe, si no aparece Abrir: Ajustes del Sistema → Privacidad y seguridad → Abrir de todos modos.
 
@@ -155,6 +183,7 @@ Opcional: `-IncludeCli` / `--cli` añade la consola.
   - `osx-x64` + `.dmg`
   - `linux-x64`
   - `linux-arm64`
+  - `android` (`HiveShock-<ver>-android.apk`, firmado con los secrets `ANDROID_*`; en un tag es obligatorio)
 
 ## Checklist de paridad (vs WPF)
 
