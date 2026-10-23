@@ -4,6 +4,8 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.9.0-alpha.1] - 2026-10-22
+
 ### Android
 * **El APK ya se publica en cada release** (`HiveShock-<ver>-android.apk`), junto a Windows, macOS y Linux y con su suma en `SHA256SUMS.txt`.
 * **Aviso de versión nueva** en Acerca de: busca en los releases y abre la descarga. No baja nada solo.
