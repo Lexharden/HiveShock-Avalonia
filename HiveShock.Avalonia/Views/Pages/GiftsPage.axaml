@@ -33,6 +33,8 @@
                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
                                 <TextBlock Text="{Binding Note}" Foreground="{DynamicResource MutedBrush}"
                                            FontSize="12" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding StepSummary}" IsVisible="{Binding HasExtraSteps}"
+                                           Foreground="{DynamicResource BrandGoldBrush}" FontSize="12" />
                             </StackPanel>
                         </DockPanel>
                     </DataTemplate>
@@ -72,6 +74,52 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+
+                        <TextBlock Classes="fieldLabel" Text="Más efectos con este mismo regalo"
+                                   Margin="0,4,0,2" />
+                        <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12"
+                                   Margin="0,0,0,8" TextWrapping="Wrap"
+                                   Text="Se lanzan después del anterior, en este orden. «Esperar» son los segundos desde el efecto anterior (0 = enseguida)." />
+                        <ItemsControl ItemsSource="{Binding Selected.ExtraSteps}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:GiftStepRowViewModel">
+                                    <Border Background="{DynamicResource CardAltBrush}" CornerRadius="8"
+                                            Padding="10" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <ComboBox Margin="0,0,0,8" HorizontalAlignment="Stretch"
+                                                      ItemsSource="{Binding EffectChoices}"
+                                                      SelectedValue="{Binding Effect}"
+                                                      SelectedValueBinding="{Binding Id}"
+                                                      DisplayMemberBinding="{Binding Display}" />
+                                            <ItemsControl ItemsSource="{Binding ParamFields}"
+                                                          IsVisible="{Binding HasParams}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:EffectParamFieldViewModel">
+                                                        <StackPanel Margin="0,0,0,8">
+                                                            <TextBlock Classes="fieldLabel" Text="{Binding Label}" />
+                                                            <TextBox Text="{Binding ValueText}" Width="100"
+                                                                     HorizontalAlignment="Left"
+                                                                     PlaceholderText="{Binding Hint}" />
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Classes="secondary" Content="Quitar"
+                                                        Command="{Binding RemoveCommand}" />
+                                                <TextBlock Classes="fieldLabel" Text="Esperar (s)"
+                                                           VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                <TextBox Text="{Binding DelayText}" Width="70"
+                                                         HorizontalAlignment="Left" PlaceholderText="0" />
+                                            </DockPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button Classes="secondary" Content="Añadir otro efecto"
+                                Command="{Binding Selected.AddStepCommand}"
+                                HorizontalAlignment="Left" Margin="0,0,0,12" />
 
                         <TextBlock Classes="fieldLabel" Text="Nota (solo para ti)" />
                         <TextBox Text="{Binding Selected.Note}" Margin="0,0,0,12" />

@@ -209,6 +209,63 @@ public sealed class EffectDispatcher : IDisposable
         return replayed;
     }
 
+    /// <summary>
+    /// Encola varios efectos de un mismo disparador, en orden. Los que no esperan salen ya, uno tras otro; a partir
+    /// del primero con espera, el resto se programa aparte para no frenar a los demás espectadores. Si entre medias
+    /// se pausan los efectos o se cancela, lo que faltaba se descarta.
+    /// </summary>
+    public void EnqueueSequence(
+        IReadOnlyList<PlannedEffect> items,
+        string? user,
+        CancellationToken ct = default,
+        bool fromChat = false)
+    {
+        var generation = Volatile.Read(ref _generation);
+        var index = 0;
+        for (; index < items.Count && items[index].Step.DelayMs <= 0; index++)
+        {
+            var now = items[index];
+            _ = EnqueueAsync(now.Step.EffectId, user, now.Reason, ct, fromChat, now.Step.Params);
+        }
+
+        if (index >= items.Count)
+        {
+            return;
+        }
+
+        var later = items.Skip(index).ToList();
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                foreach (var item in later)
+                {
+                    if (item.Step.DelayMs > 0)
+                    {
+                        await Task.Delay(item.Step.DelayMs, ct).ConfigureAwait(false);
+                    }
+
+                    if (generation != Volatile.Read(ref _generation))
+                    {
+                        BridgeLog.Info($"Descartado {item.Step.EffectId} <- {user ?? "anon"} ({item.Reason}): efectos en pausa");
+                        return;
+                    }
+
+                    await EnqueueAsync(item.Step.EffectId, user, item.Reason, ct, fromChat, item.Step.Params)
+                        .ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Desconectar cancela lo que quedaba por salir.
+            }
+            catch (Exception ex)
+            {
+                BridgeLog.Error($"Efectos en cadena: {ex.Message}");
+            }
+        }, CancellationToken.None);
+    }
+
     public async ValueTask EnqueueAsync(
         string effectId,
         string? user,

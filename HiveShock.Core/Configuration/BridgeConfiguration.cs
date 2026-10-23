@@ -415,7 +415,8 @@ public sealed record GiftRule(
     string What,
     int MinCount = 1,
     bool Each = false,
-    IReadOnlyDictionary<string, double>? Params = null);
+    IReadOnlyDictionary<string, double>? Params = null,
+    EffectPlan? Plan = null);
 
 public sealed record GiftGroup(IReadOnlyList<string> Names, string EffectId, string What);
 
@@ -429,6 +430,12 @@ public sealed class GiftMatch
     public bool Each { get; init; }
     /// <summary>Overrides de parámetros del efecto (valores wire).</summary>
     public IReadOnlyDictionary<string, double>? Params { get; init; }
+
+    /// <summary>Todos los efectos del regalo, en orden. Vacío = solo <see cref="EffectId"/>.</summary>
+    public EffectPlan Plan { get; init; } = EffectPlan.Empty;
+
+    /// <summary>Los efectos a lanzar: el plan, o el efecto único de siempre.</summary>
+    public EffectPlan EffectivePlan => Plan.IsEmpty ? EffectPlan.Single(EffectId, Params) : Plan;
 }
 
 /// <summary>Esquema UI/override de un parámetro numérico declarado en effects.json (_params).</summary>
@@ -900,7 +907,13 @@ public sealed class GiftConfigStore
             var max = row.Max ?? int.MaxValue;
             if (diamonds >= row.Min && diamonds <= max)
             {
-                return new GiftMatch { EffectId = row.Effect, MinCount = 1, Each = false };
+                return new GiftMatch
+                {
+                    EffectId = row.Effect,
+                    MinCount = 1,
+                    Each = false,
+                    Plan = EffectPlan.Single(row.Effect),
+                };
             }
         }
 
@@ -914,6 +927,7 @@ public sealed class GiftConfigStore
             MinCount = Math.Max(1, rule.MinCount),
             Each = rule.Each,
             Params = rule.Params,
+            Plan = rule.Plan ?? EffectPlan.Single(rule.EffectId, rule.Params),
         };
 
     public void PrintRules()
@@ -950,11 +964,17 @@ public sealed class GiftConfigStore
                 var minCount = ParsePositiveInt(row, "minCount") ?? ParsePositiveInt(row, "min") ?? 1;
                 var each = ParseBool(row, "each") || ParseBool(row, "perGift");
                 var paramOverrides = ParseParamOverrides(row);
+                var plan = ParsePlan(row, effectId, paramOverrides);
+                if (!plan.IsEmpty)
+                {
+                    effectId = plan.EffectId;
+                }
+
                 var names = CollectNames(row);
                 var groupNames = new List<string>();
                 foreach (var name in names)
                 {
-                    if (TryAddRule(rules, name, effectId, what, minCount, each, paramOverrides))
+                    if (TryAddRule(rules, name, effectId, what, minCount, each, paramOverrides, plan))
                     {
                         groupNames.Add(name);
                     }
@@ -991,7 +1011,13 @@ public sealed class GiftConfigStore
                 var paramOverrides = prop.Value.ValueKind == JsonValueKind.Object
                     ? ParseParamOverrides(prop.Value)
                     : null;
-                if (TryAddRule(rules, prop.Name, effectId, what, minCount, each, paramOverrides))
+                var plan = ParsePlan(prop.Value, effectId, paramOverrides);
+                if (!plan.IsEmpty)
+                {
+                    effectId = plan.EffectId;
+                }
+
+                if (TryAddRule(rules, prop.Name, effectId, what, minCount, each, paramOverrides, plan))
                 {
                     groups.Add(new GiftGroup([prop.Name], effectId, what));
                 }
@@ -1034,28 +1060,92 @@ public sealed class GiftConfigStore
         string what,
         int minCount = 1,
         bool each = false,
-        IReadOnlyDictionary<string, double>? paramOverrides = null)
+        IReadOnlyDictionary<string, double>? paramOverrides = null,
+        EffectPlan? plan = null)
     {
-        if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(effectId))
+        if (string.IsNullOrWhiteSpace(key))
         {
             return false;
         }
 
-        if (!_effects.Contains(effectId))
+        // Los pasos con un efecto que no existe se omiten con aviso; si no queda ninguno, la regla se descarta.
+        var wanted = plan is { IsEmpty: false } ? plan : EffectPlan.Single(effectId, paramOverrides);
+        var valid = new List<EffectStep>(wanted.Steps.Count);
+        foreach (var step in wanted.Steps)
         {
-            Console.Error.WriteLine($"[gifts.json] \"{key}\" apunta a un efecto que no existe: {effectId}");
+            if (_effects.Contains(step.EffectId))
+            {
+                valid.Add(step);
+            }
+            else
+            {
+                Console.Error.WriteLine($"[gifts.json] \"{key}\" apunta a un efecto que no existe: {step.EffectId}");
+            }
+        }
+
+        var final = EffectPlan.FromSteps(valid);
+        if (final.IsEmpty)
+        {
             return false;
         }
 
+        var first = final.Steps[0];
         rules.Add(new GiftRule(
             key,
             GiftKeyNormalizer.Normalize(key),
-            effectId,
+            first.EffectId,
             what.Trim(),
             Math.Max(1, minCount),
             each,
-            paramOverrides));
+            first.Params,
+            final));
         return true;
+    }
+
+    /// <summary>
+    /// Efectos de un regalo: la lista <c>effects</c> si existe (cada paso es un texto o un objeto con
+    /// <c>effect</c>, <c>params</c> y <c>delaySec</c>); si no, el <c>effect</c> + <c>params</c> de siempre.
+    /// </summary>
+    private static EffectPlan ParsePlan(
+        JsonElement row,
+        string effectId,
+        IReadOnlyDictionary<string, double>? paramOverrides)
+    {
+        if (row.ValueKind == JsonValueKind.Object &&
+            row.TryGetProperty("effects", out var list) && list.ValueKind == JsonValueKind.Array)
+        {
+            var steps = new List<EffectStep>();
+            foreach (var item in list.EnumerateArray())
+            {
+                var id = ParseEffect(item);
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    continue;
+                }
+
+                var delayMs = 0;
+                if (item.ValueKind == JsonValueKind.Object &&
+                    item.TryGetProperty("delaySec", out var delayEl) &&
+                    delayEl.ValueKind == JsonValueKind.Number && delayEl.TryGetDouble(out var delaySec))
+                {
+                    delayMs = EffectPlan.DelayToMs(delaySec);
+                }
+
+                steps.Add(new EffectStep(
+                    id,
+                    item.ValueKind == JsonValueKind.Object ? ParseParamOverrides(item) : null,
+                    delayMs));
+            }
+
+            // Sin espera antes del primer efecto: el regalo se lanza al llegar.
+            if (steps.Count > 0)
+            {
+                steps[0] = steps[0] with { DelayMs = 0 };
+                return EffectPlan.FromSteps(steps);
+            }
+        }
+
+        return EffectPlan.Single(effectId, paramOverrides);
     }
 
     private static IReadOnlyDictionary<string, double>? ParseParamOverrides(JsonElement row)

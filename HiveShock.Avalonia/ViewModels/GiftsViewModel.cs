@@ -31,7 +31,9 @@ public sealed partial class GiftsViewModel : ViewModelBase
 
     private static bool IgnoreRowProperty(string? name) =>
         name is nameof(GiftRowViewModel.Thumb) or nameof(GiftRowViewModel.HasParams)
-            or nameof(GiftRowViewModel.ShowInstaKillHint) or nameof(GiftRowViewModel.EffectLabel);
+            or nameof(GiftRowViewModel.ShowInstaKillHint) or nameof(GiftRowViewModel.EffectLabel)
+            or nameof(GiftRowViewModel.HasExtraSteps) or nameof(GiftRowViewModel.CanAddStep)
+            or nameof(GiftRowViewModel.StepSummary);
 
     /// <summary>Guardado desde un botón «Guardar»: muestra el error en un diálogo además de la etiqueta.</summary>
     public bool SaveManual(string title)
@@ -135,7 +137,7 @@ public sealed partial class GiftsViewModel : ViewModelBase
 
     private GiftRowViewModel Wrap(EditableGift gift)
     {
-        var row = new GiftRowViewModel(gift, _shell.Runtime.Effects);
+        var row = new GiftRowViewModel(gift, _shell.Runtime.Effects, _shell.EffectChoices);
         row.EffectLabel = LabelFor(gift.Effect);
         return row;
     }

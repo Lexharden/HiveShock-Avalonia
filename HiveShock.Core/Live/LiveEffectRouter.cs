@@ -572,23 +572,22 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
-        const int maxRepeats = 100;
-        var isSingleton = _effects.IsSingletonEffect(match.EffectId);
-        var times = isSingleton ? 1 : (match.Each ? Math.Min(repeat, maxRepeats) : 1);
-        var modeLabel = isSingleton
+        var plan = match.EffectivePlan;
+        var planned = PlanExpander.Expand(
+            plan, repeat, match.Each, giftLabel, step => PlanExpander.RunsOnlyOnce(_effects, step),
+            out var times, out var allOnce, out var truncated);
+        var modeLabel = allOnce
             ? "1 vez (singleton)"
             : match.Each ? $"x{times} cada uno" : "1 vez";
-        BridgeLog.Info($"Regalo {user} {giftLabel} x{repeat} ({diamonds}d) -> {match.EffectId} ({modeLabel})");
+        BridgeLog.Info($"Regalo {user} {giftLabel} x{repeat} ({diamonds}d) -> {plan.Describe()} ({modeLabel})");
+        if (truncated)
+        {
+            BridgeLog.Warn($"Regalo {giftLabel} x{repeat}: se limitó a {EffectPlan.MaxTotalSteps} efectos.");
+        }
 
         _overlay.Notify(giftLabel, id);
 
-        for (var i = 0; i < times; i++)
-        {
-            var reason = times > 1
-                ? $"Regalo {giftLabel} x{repeat} ({i + 1}/{times})"
-                : $"Regalo {giftLabel} x{repeat}";
-            _ = _dispatcher.EnqueueAsync(match.EffectId, user, reason, ct, paramOverrides: match.Params);
-        }
+        _dispatcher.EnqueueSequence(planned, user, ct);
     }
 
     private void LogUnmapped(string name, string id, long diamonds, int repeat)

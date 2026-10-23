@@ -6,14 +6,20 @@ namespace HiveShock.Avalonia.ViewModels;
 
 public sealed partial class EffectParamFieldViewModel : ObservableObject
 {
-    private readonly EditableGift _gift;
+    private readonly IDictionary<string, double> _store;
     private readonly EffectParamDef _def;
 
     public EffectParamFieldViewModel(EditableGift gift, EffectParamDef def)
+        : this(gift.Params, def)
     {
-        _gift = gift;
+    }
+
+    /// <summary>Edita los parámetros de cualquier efecto (el principal de un regalo o uno de sus efectos adicionales).</summary>
+    public EffectParamFieldViewModel(IDictionary<string, double> store, EffectParamDef def)
+    {
+        _store = store;
         _def = def;
-        if (gift.Params.TryGetValue(def.Key, out var wire))
+        if (store.TryGetValue(def.Key, out var wire))
         {
             _valueText = FormatUi(def.ToUi(wire));
         }
@@ -32,7 +38,7 @@ public sealed partial class EffectParamFieldViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            _gift.Params.Remove(_def.Key);
+            _store.Remove(_def.Key);
             return;
         }
 
@@ -41,7 +47,7 @@ public sealed partial class EffectParamFieldViewModel : ObservableObject
             return;
         }
 
-        _gift.Params[_def.Key] = _def.ToWire(ui);
+        _store[_def.Key] = _def.ToWire(ui);
     }
 
     private static string FormatUi(double ui)
