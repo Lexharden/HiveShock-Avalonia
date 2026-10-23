@@ -1,7 +1,9 @@
+using System.Runtime.Versioning;
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
 using Android.OS;
+using HiveShock.Logging;
 
 namespace HiveShock.Android;
 
@@ -76,6 +78,19 @@ public sealed class BridgeKeepAliveService : Service
 
         AcquireWakeLock();
         return StartCommandResult.NotSticky;
+    }
+
+    /// <summary>
+    /// Android 15+ corta los servicios dataSync tras ~6 h. Si no paramos nosotros, el sistema lanza una
+    /// excepción fatal (ForegroundServiceDidNotStopInTimeException). Se avisa y se cierra limpio.
+    /// </summary>
+    [SupportedOSPlatform("android35.0")]
+    public override void OnTimeout(int startId, ForegroundService fgsType)
+    {
+        BridgeLog.Warn("Android cortó el servicio en segundo plano por límite de tiempo (6 h). Vuelve a pulsar Conectar.");
+        StopForeground(StopForegroundFlags.Remove);
+        StopSelf();
+        base.OnTimeout(startId, fgsType);
     }
 
     public override void OnDestroy()

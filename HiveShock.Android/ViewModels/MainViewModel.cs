@@ -103,6 +103,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public void Log(string line) => AppendActivity(line);
 
+    /// <summary>Vuelve a leer todo lo que depende del perfil activo (tras cambiarlo, crearlo o borrarlo).</summary>
+    public void OnProfileChanged()
+    {
+        RefreshProfiles();
+        RefreshEffects();
+        ReloadMappings();
+        Profile.Load();
+    }
+
     public bool EffectExists(string effectId) =>
         Effects.Any(e => string.Equals(e.Id, effectId, StringComparison.OrdinalIgnoreCase));
 
@@ -216,10 +225,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         try
         {
             Runtime.SwitchProfile(item.Id);
-            RefreshProfiles();
-            RefreshEffects();
-            ReloadMappings();
-            Profile.Load();
+            OnProfileChanged();
             AppendActivity($"Juego: {Runtime.Profile.DisplayName}");
         }
         catch (Exception ex)
@@ -435,9 +441,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             await Runtime.WaitUntilStoppedAsync().ConfigureAwait(true);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignore
+            BridgeLog.Warn($"Puente detenido con error: {ex.Message}");
         }
 
         StopKeepAlive();
@@ -462,9 +468,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             BridgeKeepAliveService.Stop();
         }
-        catch
+        catch (Exception ex)
         {
-            // ya parado
+            BridgeLog.Warn($"Servicio en segundo plano: {ex.Message}");
         }
     }
 

@@ -3,6 +3,8 @@ set -euo pipefail
 
 # Publica HiveShock Android (APK/AAB). Ver docs.avaloniaui.net/docs/deployment/android
 # Firma Release si ANDROID_SIGNING_KEYSTORE, ANDROID_SIGNING_ALIAS y ANDROID_SIGNING_PASSWORD están definidos.
+# ANDROID_REQUIRE_SIGNING=1 (lo usa el release) falla si falta la firma: un APK con otra clave no actualiza al instalado.
+# Salida: dist/HiveShock-<ver>-android.apk (el mismo nombre que busca el aviso de versión nueva de la app).
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -18,6 +20,11 @@ fi
 rm -rf "$ROOT/HiveShock.Android/bin/Release" "$ROOT/HiveShock.Android/obj/Release"
 
 args=(publish "$PROJ" -f net10.0-android -c Release)
+if [[ "${ANDROID_REQUIRE_SIGNING:-0}" == "1" ]] && \
+   [[ -z "${ANDROID_SIGNING_KEYSTORE:-}" || -z "${ANDROID_SIGNING_ALIAS:-}" || -z "${ANDROID_SIGNING_PASSWORD:-}" ]]; then
+  echo "ERROR: ANDROID_REQUIRE_SIGNING=1 pero faltan ANDROID_SIGNING_KEYSTORE/ALIAS/PASSWORD." >&2
+  exit 1
+fi
 if [[ -n "${ANDROID_SIGNING_KEYSTORE:-}" && -n "${ANDROID_SIGNING_ALIAS:-}" && -n "${ANDROID_SIGNING_PASSWORD:-}" ]]; then
   args+=(
     -p:AndroidKeyStore=true
@@ -41,24 +48,20 @@ if [[ -z "${PUBLISH_DIR:-}" || ! -d "$PUBLISH_DIR" ]]; then
   exit 1
 fi
 
-# Preferir el APK firmado / de publish; nunca copiar intermedios sueltos de bin/.
-mapfile -t files < <(find "$PUBLISH_DIR" -maxdepth 1 -type f \( -name '*-Signed.apk' -o -name '*.apk' -o -name '*.aab' \) | sort)
-if [[ ${#files[@]} -eq 0 ]]; then
-  echo "No hay APK/AAB en $PUBLISH_DIR" >&2
+# Un solo APK por versión: el firmado si existe; si no, el de publish (firmado con la clave de depuración).
+SIGNED="$(find "$PUBLISH_DIR" -maxdepth 1 -type f -name '*-Signed.apk' | sort | head -n1 || true)"
+APK="${SIGNED:-$(find "$PUBLISH_DIR" -maxdepth 1 -type f -name '*.apk' | sort | head -n1 || true)}"
+if [[ -z "$APK" ]]; then
+  echo "No hay APK en $PUBLISH_DIR" >&2
   exit 1
 fi
+if [[ -z "$SIGNED" && -z "${ANDROID_SIGNING_KEYSTORE:-}" ]]; then
+  echo "AVISO: sin keystore de release; este APK usa la clave de depuración y no actualizará sobre uno firmado distinto." >&2
+fi
 
-for f in "${files[@]}"; do
-  ext="${f##*.}"
-  base="$(basename "$f")"
-  if [[ "$base" == *-Signed.apk ]]; then
-    dest="$ROOT/dist/HiveShock-${VER}-android-signed.apk"
-  else
-    dest="$ROOT/dist/HiveShock-${VER}-android.${ext}"
-  fi
-  cp -f "$f" "$dest"
-  echo "  $base -> $dest"
-done
+dest="$ROOT/dist/HiveShock-${VER}-android.apk"
+cp -f "$APK" "$dest"
+echo "  $(basename "$APK") -> $dest"
 
 echo "Listo. Instala el de dist/ (desinstala la app anterior antes)."
 echo "  adb uninstall dev.yafel.hiveshock"

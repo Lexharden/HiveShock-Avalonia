@@ -20,6 +20,19 @@
 
             <Border Classes="card">
                 <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="ACTUALIZACIONES" />
+                    <TextBlock Classes="hint" Text="{Binding UpdateText}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="secondary" Content="Buscar versión nueva"
+                                Command="{Binding CheckUpdateCommand}" IsEnabled="{Binding !Checking}" />
+                        <Button Classes="primary" Content="Ver descarga" IsVisible="{Binding UpdateAvailable}"
+                                Command="{Binding OpenUpdateCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel>
                     <TextBlock Classes="sectionTitle" Text="QUIÉN LO HACE" />
                     <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding Developer}" />
                     <TextBlock Classes="hint"

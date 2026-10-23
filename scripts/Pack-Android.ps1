@@ -8,7 +8,8 @@
     ANDROID_SIGNING_ALIAS
     ANDROID_SIGNING_PASSWORD  (se pasa como env:, no en claro en logs de script si ya está en el entorno)
 
-  Solo copia APKs de la carpeta publish/ (no intermedios de bin/).
+  Solo copia el APK de la carpeta publish/ (no intermedios de bin/) como dist\HiveShock-<ver>-android.apk,
+  el nombre que busca el aviso de versión nueva de la app. Con ANDROID_REQUIRE_SIGNING=1 falla si falta la firma.
 
 .EXAMPLE
   .\scripts\Pack-Android.ps1
@@ -40,15 +41,19 @@ $objRelease = Join-Path $Root "HiveShock.Android\obj\Release"
 if (Test-Path $binRelease) { Remove-Item -Recurse -Force $binRelease }
 if (Test-Path $objRelease) { Remove-Item -Recurse -Force $objRelease }
 
+$store = $env:ANDROID_SIGNING_KEYSTORE
+$alias = $env:ANDROID_SIGNING_ALIAS
+$pass = $env:ANDROID_SIGNING_PASSWORD
+if ($env:ANDROID_REQUIRE_SIGNING -eq "1" -and -not ($store -and $alias -and $pass)) {
+    throw "ANDROID_REQUIRE_SIGNING=1 pero faltan ANDROID_SIGNING_KEYSTORE/ALIAS/PASSWORD."
+}
+
 $args = @(
     "publish", $proj,
     "-f", "net10.0-android",
     "-c", "Release"
 )
 
-$store = $env:ANDROID_SIGNING_KEYSTORE
-$alias = $env:ANDROID_SIGNING_ALIAS
-$pass = $env:ANDROID_SIGNING_PASSWORD
 if ($store -and $alias -and $pass) {
     $args += @(
         "-p:AndroidKeyStore=true",
@@ -77,23 +82,18 @@ if (-not $publish -or -not (Test-Path $publish)) {
     throw "No hay carpeta publish."
 }
 
-$files = Get-ChildItem $publish -File -Include *.apk, *.aab |
-    Sort-Object { if ($_.Name -like '*-Signed.apk') { 0 } else { 1 } }, Name
-
-if (-not $files) {
-    throw "No hay APK/AAB en $publish"
+$signed = Get-ChildItem $publish -File -Filter *-Signed.apk | Sort-Object Name | Select-Object -First 1
+$apk = if ($signed) { $signed } else { Get-ChildItem $publish -File -Filter *.apk | Sort-Object Name | Select-Object -First 1 }
+if (-not $apk) {
+    throw "No hay APK en $publish"
+}
+if (-not $signed -and -not $store) {
+    Write-Warning "Sin keystore de release: este APK usa la clave de depuración y no actualizará sobre uno firmado distinto."
 }
 
-foreach ($f in $files) {
-    $destName = if ($f.Name -like '*-Signed.apk') {
-        "HiveShock-$Version-android-signed.apk"
-    } else {
-        "HiveShock-$Version-android$($f.Extension)"
-    }
-    $dest = Join-Path $dist $destName
-    Copy-Item $f.FullName $dest -Force
-    Write-Host "  $($f.Name) -> $dest"
-}
+$dest = Join-Path $dist "HiveShock-$Version-android.apk"
+Copy-Item $apk.FullName $dest -Force
+Write-Host "  $($apk.Name) -> $dest"
 
 Write-Host "Listo. Instala el de dist/ (desinstala la app anterior antes)."
 Write-Host "  adb uninstall dev.yafel.hiveshock"
