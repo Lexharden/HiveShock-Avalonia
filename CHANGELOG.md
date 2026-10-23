@@ -4,6 +4,15 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.9.0] - 2026-10-23
+
+### Varios efectos por regalo
+* **Un regalo puede lanzar varios efectos.** En Regalos, bajo el efecto principal, «Añadir otro efecto»: cada uno con sus propios parámetros y una espera opcional en segundos (contada desde el efecto anterior, máximo 30 s). Salen en orden; la espera no frena a los demás espectadores.
+* Con «Repetir el efecto en cada uno», el conjunto completo se repite por cada regalo del combo (A B C A B C). Los efectos de una sola vez (borrar partida, reiniciar el equipo) salen solo en la primera vuelta, y reiniciar el equipo siempre va el último. Un regalo no encola más de 200 efectos.
+* «Enviar al juego» prueba todos los efectos del regalo. En la lista, los regalos con varios muestran «N efectos».
+* **Compatible hacia atrás:** un regalo con un solo efecto se guarda exactamente igual que antes. Con varios se añade `effects` a `gifts.json` y `effect`/`params` siguen siendo el primero, así que una versión anterior al menos lanza ese. Tus regalos y perfiles actuales no cambian.
+* Si en `gifts.json` un efecto de la lista no existe se omite con aviso. Lo mismo para chat, bits, seguir, compartir, likes y metas llegará en una versión próxima.
+
 ## [2.8.0] - 2026-10-21
 
 ### Metas
