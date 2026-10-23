@@ -103,6 +103,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public void Log(string line) => AppendActivity(line);
 
+    /// <summary>Vuelve a leer todo lo que depende del perfil activo (tras cambiarlo, crearlo o borrarlo).</summary>
+    public void OnProfileChanged()
+    {
+        RefreshProfiles();
+        RefreshEffects();
+        ReloadMappings();
+        Profile.Load();
+    }
+
     public bool EffectExists(string effectId) =>
         Effects.Any(e => string.Equals(e.Id, effectId, StringComparison.OrdinalIgnoreCase));
 
@@ -216,10 +225,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         try
         {
             Runtime.SwitchProfile(item.Id);
-            RefreshProfiles();
-            RefreshEffects();
-            ReloadMappings();
-            Profile.Load();
+            OnProfileChanged();
             AppendActivity($"Juego: {Runtime.Profile.DisplayName}");
         }
         catch (Exception ex)
