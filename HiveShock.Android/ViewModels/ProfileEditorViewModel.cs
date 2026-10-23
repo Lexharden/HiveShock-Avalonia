@@ -22,6 +22,8 @@ public sealed partial class ProfileEditorViewModel : ObservableObject
 
     public ProfileEditorViewModel(MainViewModel shell) => _shell = shell;
 
+    [ObservableProperty] private string _newProfileName = "";
+    [ObservableProperty] private bool _confirmingDelete;
     [ObservableProperty] private string _displayName = "";
     [ObservableProperty] private string _description = "";
     [ObservableProperty] private string _helpNotes = "";
@@ -40,6 +42,66 @@ public sealed partial class ProfileEditorViewModel : ObservableObject
 
     public ObservableCollection<ProfileEffectPropertyRow> SelectedProperties =>
         SelectedEffect?.Properties ?? EmptyProperties;
+
+    public bool IsCustomProfile => _shell.Runtime.Profile.IsCustom;
+
+    /// <summary>
+    /// Perfil propio = copia del activo (la plantilla «Starter» y «En blanco» giran en torno a macros de teclas,
+    /// que no existen en Android). Vive en los datos del usuario: ninguna actualización lo toca.
+    /// </summary>
+    [RelayCommand]
+    private void CopyProfile()
+    {
+        if (!EnsureEditable())
+        {
+            return;
+        }
+
+        try
+        {
+            var created = _shell.Runtime.CreateProfile(NewProfileName, ProfileTemplate.CopyOf);
+            _shell.Runtime.SwitchProfile(created.Id);
+            NewProfileName = "";
+            _shell.OnProfileChanged();
+            _shell.Log($"Perfil propio creado: {created.DisplayName}");
+        }
+        catch (Exception ex)
+        {
+            _shell.Log(ex.Message);
+        }
+    }
+
+    /// <summary>Doble toque: el primero pide confirmar. Queda en profiles-deleted por si fue un error.</summary>
+    [RelayCommand]
+    private void DeleteProfile()
+    {
+        if (!EnsureEditable() || !IsCustomProfile)
+        {
+            return;
+        }
+
+        if (!ConfirmingDelete)
+        {
+            ConfirmingDelete = true;
+            return;
+        }
+
+        ConfirmingDelete = false;
+        try
+        {
+            var name = _shell.Runtime.Profile.DisplayName;
+            _shell.Runtime.DeleteProfile(_shell.Runtime.Profile.Id);
+            _shell.OnProfileChanged();
+            _shell.Log($"Perfil quitado: {name}");
+        }
+        catch (Exception ex)
+        {
+            _shell.Log(ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private void CancelDeleteProfile() => ConfirmingDelete = false;
 
     public bool HasLabelSelection => SelectedLabel != null;
     public bool HasEffectSelection => SelectedEffect != null;
@@ -69,7 +131,9 @@ public sealed partial class ProfileEditorViewModel : ObservableObject
         _effectsEditor.Load();
         ApplyProfileToUi();
         ApplyEffectsToUi();
+        ConfirmingDelete = false;
         OnPropertyChanged(nameof(CanEdit));
+        OnPropertyChanged(nameof(IsCustomProfile));
     }
 
     private void ApplyProfileToUi()

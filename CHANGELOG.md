@@ -4,6 +4,17 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.9.1] - 2026-10-23
+
+### Android
+* **El APK ya se publica en cada release** (`HiveShock-<ver>-android.apk`), junto a Windows, macOS y Linux y con su suma en `SHA256SUMS.txt`.
+* **Aviso de versión nueva** en Acerca de: busca en los releases y abre la descarga. No baja nada solo.
+* **Perfiles propios**: copia el perfil activo desde la pestaña Perfil y bórrala cuando quieras (se guarda en `profiles-deleted`).
+* Los perfiles del catálogo (Super Mario 64, etc.) llegan igual que en escritorio: se instalan solos al abrir, sin pisar los tuyos ni resucitar los que borraste.
+* El `versionCode` sale de la versión de HiveShock (antes se quedó fijo en la 2.2.0, lo que habría impedido actualizar).
+* Más robusto: sin copias de seguridad de Android (guarda tokens), los errores de copia de archivos y del servicio en segundo plano ahora aparecen en el log, y el servicio se cierra limpio al llegar al límite de 6 h de Android 15.
+* Incluye todo lo de la 2.9.0 (varios efectos por regalo): la 2.9.0 salió sin esta parte de Android y la 2.9.1 junta las dos.
+
 ## [2.9.0] - 2026-10-23
 
 ### Varios efectos por regalo

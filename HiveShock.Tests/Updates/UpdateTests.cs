@@ -108,6 +108,13 @@ public sealed class GitHubReleaseClientTests
     }
 
     [Fact]
+    public void Android_update_is_the_apk_not_a_zip()
+    {
+        Assert.Equal("HiveShock-2.9.0-android.apk", UpdatePlatform.UpdateAssetName("2.9.0", UpdatePlatform.AndroidRid));
+        Assert.Equal("HiveShock-2.9.0-win-x64-update.zip", UpdatePlatform.UpdateAssetName("2.9.0", "win-x64"));
+    }
+
+    [Fact]
     public void Finds_hash_in_sums_file()
     {
         var hash = new string('a', 64);

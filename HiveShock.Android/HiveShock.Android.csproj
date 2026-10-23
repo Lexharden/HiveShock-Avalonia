@@ -10,8 +10,10 @@
     <ApplicationId>dev.yafel.hiveshock</ApplicationId>
     <ApplicationTitle>HiveShock</ApplicationTitle>
     <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
-    <!-- major*10000 + minor*100 + patch; alinear con Directory.Build.props -->
-    <ApplicationVersion>20200</ApplicationVersion>
+    <!-- versionCode = major*10000 + minor*100 + patch, derivado de $(Version) (Directory.Build.props).
+         El sufijo preliminar (-alpha.N) no cuenta: Android solo necesita que el código no baje. -->
+    <_CoreVersion>$(Version.Split('-')[0])</_CoreVersion>
+    <ApplicationVersion>$([MSBuild]::Add($([MSBuild]::Add($([MSBuild]::Multiply($(_CoreVersion.Split('.')[0]), 10000)), $([MSBuild]::Multiply($(_CoreVersion.Split('.')[1]), 100)))), $(_CoreVersion.Split('.')[2])))</ApplicationVersion>
     <AndroidPackageFormat>apk</AndroidPackageFormat>
     <AndroidManifest>AndroidManifest.xml</AndroidManifest>
     <PublishTrimmed>false</PublishTrimmed>
@@ -43,7 +45,7 @@
 
   <ItemGroup>
     <AndroidAsset Include="..\config\profiles\**\*">
-      <Link>profiles\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <Link>profiles-catalog\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </AndroidAsset>
     <AndroidAsset Include="..\config\gift-catalog.json" Link="gift-catalog.json" />
     <AndroidAsset Include="..\config\tiktok_gifts.json" Link="tiktok_gifts.json" />
