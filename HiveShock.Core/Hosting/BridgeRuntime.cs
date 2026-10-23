@@ -493,9 +493,13 @@ public sealed class BridgeRuntime : IAsyncDisposable
             throw new ArgumentException("El regalo no tiene efecto.");
         }
 
-        if (!_effects.Contains(gift.Effect))
+        var plan = gift.ToPlan();
+        foreach (var step in plan.Steps)
         {
-            throw new ArgumentException($"Efecto desconocido: {gift.Effect}");
+            if (!_effects.Contains(step.EffectId))
+            {
+                throw new ArgumentException($"Efecto desconocido: {step.EffectId}");
+            }
         }
 
         var minCount = Math.Max(1, gift.MinCount);
@@ -505,29 +509,44 @@ public sealed class BridgeRuntime : IAsyncDisposable
             return;
         }
 
-        var isSingleton = _effects.IsSingletonEffect(gift.Effect) || SystemEffectIds.IsSystemEffect(gift.Effect);
-        var times = isSingleton ? 1 : (gift.Each ? Math.Min(repeat, 100) : 1);
+        bool OnlyOnce(EffectStep step) =>
+            _effects.IsSingletonEffect(step.EffectId) || SystemEffectIds.IsSystemEffect(step.EffectId);
+
+        var allOnce = plan.Steps.All(OnlyOnce);
+        var times = allOnce ? 1 : (gift.Each ? Math.Min(repeat, 100) : 1);
 
         BridgeLog.Info(
-            $"Prueba {gift.Gift} x{repeat} → {gift.Effect} " +
-            $"({(isSingleton ? "1 vez (singleton)" : gift.Each ? $"x{times} cada uno" : "1 vez")})");
+            $"Prueba {gift.Gift} x{repeat} → {plan.Describe()} " +
+            $"({(allOnce ? "1 vez (singleton)" : gift.Each ? $"x{times} cada uno" : "1 vez")})");
 
         for (var i = 0; i < times; i++)
         {
-            if (TryRunMacro(gift.Effect, testerName, "prueba") || TryRunSystemEffect(gift.Effect, testerName, "prueba"))
+            foreach (var step in plan.Steps)
             {
-                continue;
-            }
+                if (i > 0 && OnlyOnce(step))
+                {
+                    continue;
+                }
 
-            var overrides = gift.Params.Count > 0 ? gift.Params : null;
-            var cmd = _effects.Resolve(gift.Effect, testerName, overrides);
-            if (cmd is null)
-            {
-                throw new InvalidOperationException($"No se pudo resolver el efecto {gift.Effect}");
-            }
+                if (step.DelayMs > 0)
+                {
+                    await Task.Delay(step.DelayMs, ct).ConfigureAwait(false);
+                }
 
-            await _gameClient.SendAsync(cmd, ct).ConfigureAwait(false);
-            BridgeLog.Info($"OK prueba {gift.Effect} ({i + 1}/{times})");
+                if (TryRunMacro(step.EffectId, testerName, "prueba") || TryRunSystemEffect(step.EffectId, testerName, "prueba"))
+                {
+                    continue;
+                }
+
+                var cmd = _effects.Resolve(step.EffectId, testerName, step.Params);
+                if (cmd is null)
+                {
+                    throw new InvalidOperationException($"No se pudo resolver el efecto {step.EffectId}");
+                }
+
+                await _gameClient.SendAsync(cmd, ct).ConfigureAwait(false);
+                BridgeLog.Info($"OK prueba {step.EffectId} ({i + 1}/{times})");
+            }
         }
 
         Overlay.Notify(gift.Gift, gift.Id);

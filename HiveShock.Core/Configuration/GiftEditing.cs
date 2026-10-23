@@ -26,6 +26,27 @@ public sealed class EditableGift
     /// <summary>Overrides numéricos en unidades wire (p.ej. value=4 = 1 corazón). Vacío = default del efecto.</summary>
     public Dictionary<string, double> Params { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Efectos que se lanzan después de <see cref="Effect"/>, en orden (un regalo puede hacer varias cosas).</summary>
+    public List<EditableGiftStep> MoreSteps { get; set; } = [];
+
+    /// <summary>Todos los efectos del regalo como plan: primero <see cref="Effect"/> y luego <see cref="MoreSteps"/>.</summary>
+    public EffectPlan ToPlan()
+    {
+        var steps = new List<EffectStep>(1 + MoreSteps.Count)
+        {
+            new(Effect, Params.Count > 0 ? new Dictionary<string, double>(Params, StringComparer.OrdinalIgnoreCase) : null),
+        };
+        foreach (var more in MoreSteps)
+        {
+            steps.Add(new EffectStep(
+                more.Effect,
+                more.Params.Count > 0 ? new Dictionary<string, double>(more.Params, StringComparer.OrdinalIgnoreCase) : null,
+                EffectPlan.DelayToMs(more.DelaySec)));
+        }
+
+        return EffectPlan.FromSteps(steps);
+    }
+
     public string OverlayLabel =>
         string.IsNullOrWhiteSpace(OverlayText) ? Gift : OverlayText;
 
@@ -53,6 +74,17 @@ public sealed class EditableGift
     }
 
     public bool HasImage => ResolvedImagePath != null;
+}
+
+/// <summary>Un efecto adicional de un regalo (del segundo en adelante).</summary>
+public sealed class EditableGiftStep
+{
+    public string Effect { get; set; } = "";
+
+    /// <summary>Segundos de espera antes de lanzarlo, contados desde el efecto anterior (0 = enseguida).</summary>
+    public double DelaySec { get; set; }
+
+    public Dictionary<string, double> Params { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
 public sealed class EditableChatCommand
@@ -532,12 +564,40 @@ public sealed class GiftFileEditor
 
         var each = ReadBool(obj, "each") || ReadBool(obj, "perGift");
 
+        var effect = obj["effect"]?.GetValue<string>() ?? "";
+        var parameters = ReadParams(obj);
+        var moreSteps = new List<EditableGiftStep>();
+        if (obj["effects"] is JsonArray steps && steps.Count > 0)
+        {
+            // Con «effects» manda la lista: el primero es el efecto principal y el resto van detrás.
+            var first = true;
+            foreach (var node in steps)
+            {
+                var (id, stepParams, delay) = ReadStep(node);
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    continue;
+                }
+
+                if (first)
+                {
+                    effect = id;
+                    parameters = stepParams;
+                    first = false;
+                }
+                else if (moreSteps.Count < EffectPlan.MaxSteps - 1)
+                {
+                    moreSteps.Add(new EditableGiftStep { Effect = id, Params = stepParams, DelaySec = delay });
+                }
+            }
+        }
+
         return new EditableGift
         {
             Gift = obj["gift"]?.GetValue<string>() ?? obj["name"]?.GetValue<string>() ?? "",
             Also = also,
             Id = obj["id"]?.ToString()?.Trim('"') ?? "",
-            Effect = obj["effect"]?.GetValue<string>() ?? "",
+            Effect = effect,
             What = obj["what"]?.GetValue<string>() ?? obj["note"]?.GetValue<string>() ?? "",
             Diamonds = diamonds,
             MinCount = minCount,
@@ -545,8 +605,31 @@ public sealed class GiftFileEditor
             Image = obj["image"]?.GetValue<string>() ?? obj["img"]?.GetValue<string>() ?? "",
             Overlay = ReadBool(obj, "overlay"),
             OverlayText = obj["overlayText"]?.GetValue<string>() ?? obj["overlay_text"]?.GetValue<string>() ?? "",
-            Params = ReadParams(obj),
+            Params = parameters,
+            MoreSteps = moreSteps,
         };
+    }
+
+    private static (string Effect, Dictionary<string, double> Params, double DelaySec) ReadStep(JsonNode? node)
+    {
+        if (node is JsonValue value && value.TryGetValue<string>(out var text))
+        {
+            return (text.Trim(), new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase), 0);
+        }
+
+        if (node is JsonObject obj)
+        {
+            var id = (obj["effect"] ?? obj["action"])?.GetValue<string>()?.Trim() ?? "";
+            var delay = 0.0;
+            if (obj["delaySec"] is JsonValue dv && TryReadDouble(dv, out var d))
+            {
+                delay = Math.Clamp(d, 0, EffectPlan.MaxDelaySec);
+            }
+
+            return (id, ReadParams(obj), delay);
+        }
+
+        return ("", new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase), 0);
     }
 
     private static Dictionary<string, double> ReadParams(JsonObject obj)
@@ -701,7 +784,50 @@ public sealed class GiftFileEditor
             }
         }
 
+        // Con un solo efecto el archivo queda como siempre (lo leen también las versiones antiguas). Con varios se
+        // añade «effects»; «effect» y «params» siguen siendo el primero para que una versión vieja al menos lo lance.
+        var more = gift.MoreSteps.Where(s => !string.IsNullOrWhiteSpace(s.Effect)).ToList();
+        if (more.Count > 0)
+        {
+            var list = new JsonArray { StepToNode(gift.Effect, gift.Params, 0) };
+            foreach (var step in more.Take(EffectPlan.MaxSteps - 1))
+            {
+                list.Add(StepToNode(step.Effect, step.Params, step.DelaySec));
+            }
+
+            obj["effects"] = list;
+        }
+
         return obj;
+    }
+
+    private static JsonObject StepToNode(string effect, Dictionary<string, double> parameters, double delaySec)
+    {
+        var node = new JsonObject { ["effect"] = effect.Trim() };
+        var paramsObj = new JsonObject();
+        foreach (var (key, value) in parameters)
+        {
+            if (string.IsNullOrWhiteSpace(key) || key.StartsWith('_'))
+            {
+                continue;
+            }
+
+            paramsObj[key] = Math.Abs(value - Math.Round(value)) < 0.0000001
+                ? JsonValue.Create((long)Math.Round(value))
+                : JsonValue.Create(value);
+        }
+
+        if (paramsObj.Count > 0)
+        {
+            node["params"] = paramsObj;
+        }
+
+        if (delaySec > 0)
+        {
+            node["delaySec"] = Math.Round(Math.Clamp(delaySec, 0, EffectPlan.MaxDelaySec), 2);
+        }
+
+        return node;
     }
 }
 
