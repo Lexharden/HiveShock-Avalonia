@@ -1,9 +1,14 @@
 using Android.Content.Res;
 using HiveShock.Configuration;
+using HiveShock.Logging;
 
 namespace HiveShock.Android;
 
-/// <summary>Copia perfiles embebidos a datos de la app (el APK no se puede escribir).</summary>
+/// <summary>
+/// Copia los assets del APK a los datos de la app (el APK no se puede escribir).
+/// Los perfiles viajan como catálogo (<c>profiles-catalog/</c>) y los instala <see cref="ProfileSeeder"/>,
+/// igual que en escritorio: no pisa los del usuario y respeta los que borró a propósito.
+/// </summary>
 internal static class AndroidAssetSeed
 {
     public static void CopyIfNeeded()
@@ -11,100 +16,45 @@ internal static class AndroidAssetSeed
         var destRoot = AppPaths.AppDirectory;
         Directory.CreateDirectory(destRoot);
 
-        var assets = global::Android.App.Application.Context.Assets
-                     ?? throw new InvalidOperationException("No hay Assets de Android.");
+        var manager = global::Android.App.Application.Context.Assets
+                      ?? throw new InvalidOperationException("No hay Assets de Android.");
+        var source = new AssetManagerSource(manager);
 
-        CopyMissingTree(assets, "profiles", Path.Combine(destRoot, "profiles"));
-        CopyFileIfMissing(assets, "gift-catalog.json", Path.Combine(destRoot, "gift-catalog.json"));
-        // Lista oficial de regalos: no es del usuario, se renueva con cada versión de la app.
-        CopyFileAlways(assets, "tiktok_gifts.json", Path.Combine(destRoot, "tiktok_gifts.json"));
-        CopyFileIfMissing(assets, "active-profile.txt", Path.Combine(destRoot, "active-profile.txt"));
-        CopyFileIfMissing(assets, "env.example", Path.Combine(destRoot, ".env.example"));
+        // El catálogo es de la app, no del usuario: se renueva con cada versión.
+        AssetExtractor.CopyTree(source, ProfileSeeder.CatalogFolder, Path.Combine(destRoot, ProfileSeeder.CatalogFolder), overwrite: true);
+        AssetExtractor.CopyFile(source, "tiktok_gifts.json", Path.Combine(destRoot, "tiktok_gifts.json"), overwrite: true);
+
+        // Lo que el usuario edita: solo la primera vez.
+        AssetExtractor.CopyFile(source, "gift-catalog.json", Path.Combine(destRoot, "gift-catalog.json"), overwrite: false);
+        AssetExtractor.CopyFile(source, "active-profile.txt", Path.Combine(destRoot, "active-profile.txt"), overwrite: false);
+        AssetExtractor.CopyFile(source, "env.example", Path.Combine(destRoot, ".env.example"), overwrite: false);
     }
 
-    private static void CopyMissingTree(AssetManager assets, string assetDir, string destDir)
+    private sealed class AssetManagerSource(AssetManager assets) : IAssetSource
     {
-        Directory.CreateDirectory(destDir);
-        string[]? names;
-        try
+        public IReadOnlyList<string> List(string path)
         {
-            names = assets.List(assetDir);
-        }
-        catch
-        {
-            return;
-        }
-
-        if (names is null || names.Length == 0)
-        {
-            return;
-        }
-
-        foreach (var name in names)
-        {
-            var assetPath = string.IsNullOrEmpty(assetDir) ? name : $"{assetDir}/{name}";
-            var destPath = Path.Combine(destDir, name);
-            if (IsDirectory(assets, assetPath))
+            try
             {
-                if (assetDir == "profiles" && Directory.Exists(destPath))
-                {
-                    continue;
-                }
-
-                CopyMissingTree(assets, assetPath, destPath);
+                return assets.List(path) ?? [];
             }
-            else
+            catch (Exception ex) when (ex is Java.IO.IOException)
             {
-                CopyFileIfMissing(assets, assetPath, destPath);
+                BridgeLog.Warn($"Assets {path}: {ex.Message}");
+                return [];
             }
         }
-    }
 
-    private static bool IsDirectory(AssetManager assets, string assetPath)
-    {
-        try
+        public Stream? Open(string path)
         {
-            using var stream = assets.Open(assetPath);
-            return false;
-        }
-        catch
-        {
-            return true;
-        }
-    }
-
-    private static void CopyFileAlways(AssetManager assets, string assetPath, string destPath)
-    {
-        try
-        {
-            using var input = assets.Open(assetPath);
-            Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
-            using var output = File.Create(destPath);
-            input.CopyTo(output);
-        }
-        catch
-        {
-            // Asset opcional
-        }
-    }
-
-    private static void CopyFileIfMissing(AssetManager assets, string assetPath, string destPath)
-    {
-        if (File.Exists(destPath))
-        {
-            return;
-        }
-
-        try
-        {
-            using var input = assets.Open(assetPath);
-            Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
-            using var output = File.Create(destPath);
-            input.CopyTo(output);
-        }
-        catch
-        {
-            // Asset opcional
+            try
+            {
+                return assets.Open(path);
+            }
+            catch (Java.IO.FileNotFoundException)
+            {
+                return null;
+            }
         }
     }
 }

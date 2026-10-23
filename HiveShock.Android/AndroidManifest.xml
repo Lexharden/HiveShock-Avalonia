@@ -10,7 +10,7 @@
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
   <!-- android:name lo inyecta el atributo [Application] (CRC). No fijarlo a mano. -->
   <application
-      android:allowBackup="true"
+      android:allowBackup="false"
       android:icon="@drawable/icon"
       android:roundIcon="@drawable/icon"
       android:label="HiveShock"
