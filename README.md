@@ -75,7 +75,7 @@ La app guarda sus datos en la carpeta privada de la app y **no entra en las copi
 
 Android corta los servicios en segundo plano de tipo *datos* a las ~6 h (Android 15+). HiveShock lo avisa en el log; vuelve a pulsar **Conectar**.
 
-**Instalar:** baja `HiveShock-<ver>-android.apk` del [Release](https://github.com/) de la versión, permite instalar de orígenes desconocidos y ábrelo. Para actualizar, instala el APK nuevo encima (misma firma; no hace falta desinstalar). Comprueba la integridad con `SHA256SUMS.txt` del release.
+**Instalar:** baja `HiveShock-<ver>-android.apk` del [Release](https://github.com/Lexharden/HiveShock-Avalonia/releases) de la versión, permite instalar de orígenes desconocidos y ábrelo. Para actualizar, instala el APK nuevo encima (misma firma; no hace falta desinstalar). Comprueba la integridad con `SHA256SUMS.txt` del release.
 
 Pack local (APK desde la carpeta `publish/`, no intermedios de `bin/`):
 
