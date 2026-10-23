@@ -435,9 +435,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             await Runtime.WaitUntilStoppedAsync().ConfigureAwait(true);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignore
+            BridgeLog.Warn($"Puente detenido con error: {ex.Message}");
         }
 
         StopKeepAlive();
@@ -462,9 +462,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             BridgeKeepAliveService.Stop();
         }
-        catch
+        catch (Exception ex)
         {
-            // ya parado
+            BridgeLog.Warn($"Servicio en segundo plano: {ex.Message}");
         }
     }
 

@@ -4,6 +4,7 @@ using Android.Content;
 using Android.Content.PM;
 using Android.OS;
 using Android.Provider;
+using HiveShock.Logging;
 
 namespace HiveShock.Android;
 
@@ -64,9 +65,10 @@ internal static class AndroidLivePermissions
             intent.SetData(global::Android.Net.Uri.Parse($"package:{activity.PackageName}"));
             activity.StartActivity(intent);
         }
-        catch
+        catch (Exception ex)
         {
             // el fabricante puede no exponer el diálogo
+            BridgeLog.Warn($"Exención de batería: {ex.Message}");
         }
     }
 }

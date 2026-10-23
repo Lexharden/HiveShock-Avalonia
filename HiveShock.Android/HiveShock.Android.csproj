@@ -45,7 +45,7 @@
 
   <ItemGroup>
     <AndroidAsset Include="..\config\profiles\**\*">
-      <Link>profiles\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <Link>profiles-catalog\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </AndroidAsset>
     <AndroidAsset Include="..\config\gift-catalog.json" Link="gift-catalog.json" />
     <AndroidAsset Include="..\config\tiktok_gifts.json" Link="tiktok_gifts.json" />
