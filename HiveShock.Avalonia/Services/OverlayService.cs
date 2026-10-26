@@ -1,9 +1,11 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input.Platform;
 using HiveShock.Avalonia.Views.Overlays;
 using HiveShock.Configuration;
 using HiveShock.Hosting;
 using HiveShock.Live;
+using HiveShock.Overlays;
 
 namespace HiveShock.Avalonia.Services;
 
@@ -17,7 +19,51 @@ public sealed class OverlayService
     private GoalOverlayWindow? _goals;
     private bool _suppressClose;
 
+    private OverlayFeed? _feed;
+
     public Window? Owner { get; set; }
+
+    /// <summary>Servidor local que sirve los overlays a la «Fuente de navegador» de OBS.</summary>
+    public WebOverlayServer Web { get; } = new();
+
+    public OverlayFeed? Feed => _feed;
+
+    /// <summary>Prepara los mensajes web. <paramref name="lookup"/> resuelve el regalo de una meta contra el catálogo.</summary>
+    public void AttachFeed(Func<string, OverlayGiftRef?> lookup) => _feed = new OverlayFeed(Web, lookup);
+
+    /// <summary>(Re)arranca el servidor según las preferencias. False si el puerto está ocupado.</summary>
+    public bool StartWeb(UiPreferences prefs)
+    {
+        Web.Stop();
+        if (!prefs.WebOverlayEnabled)
+        {
+            return true;
+        }
+
+        return Web.Start(prefs.ResolveWebOverlayPort(), prefs.WebOverlayLan, prefs.WebOverlayLan ? prefs.EnsureWebOverlayToken() : null);
+    }
+
+    /// <summary>Publica todo el estado a las páginas abiertas (al arrancar y al cambiar de perfil).</summary>
+    public void PublishWeb(UiPreferences prefs, DeathCounter counter, IEnumerable<EditableGift> gifts, IEnumerable<GoalSnapshot> goals)
+    {
+        if (_feed == null)
+        {
+            return;
+        }
+
+        _feed.SetLook(OverlayLook.ToData(prefs));
+        _feed.SetCounter(prefs.ResolveOverlayTitle(), counter.Value);
+        _feed.SetGifts(gifts);
+        _feed.SetGoals(goals);
+    }
+
+    public async Task CopyAsync(string text)
+    {
+        if (Owner is { } window && TopLevel.GetTopLevel(window)?.Clipboard is { } clipboard)
+        {
+            await clipboard.SetTextAsync(text);
+        }
+    }
 
     /// <summary>Resuelve la clave de un regalo de meta (id o nombre) contra el catálogo.</summary>
     public Func<string, GoalGiftInfo?>? GiftLookup { get; set; }
@@ -72,6 +118,7 @@ public sealed class OverlayService
 
     public void RefreshCounter(DeathCounter counter, string title, UiPreferences? prefs = null)
     {
+        _feed?.SetCounter(title, counter.Value);
         if (_counter == null)
         {
             return;
@@ -90,6 +137,7 @@ public sealed class OverlayService
 
     public void RefreshGifts(IEnumerable<EditableGift> gifts, UiPreferences? prefs = null)
     {
+        _feed?.SetGifts(gifts);
         if (_gifts == null)
         {
             return;
@@ -153,6 +201,7 @@ public sealed class OverlayService
 
     public void RefreshOverlayScale(UiPreferences prefs)
     {
+        _feed?.SetLook(OverlayLook.ToData(prefs));
         RefreshCounterScale(prefs);
         RefreshGiftsScale(prefs);
         RefreshGoalsScale(prefs);
@@ -160,6 +209,9 @@ public sealed class OverlayService
 
     public void RefreshLook(UiPreferences prefs, DeathCounter counter, IEnumerable<EditableGift> gifts)
     {
+        _feed?.SetLook(OverlayLook.ToData(prefs));
+        _feed?.SetCounter(prefs.ResolveOverlayTitle(), counter.Value);
+        _feed?.SetGifts(gifts);
         _counter?.ApplyLook(prefs, prefs.ResolveOverlayScale());
         _counter?.Apply(counter, prefs.ResolveOverlayTitle());
         _gifts?.ApplyLook(prefs, prefs.ResolveOverlayScale(), gifts);
@@ -212,6 +264,7 @@ public sealed class OverlayService
 
     public void RefreshGoals(IEnumerable<GoalSnapshot> goals, UiPreferences? prefs = null)
     {
+        _feed?.SetGoals(goals);
         if (_goals == null)
         {
             return;
@@ -228,10 +281,15 @@ public sealed class OverlayService
     public void RefreshGoalsScale(UiPreferences prefs) =>
         _goals?.ApplyLook(prefs, prefs.ResolveOverlayScale());
 
-    public void HighlightGift(string name, string? id) => _gifts?.Highlight(name, id);
+    public void HighlightGift(string name, string? id)
+    {
+        _feed?.Highlight(name, id);
+        _gifts?.Highlight(name, id);
+    }
 
     public void CloseAll(UiPreferences prefs)
     {
+        Web.Stop();
         _suppressClose = true;
         HideCounter(prefs);
         HideGifts(prefs);

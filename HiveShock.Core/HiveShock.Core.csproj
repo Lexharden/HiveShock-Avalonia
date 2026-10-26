@@ -12,6 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Overlays\overlay.html" LogicalName="overlay.html" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
   </ItemGroup>
 

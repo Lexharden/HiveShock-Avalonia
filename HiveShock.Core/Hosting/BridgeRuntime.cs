@@ -461,6 +461,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         }
 
         var repeat = Math.Max(1, comboCount);
+        Overlay.Alert("gift", testerName, gift.Gift, repeat, gift.Id);
         var tick = Goals.Contribute(gift.Gift, gift.Id, repeat);
         if (tick != null)
         {

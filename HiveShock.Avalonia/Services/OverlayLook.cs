@@ -1,5 +1,6 @@
 using Avalonia.Media;
 using HiveShock.Avalonia.Themes;
+using HiveShock.Overlays;
 
 namespace HiveShock.Avalonia.Services;
 
@@ -9,6 +10,27 @@ public static class OverlayLook
     public const string Blue = "#075BAA";
     public const string White = "#F7F7F7";
     public const string Black = "#0E1520";
+
+    /// <summary>El mismo aspecto, en forma de datos, para las páginas web de OBS.</summary>
+    public static OverlayLookData ToData(UiPreferences prefs) => new(
+        prefs.ResolveOverlayScale(),
+        prefs.OverlayShowBackground,
+        BackgroundOpacity(prefs),
+        Hex(Card(prefs)),
+        Hex(Border(prefs)),
+        Hex(Number(prefs)),
+        Hex(Title(prefs)),
+        Hex(GiftText(prefs)),
+        Hex(ThemeManager.OverlayAccent(ThemeManager.Current)),
+        Hex(ThemeManager.OverlayHighlight(ThemeManager.Current)),
+        NumberSize(prefs),
+        TitleSize(prefs),
+        GiftNameSize(prefs),
+        AlignCenter(prefs),
+        GiftsHeading(prefs),
+        prefs.ShowGiftsOverlayTitle);
+
+    private static string Hex(Color c) => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
 
     public static Color Parse(string? hex, Color fallback)
     {
