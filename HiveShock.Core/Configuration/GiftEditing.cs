@@ -91,12 +91,16 @@ public sealed class EditableChatCommand
 {
     public string Word { get; set; } = "";
     public string Effect { get; set; } = "";
+
+    /// <summary>Efectos que se lanzan después del principal, en orden.</summary>
+    public List<EditableGiftStep> MoreSteps { get; set; } = [];
 }
 
 public sealed class EditableBitsRule
 {
     public int Min { get; set; } = 1;
     public string Effect { get; set; } = "";
+    public List<EditableGiftStep> MoreSteps { get; set; } = [];
 }
 
 public sealed class EditableGiftGoal
@@ -105,6 +109,7 @@ public sealed class EditableGiftGoal
     public string Label { get; set; } = "";
     public int Need { get; set; } = 2;
     public string Effect { get; set; } = "";
+    public List<EditableGiftStep> MoreSteps { get; set; } = [];
     public string GiftsText { get; set; } = "";
     public bool AlsoInstant { get; set; } = true;
     public bool Repeat { get; set; } = true;
@@ -122,10 +127,13 @@ public sealed class GiftFileEditor
 
     public int LikesEvery { get; set; }
     public string LikesEffect { get; set; } = "";
+    public List<EditableGiftStep> LikesMore { get; } = [];
     public string FollowEffect { get; set; } = "";
+    public List<EditableGiftStep> FollowMore { get; } = [];
     /// <summary>Un mismo usuario dispara el efecto de seguir una sola vez (TikTok y Twitch).</summary>
     public bool FollowOncePerUser { get; set; } = true;
     public string ShareEffect { get; set; } = "";
+    public List<EditableGiftStep> ShareMore { get; } = [];
     public bool ChatEnabled { get; set; }
     public string ChatPrefix { get; set; } = "!";
     public int ChatCooldownSec { get; set; } = 30;
@@ -137,6 +145,7 @@ public sealed class GiftFileEditor
     public int TwitchChatGlobalGapSec { get; set; } = 2;
     public List<EditableChatCommand> TwitchChatCommands { get; } = [];
     public string TwitchFollowEffect { get; set; } = "";
+    public List<EditableGiftStep> TwitchFollowMore { get; } = [];
     public List<EditableBitsRule> TwitchBits { get; } = [];
     public List<EditableGiftGoal> Goals { get; } = [];
 
@@ -202,9 +211,13 @@ public sealed class GiftFileEditor
     {
         LikesEvery = 0;
         LikesEffect = "";
+        LikesMore.Clear();
         FollowEffect = "";
+        FollowMore.Clear();
         FollowOncePerUser = true;
         ShareEffect = "";
+        ShareMore.Clear();
+        TwitchFollowMore.Clear();
         ChatEnabled = false;
         ChatPrefix = "!";
         ChatCooldownSec = 30;
@@ -222,18 +235,18 @@ public sealed class GiftFileEditor
         if (_root["likes"] is JsonObject likes)
         {
             LikesEvery = ReadInt(likes, "every") ?? 0;
-            LikesEffect = likes["effect"]?.GetValue<string>() ?? "";
+            LikesEffect = ReadEffects(likes, LikesMore);
         }
 
         if (_root["follow"] is JsonObject follow)
         {
-            FollowEffect = follow["effect"]?.GetValue<string>() ?? "";
+            FollowEffect = ReadEffects(follow, FollowMore);
             FollowOncePerUser = ReadBoolOr(follow, "oncePerUser", true);
         }
 
         if (_root["share"] is JsonObject share)
         {
-            ShareEffect = share["effect"]?.GetValue<string>() ?? "";
+            ShareEffect = ReadEffects(share, ShareMore);
         }
 
         if (_root["chat"] is JsonObject chat)
@@ -246,8 +259,7 @@ public sealed class GiftFileEditor
             {
                 foreach (var kv in cmds)
                 {
-                    var effect = kv.Value?.GetValue<string>() ?? "";
-                    ChatCommands.Add(new EditableChatCommand { Word = kv.Key, Effect = effect });
+                    ChatCommands.Add(ReadCommand(kv.Key, kv.Value));
                 }
             }
         }
@@ -256,7 +268,7 @@ public sealed class GiftFileEditor
         {
             if (twitch["follow"] is JsonObject twFollow)
             {
-                TwitchFollowEffect = twFollow["effect"]?.GetValue<string>() ?? "";
+                TwitchFollowEffect = ReadEffects(twFollow, TwitchFollowMore);
             }
 
             if (twitch["chat"] is JsonObject twChat)
@@ -269,11 +281,7 @@ public sealed class GiftFileEditor
                 {
                     foreach (var kv in twCmds)
                     {
-                        TwitchChatCommands.Add(new EditableChatCommand
-                        {
-                            Word = kv.Key,
-                            Effect = kv.Value?.GetValue<string>() ?? "",
-                        });
+                        TwitchChatCommands.Add(ReadCommand(kv.Key, kv.Value));
                     }
                 }
             }
@@ -287,10 +295,13 @@ public sealed class GiftFileEditor
                         continue;
                     }
 
+                    var bitMore = new List<EditableGiftStep>();
+                    var bitEffect = ReadEffects(bit, bitMore);
                     TwitchBits.Add(new EditableBitsRule
                     {
                         Min = Math.Max(1, ReadInt(bit, "min") ?? 1),
-                        Effect = bit["effect"]?.GetValue<string>() ?? "",
+                        Effect = bitEffect,
+                        MoreSteps = bitMore,
                     });
                 }
             }
@@ -298,13 +309,19 @@ public sealed class GiftFileEditor
         else
         {
             TwitchFollowEffect = FollowEffect;
+            TwitchFollowMore.AddRange(FollowMore.Select(CloneStep));
             TwitchChatEnabled = ChatEnabled;
             TwitchChatPrefix = ChatPrefix;
             TwitchChatCooldownSec = ChatCooldownSec;
             TwitchChatGlobalGapSec = ChatGlobalGapSec;
             foreach (var cmd in ChatCommands)
             {
-                TwitchChatCommands.Add(new EditableChatCommand { Word = cmd.Word, Effect = cmd.Effect });
+                TwitchChatCommands.Add(new EditableChatCommand
+                {
+                    Word = cmd.Word,
+                    Effect = cmd.Effect,
+                    MoreSteps = cmd.MoreSteps.Select(CloneStep).ToList(),
+                });
             }
         }
 
@@ -320,12 +337,15 @@ public sealed class GiftFileEditor
                 var keys = new List<string>();
                 PushStrings(keys, g, "gifts");
                 PushStrings(keys, g, "ids");
+                var goalMore = new List<EditableGiftStep>();
+                var goalEffect = ReadEffects(g, goalMore);
                 Goals.Add(new EditableGiftGoal
                 {
                     Id = g["id"]?.GetValue<string>() ?? "",
                     Label = g["label"]?.GetValue<string>() ?? g["name"]?.GetValue<string>() ?? "",
                     Need = Math.Max(1, ReadInt(g, "need") ?? 2),
-                    Effect = g["effect"]?.GetValue<string>() ?? "",
+                    Effect = goalEffect,
+                    MoreSteps = goalMore,
                     GiftsText = string.Join(", ", keys),
                     AlsoInstant = ReadBoolOr(g, "alsoInstant", true),
                     Repeat = ReadBoolOr(g, "repeat", true),
@@ -338,16 +358,16 @@ public sealed class GiftFileEditor
     {
         var likes = _root["likes"] as JsonObject ?? new JsonObject();
         likes["every"] = LikesEvery;
-        likes["effect"] = LikesEffect ?? "";
+        WriteEffects(likes, LikesEffect, LikesMore);
         _root["likes"] = likes;
 
         var follow = _root["follow"] as JsonObject ?? new JsonObject();
-        follow["effect"] = FollowEffect ?? "";
+        WriteEffects(follow, FollowEffect, FollowMore);
         follow["oncePerUser"] = FollowOncePerUser;
         _root["follow"] = follow;
 
         var share = _root["share"] as JsonObject ?? new JsonObject();
-        share["effect"] = ShareEffect ?? "";
+        WriteEffects(share, ShareEffect, ShareMore);
         _root["share"] = share;
 
         var chat = _root["chat"] as JsonObject ?? new JsonObject();
@@ -364,7 +384,7 @@ public sealed class GiftFileEditor
                 continue;
             }
 
-            cmds[cmd.Word.Trim()] = (cmd.Effect ?? "").Trim();
+            cmds[cmd.Word.Trim()] = CommandToNode(cmd);
         }
 
         chat["commands"] = cmds;
@@ -372,7 +392,7 @@ public sealed class GiftFileEditor
 
         var twitch = _root["twitch"] as JsonObject ?? new JsonObject();
         var twFollow = twitch["follow"] as JsonObject ?? new JsonObject();
-        twFollow["effect"] = TwitchFollowEffect ?? "";
+        WriteEffects(twFollow, TwitchFollowEffect, TwitchFollowMore);
         twitch["follow"] = twFollow;
         var twChat = twitch["chat"] as JsonObject ?? new JsonObject();
         twChat["enabled"] = TwitchChatEnabled;
@@ -387,7 +407,7 @@ public sealed class GiftFileEditor
                 continue;
             }
 
-            twCmds[cmd.Word.Trim()] = (cmd.Effect ?? "").Trim();
+            twCmds[cmd.Word.Trim()] = CommandToNode(cmd);
         }
 
         twChat["commands"] = twCmds;
@@ -400,11 +420,9 @@ public sealed class GiftFileEditor
                 continue;
             }
 
-            bitsArr.Add(new JsonObject
-            {
-                ["min"] = bit.Min,
-                ["effect"] = bit.Effect.Trim(),
-            });
+            var bitNode = new JsonObject { ["min"] = bit.Min };
+            WriteEffects(bitNode, bit.Effect, bit.MoreSteps);
+            bitsArr.Add(bitNode);
         }
 
         twitch["bits"] = bitsArr;
@@ -447,19 +465,115 @@ public sealed class GiftFileEditor
                 n++;
             }
 
-            goalsArr.Add(new JsonObject
+            var goalNode = new JsonObject
             {
                 ["id"] = id,
                 ["label"] = label,
                 ["need"] = goal.Need,
-                ["effect"] = goal.Effect.Trim(),
-                ["gifts"] = ToJsonArray(keys),
-                ["alsoInstant"] = goal.AlsoInstant,
-                ["repeat"] = goal.Repeat,
-            });
+            };
+            WriteEffects(goalNode, goal.Effect, goal.MoreSteps);
+            goalNode["gifts"] = ToJsonArray(keys);
+            goalNode["alsoInstant"] = goal.AlsoInstant;
+            goalNode["repeat"] = goal.Repeat;
+            goalsArr.Add(goalNode);
         }
 
         _root["goals"] = goalsArr;
+    }
+
+    private static EditableGiftStep CloneStep(EditableGiftStep s) => new()
+    {
+        Effect = s.Effect,
+        DelaySec = s.DelaySec,
+        Params = new Dictionary<string, double>(s.Params, StringComparer.OrdinalIgnoreCase),
+    };
+
+    /// <summary>
+    /// Lee el efecto de un disparador. Con <c>effects</c> manda la lista: el primero es el efecto principal y el
+    /// resto se añade a <paramref name="more"/>. Sin lista, el <c>effect</c> de siempre.
+    /// </summary>
+    private static string ReadEffects(JsonObject obj, List<EditableGiftStep> more)
+    {
+        more.Clear();
+        var effect = (obj["effect"] as JsonValue)?.TryGetValue<string>(out var s) == true ? s : "";
+        if (obj["effects"] is JsonArray steps && steps.Count > 0)
+        {
+            var first = true;
+            foreach (var node in steps)
+            {
+                var (id, stepParams, delay) = ReadStep(node);
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    continue;
+                }
+
+                if (first)
+                {
+                    effect = id;
+                    first = false;
+                }
+                else if (more.Count < EffectPlan.MaxSteps - 1)
+                {
+                    more.Add(new EditableGiftStep { Effect = id, Params = stepParams, DelaySec = delay });
+                }
+            }
+        }
+
+        return effect ?? "";
+    }
+
+    /// <summary>
+    /// Escribe el efecto de un disparador. Con uno solo queda como siempre (<c>effect</c>); con varios se añade
+    /// <c>effects</c> y <c>effect</c> sigue siendo el primero.
+    /// </summary>
+    private static void WriteEffects(JsonObject obj, string? effect, List<EditableGiftStep> more)
+    {
+        var first = (effect ?? "").Trim();
+        obj["effect"] = first;
+        var extra = more.Where(s => !string.IsNullOrWhiteSpace(s.Effect)).Take(EffectPlan.MaxSteps - 1).ToList();
+        if (first.Length > 0 && extra.Count > 0)
+        {
+            var list = new JsonArray { StepToNode(first, new Dictionary<string, double>(), 0) };
+            foreach (var step in extra)
+            {
+                list.Add(StepToNode(step.Effect, step.Params, step.DelaySec));
+            }
+
+            obj["effects"] = list;
+        }
+        else
+        {
+            obj.Remove("effects");
+        }
+    }
+
+    private static EditableChatCommand ReadCommand(string word, JsonNode? value)
+    {
+        var command = new EditableChatCommand { Word = word };
+        if (value is JsonObject obj)
+        {
+            command.Effect = ReadEffects(obj, command.MoreSteps);
+        }
+        else
+        {
+            command.Effect = (value as JsonValue)?.TryGetValue<string>(out var s) == true ? s : "";
+        }
+
+        return command;
+    }
+
+    /// <summary>Comando con un efecto = texto de siempre; con varios, un objeto con <c>effect</c> y <c>effects</c>.</summary>
+    private static JsonNode CommandToNode(EditableChatCommand cmd)
+    {
+        var effect = (cmd.Effect ?? "").Trim();
+        if (effect.Length == 0 || !cmd.MoreSteps.Any(s => !string.IsNullOrWhiteSpace(s.Effect)))
+        {
+            return JsonValue.Create(effect)!;
+        }
+
+        var node = new JsonObject();
+        WriteEffects(node, effect, cmd.MoreSteps);
+        return node;
     }
 
     private static List<string> SplitKeys(string? text) =>

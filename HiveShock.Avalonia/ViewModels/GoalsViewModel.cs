@@ -33,13 +33,20 @@ public sealed partial class GoalsViewModel : ViewModelBase
 
     public void NotifyEffects() => OnPropertyChanged(nameof(EffectsWithNone));
 
+    private StepListViewModel NewSteps(IEnumerable<EditableGiftStep> steps)
+    {
+        var list = new StepListViewModel(() => _shell.Runtime.Effects, _shell.EffectChoices);
+        list.Load(steps);
+        return list;
+    }
+
     public void LoadFromEditor(GiftFileEditor editor)
     {
         using var _ = _shell.Gifts.AutoSaver.Suppress();
         Rows.Clear();
         foreach (var goal in editor.Goals)
         {
-            Rows.Add(new GoalRowViewModel
+            var row = new GoalRowViewModel
             {
                 GoalId = goal.Id,
                 Label = goal.Label,
@@ -48,7 +55,9 @@ public sealed partial class GoalsViewModel : ViewModelBase
                 GiftsText = goal.GiftsText,
                 AlsoInstant = goal.AlsoInstant,
                 Repeat = goal.Repeat,
-            });
+            };
+            row.AttachSteps(NewSteps(goal.MoreSteps));
+            Rows.Add(row);
         }
 
         Selected = Rows.FirstOrDefault();
@@ -71,6 +80,7 @@ public sealed partial class GoalsViewModel : ViewModelBase
                 Label = row.Label ?? "",
                 Need = need,
                 Effect = row.Effect ?? "",
+                MoreSteps = row.Steps?.Model.ToList() ?? [],
                 GiftsText = row.GiftsText ?? "",
                 AlsoInstant = row.AlsoInstant,
                 Repeat = row.Repeat,
@@ -117,6 +127,7 @@ public sealed partial class GoalsViewModel : ViewModelBase
             Repeat = true,
             ProgressText = "0/2",
         };
+        row.AttachSteps(NewSteps([]));
         Rows.Add(row);
         Selected = row;
     }

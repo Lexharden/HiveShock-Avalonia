@@ -24,6 +24,7 @@ public sealed class GoalTick
     public string Id { get; init; } = "";
     public string Label { get; init; } = "";
     public string Effect { get; init; } = "";
+    public Configuration.EffectPlan Plan { get; init; } = Configuration.EffectPlan.Empty;
     public int Count { get; init; }
     public int Need { get; init; }
     public int Added { get; init; }
@@ -210,6 +211,7 @@ public sealed class GiftGoalBank
             Id = def.Id,
             Label = def.Label,
             Effect = def.Effect,
+            Plan = def.EffectivePlan,
             Count = state.Closed ? def.Need : state.Count,
             Need = def.Need,
             Added = added,

@@ -4,6 +4,15 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.11.0] - 2026-10-25
+
+### Varios efectos en todo lo que dispara efectos
+* **Lo que ya podían hacer los regalos, ahora también:** comandos de chat (TikTok y Twitch), nuevos seguidores (TikTok y Twitch), likes, compartir, bits de Twitch y metas pueden lanzar varios efectos. Bajo el efecto principal aparece «Añadir otro efecto», cada uno con sus parámetros y una espera opcional en segundos (hasta 30 s, contada desde el efecto anterior). En las listas (comandos, bits, metas) el editor sale al seleccionar la fila y la fila muestra «+2 efectos».
+* Salen en orden y la espera no frena a los demás espectadores. Si se pausan los efectos, los que seguían esperando se descartan. `reiniciar_pc` siempre va el último.
+* «Simular» una meta y «Enviar al juego» de un regalo con meta ahora lanzan todos los efectos de la meta.
+* El aviso de «Sin efecto» de Eventos revisa también los efectos adicionales.
+* **Compatible hacia atrás:** con un solo efecto el archivo queda exactamente como antes. Con varios se añade `effects` junto a `effect` (que sigue siendo el primero). Excepción: un comando de chat con varios efectos se guarda como objeto (`{ "effect": …, "effects": [...] }`) y una versión anterior a la 2.11 no lo reconoce, así que lo ignoraría; si quitas los efectos extra vuelve a guardarse como texto.
+
 ## [2.10.0] - 2026-10-25
 
 ### Overlays para OBS por URL

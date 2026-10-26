@@ -89,6 +89,8 @@
                                               SelectedValue="{Binding Effect}"
                                               SelectedValueBinding="{Binding Id}"
                                               DisplayMemberBinding="{Binding Display}" />
+                                    <ctl:StepListEditor DataContext="{Binding Steps}"
+                                        IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
                                     <CheckBox Content="También dispara el efecto del regalo"
                                               IsChecked="{Binding AlsoInstant}" Margin="0,8,0,0" />
                                     <CheckBox Content="Se puede volver a llenar en este directo"
@@ -322,15 +324,22 @@
                              ScrollViewer.VerticalScrollBarVisibility="Auto">
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:ChatCommandRowViewModel">
-                                <DockPanel>
+                                <StackPanel>
+                                    <DockPanel>
                                     <ComboBox DockPanel.Dock="Right" MinWidth="240" MaxWidth="420" Margin="8,0,0,0"
                                               HorizontalAlignment="Right"
                                               ItemsSource="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).Events.EffectsWithNone}"
                                               SelectedValue="{Binding Effect}"
                                               SelectedValueBinding="{Binding Id}"
                                               DisplayMemberBinding="{Binding Display}" />
+                                    <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0"
+                                           Foreground="{DynamicResource BrandGoldBrush}" FontSize="12"
+                                           Text="{Binding StepSummary}" />
                                     <TextBox Text="{Binding Word}" PlaceholderText="palabra" />
-                                </DockPanel>
+                                    </DockPanel>
+                                    <ctl:StepListEditor DataContext="{Binding Steps}"
+                                         IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+                                </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
@@ -346,6 +355,7 @@
                                                   SelectedValue="{Binding Events.FollowEffect}"
                                                   SelectedValueBinding="{Binding Id}"
                                                   DisplayMemberBinding="{Binding Display}" />
+                                        <ctl:StepListEditor DataContext="{Binding Events.FollowSteps}" />
                                         <CheckBox Content="Solo la primera vez que sigue (evita el spam de seguir y dejar de seguir)"
                                                   IsChecked="{Binding Events.FollowOncePerUser}" Margin="0,8,0,0" />
                                         <Button Classes="secondary" Content="Olvidar seguidores"
@@ -363,6 +373,7 @@
                                                   SelectedValue="{Binding Events.LikesEffect}"
                                                   SelectedValueBinding="{Binding Id}"
                                                   DisplayMemberBinding="{Binding Display}" />
+                                        <ctl:StepListEditor DataContext="{Binding Events.LikesSteps}" />
                                     </StackPanel>
                                 </Border>
                             </Grid>
@@ -374,6 +385,7 @@
                                               SelectedValueBinding="{Binding Id}"
                                               DisplayMemberBinding="{Binding Display}"
                                               HorizontalAlignment="Left" MinWidth="280" />
+                                    <ctl:StepListEditor DataContext="{Binding Events.ShareSteps}" />
                                 </StackPanel>
                             </Border>
                             <Button Classes="primary" Content="Guardar" Command="{Binding Events.SaveCommand}"

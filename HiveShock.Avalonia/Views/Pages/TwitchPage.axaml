@@ -71,15 +71,22 @@
                      ScrollViewer.VerticalScrollBarVisibility="Auto">
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:ChatCommandRowViewModel">
-                        <DockPanel>
+                        <StackPanel>
+                            <DockPanel>
                             <ComboBox DockPanel.Dock="Right" MinWidth="240" MaxWidth="420" Margin="8,0,0,0"
                                       HorizontalAlignment="Right"
                                       ItemsSource="{Binding $parent[UserControl].((vm:TwitchViewModel)DataContext).Events.EffectsWithNone}"
                                       SelectedValue="{Binding Effect}"
                                       SelectedValueBinding="{Binding Id}"
                                       DisplayMemberBinding="{Binding Display}" />
+                            <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0"
+                                           Foreground="{DynamicResource BrandGoldBrush}" FontSize="12"
+                                           Text="{Binding StepSummary}" />
                             <TextBox Text="{Binding Word}" PlaceholderText="palabra" />
-                        </DockPanel>
+                            </DockPanel>
+                            <ctl:StepListEditor DataContext="{Binding Steps}"
+                                         IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+                        </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
@@ -97,6 +104,7 @@
                                           SelectedValue="{Binding Events.TwitchFollowEffect}"
                                           SelectedValueBinding="{Binding Id}"
                                           DisplayMemberBinding="{Binding Display}" />
+                                <ctl:StepListEditor DataContext="{Binding Events.TwitchFollowSteps}" />
                                 <CheckBox Content="Solo la primera vez que sigue (evita el spam de seguir y dejar de seguir)"
                                           IsChecked="{Binding Events.FollowOncePerUser}" Margin="0,8,0,0" />
                                 <Button Classes="secondary" Content="Olvidar seguidores"
@@ -116,15 +124,22 @@
                                          ScrollViewer.VerticalScrollBarVisibility="Auto">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate x:DataType="vm:BitsRowViewModel">
-                                            <DockPanel>
+                                            <StackPanel>
+                                                <DockPanel>
                                                 <ComboBox DockPanel.Dock="Right" MinWidth="200" MaxWidth="360" Margin="8,0,0,0"
                                                           ItemsSource="{Binding $parent[UserControl].((vm:TwitchViewModel)DataContext).Events.EffectsWithNone}"
                                                           SelectedValue="{Binding Effect}"
                                                           SelectedValueBinding="{Binding Id}"
                                                           DisplayMemberBinding="{Binding Display}" />
+                                                <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0"
+                                           Foreground="{DynamicResource BrandGoldBrush}" FontSize="12"
+                                           Text="{Binding StepSummary}" />
                                                 <TextBox Text="{Binding MinText}" PlaceholderText="mín. bits" Width="88"
                                                          HorizontalAlignment="Left" />
-                                            </DockPanel>
+                                                </DockPanel>
+                                                <ctl:StepListEditor DataContext="{Binding Steps}"
+                                         IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+                                            </StackPanel>
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>
