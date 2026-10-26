@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+             x:Class="HiveShock.Avalonia.Views.Controls.StepListEditor"
+             x:DataType="vm:StepListViewModel">
+    <StackPanel Margin="0,10,0,0">
+        <TextBlock Classes="fieldLabel" Text="Más efectos a la vez" Margin="0,0,0,2" />
+        <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,0,0,8" TextWrapping="Wrap"
+                   Text="Salen después del anterior, en este orden. «Esperar» son los segundos desde el efecto anterior (0 = enseguida)." />
+        <ItemsControl ItemsSource="{Binding Rows}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:GiftStepRowViewModel">
+                    <Border Background="{DynamicResource CardAltBrush}" CornerRadius="8"
+                            Padding="10" Margin="0,0,0,8">
+                        <StackPanel>
+                            <ComboBox Margin="0,0,0,8" HorizontalAlignment="Stretch"
+                                      ItemsSource="{Binding EffectChoices}"
+                                      SelectedValue="{Binding Effect}"
+                                      SelectedValueBinding="{Binding Id}"
+                                      DisplayMemberBinding="{Binding Display}" />
+                            <ItemsControl ItemsSource="{Binding ParamFields}"
+                                          IsVisible="{Binding HasParams}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:EffectParamFieldViewModel">
+                                        <StackPanel Margin="0,0,0,8">
+                                            <TextBlock Classes="fieldLabel" Text="{Binding Label}" />
+                                            <TextBox Text="{Binding ValueText}" Width="100"
+                                                     HorizontalAlignment="Left"
+                                                     PlaceholderText="{Binding Hint}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Classes="secondary" Content="Quitar"
+                                        Command="{Binding RemoveCommand}" />
+                                <TextBlock Classes="fieldLabel" Text="Esperar (s)"
+                                           VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBox Text="{Binding DelayText}" Width="70"
+                                         HorizontalAlignment="Left" PlaceholderText="0" />
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Classes="secondary" Content="Añadir otro efecto" Command="{Binding AddCommand}"
+                HorizontalAlignment="Left" />
+    </StackPanel>
+</UserControl>

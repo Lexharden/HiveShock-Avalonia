@@ -414,16 +414,30 @@ public sealed class BridgeRuntime : IAsyncDisposable
             return Task.CompletedTask;
         }
 
-        BridgeLog.Info($"Meta {tick.Label} -> {tick.Effect}");
-        if (TryRunMacro(tick.Effect, "Test", "meta"))
-        {
-            return Task.CompletedTask;
-        }
+        BridgeLog.Info($"Meta {tick.Label} -> {tick.Plan.Describe()}");
+        return RunPlanForTestAsync(tick.Plan, "Test", "meta", ct);
+    }
 
-        return _gameClient.SendAsync(
-            _effects.Resolve(tick.Effect, "Test") ??
-            throw new InvalidOperationException($"Efecto desconocido: {tick.Effect}"),
-            ct);
+    /// <summary>Lanza los efectos de un plan en una prueba: respeta las esperas y usa macros, sistema o el juego.</summary>
+    private async Task RunPlanForTestAsync(EffectPlan plan, string tester, string tag, CancellationToken ct)
+    {
+        foreach (var step in plan.Steps)
+        {
+            if (step.DelayMs > 0)
+            {
+                await Task.Delay(step.DelayMs, ct).ConfigureAwait(false);
+            }
+
+            if (TryRunMacro(step.EffectId, tester, tag) || TryRunSystemEffect(step.EffectId, tester, tag))
+            {
+                continue;
+            }
+
+            var cmd = _effects.Resolve(step.EffectId, tester, step.Params)
+                      ?? throw new InvalidOperationException($"Efecto desconocido: {step.EffectId}");
+            await _gameClient.SendAsync(cmd, ct).ConfigureAwait(false);
+            BridgeLog.Info($"OK prueba {step.EffectId} ({tag})");
+        }
     }
 
     public Task DeleteSaveAsync(CancellationToken ct = default)
@@ -466,20 +480,10 @@ public sealed class BridgeRuntime : IAsyncDisposable
         if (tick != null)
         {
             BridgeLog.Info($"Meta {tick.Label} {tick.Count}/{tick.Need} ({testerName} +{tick.Added})");
-            if (tick.Fired && !string.IsNullOrWhiteSpace(tick.Effect))
+            if (tick.Fired && !tick.Plan.IsEmpty)
             {
-                if (TryRunMacro(tick.Effect, testerName, "meta"))
-                {
-                    BridgeLog.Info($"Meta {tick.Label} -> {tick.Effect}");
-                }
-
-                var goalCmd = _effects.Resolve(tick.Effect, testerName);
-                if (goalCmd != null)
-                {
-                    BridgeLog.Info($"Meta {tick.Label} -> {tick.Effect}");
-                    await _gameClient.SendAsync(goalCmd, ct).ConfigureAwait(false);
-                    BridgeLog.Info($"OK prueba {tick.Effect} (meta)");
-                }
+                BridgeLog.Info($"Meta {tick.Label} -> {tick.Plan.Describe()}");
+                await RunPlanForTestAsync(tick.Plan, testerName, "meta", ct).ConfigureAwait(false);
             }
 
             if (!tick.AlsoInstant)

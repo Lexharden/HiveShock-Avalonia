@@ -472,17 +472,28 @@ public sealed class BitsBracket
 {
     public int Min { get; init; }
     public string Effect { get; init; } = "";
+
+    /// <summary>Todos los efectos del tramo; null = solo <see cref="Effect"/>.</summary>
+    public EffectPlan? Plan { get; init; }
+
+    public EffectPlan EffectivePlan => Plan ?? EffectPlan.Single(Effect);
 }
 
 public sealed class LikesConfig
 {
     public int Every { get; init; }
     public string Effect { get; init; } = "";
+    public EffectPlan? Plan { get; init; }
+
+    public EffectPlan EffectivePlan => Plan ?? EffectPlan.Single(Effect);
 }
 
 public sealed class SimpleEffectConfig
 {
     public string Effect { get; init; } = "";
+    public EffectPlan? Plan { get; init; }
+
+    public EffectPlan EffectivePlan => Plan ?? EffectPlan.Single(Effect);
 
     /// <summary>Solo follow: cada usuario dispara el efecto una vez (evita seguir/dejar de seguir en bucle).</summary>
     public bool OncePerUser { get; init; } = true;
@@ -495,6 +506,12 @@ public sealed class ChatConfig
     public int CooldownSec { get; init; } = 30;
     public int GlobalGapSec { get; init; } = 2;
     public Dictionary<string, string> Commands { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Comandos con varios efectos (el valor de <see cref="Commands"/> es el primero).</summary>
+    public Dictionary<string, EffectPlan> Plans { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public EffectPlan PlanFor(string command, string effectId) =>
+        Plans.TryGetValue(command, out var plan) ? plan : EffectPlan.Single(effectId);
 }
 
 public sealed class GiftRuntimeConfig
@@ -520,9 +537,12 @@ public sealed class GiftGoalConfig
     public string Label { get; init; } = "";
     public int Need { get; init; } = 2;
     public string Effect { get; init; } = "";
+    public EffectPlan? Plan { get; init; }
     public IReadOnlyList<string> Keys { get; init; } = [];
     public bool AlsoInstant { get; init; } = true;
     public bool Repeat { get; init; } = true;
+
+    public EffectPlan EffectivePlan => Plan ?? EffectPlan.Single(Effect);
 }
 
 public sealed class EffectCatalog
@@ -1309,8 +1329,8 @@ public sealed class GiftConfigStore
                 continue;
             }
 
-            var effect = GetString(row, "effect") ?? "";
-            if (string.IsNullOrWhiteSpace(effect))
+            var plan = ParsePlan(row, GetString(row, "effect") ?? "", null);
+            if (plan.IsEmpty)
             {
                 continue;
             }
@@ -1318,7 +1338,7 @@ public sealed class GiftConfigStore
             var min = row.TryGetProperty("min", out var minEl) && minEl.TryGetInt32(out var minV)
                 ? Math.Max(1, minV)
                 : 1;
-            list.Add(new BitsBracket { Min = min, Effect = effect });
+            list.Add(new BitsBracket { Min = min, Effect = plan.EffectId, Plan = plan });
         }
 
         return list;
@@ -1342,7 +1362,8 @@ public sealed class GiftConfigStore
                 continue;
             }
 
-            var effect = GetString(row, "effect") ?? "";
+            var plan = ParsePlan(row, GetString(row, "effect") ?? "", null);
+            var effect = plan.EffectId;
             var keys = new List<string>();
             PushStrings(keys, row, "gifts");
             PushStrings(keys, row, "ids");
@@ -1388,6 +1409,7 @@ public sealed class GiftConfigStore
                 Label = string.IsNullOrWhiteSpace(label) ? id : label.Trim(),
                 Need = need,
                 Effect = effect.Trim(),
+                Plan = plan,
                 Keys = uniqueKeys,
                 AlsoInstant = alsoInstant,
                 Repeat = repeat,
@@ -1446,10 +1468,12 @@ public sealed class GiftConfigStore
             return new LikesConfig();
         }
 
+        var plan = ParsePlan(likes, GetString(likes, "effect") ?? "", null);
         return new LikesConfig
         {
             Every = likes.TryGetProperty("every", out var every) && every.TryGetInt32(out var n) ? n : 0,
-            Effect = GetString(likes, "effect") ?? "",
+            Effect = plan.EffectId,
+            Plan = plan,
         };
     }
 
@@ -1460,9 +1484,11 @@ public sealed class GiftConfigStore
             return new SimpleEffectConfig();
         }
 
+        var plan = ParsePlan(el, GetString(el, "effect") ?? "", null);
         return new SimpleEffectConfig
         {
-            Effect = GetString(el, "effect") ?? "",
+            Effect = plan.EffectId,
+            Plan = plan,
             OncePerUser = !el.TryGetProperty("oncePerUser", out _) || ParseBool(el, "oncePerUser"),
         };
     }
@@ -1475,6 +1501,7 @@ public sealed class GiftConfigStore
         }
 
         var commands = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var plans = new Dictionary<string, EffectPlan>(StringComparer.OrdinalIgnoreCase);
         if (chat.TryGetProperty("commands", out var cmds) && cmds.ValueKind == JsonValueKind.Object)
         {
             foreach (var p in cmds.EnumerateObject())
@@ -1482,6 +1509,16 @@ public sealed class GiftConfigStore
                 if (p.Value.ValueKind == JsonValueKind.String)
                 {
                     commands[p.Name] = p.Value.GetString() ?? "";
+                }
+                else if (p.Value.ValueKind == JsonValueKind.Object)
+                {
+                    // Un comando con varios efectos: { "effect": "a", "effects": [ ... ] }.
+                    var plan = ParsePlan(p.Value, GetString(p.Value, "effect") ?? "", null);
+                    if (!plan.IsEmpty)
+                    {
+                        commands[p.Name] = plan.EffectId;
+                        plans[p.Name] = plan;
+                    }
                 }
             }
         }
@@ -1493,6 +1530,7 @@ public sealed class GiftConfigStore
             CooldownSec = ReadWaitSec(chat, "cooldownSec", 30),
             GlobalGapSec = ReadWaitSec(chat, "globalGapSec", 2),
             Commands = commands,
+            Plans = plans,
         };
     }
 

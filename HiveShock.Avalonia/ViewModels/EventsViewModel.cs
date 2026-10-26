@@ -15,7 +15,15 @@ public sealed partial class EventsViewModel : ViewModelBase
         // Todo lo editable de esta página cuenta; solo se ignora lo que es selección de la lista.
         static bool Ignore(string? name) =>
             name != null && (name.StartsWith("Selected", StringComparison.Ordinal) || name == nameof(EffectsWithNone));
+        LikesSteps = NewSteps();
+        FollowSteps = NewSteps();
+        ShareSteps = NewSteps();
+        TwitchFollowSteps = NewSteps();
         var saver = shell.Gifts.AutoSaver;
+        saver.Track(LikesSteps);
+        saver.Track(FollowSteps);
+        saver.Track(ShareSteps);
+        saver.Track(TwitchFollowSteps);
         saver.Track(this, Ignore);
         saver.Track(ChatCommands);
         saver.Track(TwitchChatCommands);
@@ -23,6 +31,21 @@ public sealed partial class EventsViewModel : ViewModelBase
     }
 
     public SaveStatusViewModel SaveStatus => _shell.Gifts.SaveStatus;
+
+    /// <summary>Efectos adicionales de likes, seguir, compartir y seguir en Twitch.</summary>
+    public StepListViewModel LikesSteps { get; }
+    public StepListViewModel FollowSteps { get; }
+    public StepListViewModel ShareSteps { get; }
+    public StepListViewModel TwitchFollowSteps { get; }
+
+    private StepListViewModel NewSteps() => new(() => _shell.Runtime.Effects, _shell.EffectChoices);
+
+    private StepListViewModel NewSteps(IEnumerable<EditableGiftStep> steps)
+    {
+        var list = NewSteps();
+        list.Load(steps);
+        return list;
+    }
 
     [ObservableProperty] private string _likesEveryText = "0";
     private string _likesEffect = "";
@@ -91,9 +114,23 @@ public sealed partial class EventsViewModel : ViewModelBase
         bool Missing(string? effect) => !string.IsNullOrWhiteSpace(effect) && !known.Contains(effect.Trim());
 
         var broken = new List<string>();
-        broken.AddRange(ChatCommands.Where(c => Missing(c.Effect)).Select(c => $"{ChatPrefix}{c.Word} → {c.Effect}"));
-        broken.AddRange(TwitchChatCommands.Where(c => Missing(c.Effect)).Select(c => $"Twitch {TwitchChatPrefix}{c.Word} → {c.Effect}"));
-        broken.AddRange(TwitchBits.Where(b => Missing(b.Effect)).Select(b => $"Bits {b.MinText} → {b.Effect}"));
+        IEnumerable<string> MissingSteps(StepListViewModel? steps) =>
+            steps?.Model.Select(s => s.Effect).Where(Missing) ?? [];
+        broken.AddRange(ChatCommands.SelectMany(c => new[] { c.Effect }.Concat(MissingSteps(c.Steps)).Where(Missing)
+            .Select(e => $"{ChatPrefix}{c.Word} → {e}")));
+        broken.AddRange(TwitchChatCommands.SelectMany(c => new[] { c.Effect }.Concat(MissingSteps(c.Steps)).Where(Missing)
+            .Select(e => $"Twitch {TwitchChatPrefix}{c.Word} → {e}")));
+        broken.AddRange(TwitchBits.SelectMany(b => new[] { b.Effect }.Concat(MissingSteps(b.Steps)).Where(Missing)
+            .Select(e => $"Bits {b.MinText} → {e}")));
+        foreach (var (what, steps) in new[]
+                 {
+                     ("Likes", LikesSteps), ("Seguir", FollowSteps), ("Compartir", ShareSteps),
+                     ("Seguir en Twitch", TwitchFollowSteps),
+                 })
+        {
+            broken.AddRange(MissingSteps(steps).Select(e => $"{what} → {e}"));
+        }
+
         foreach (var (what, effect) in new[]
                  {
                      ("Likes", LikesEffect), ("Seguir", FollowEffect), ("Compartir", ShareEffect),
@@ -116,9 +153,12 @@ public sealed partial class EventsViewModel : ViewModelBase
         using var _ = _shell.Gifts.AutoSaver.Suppress();
         LikesEveryText = editor.LikesEvery.ToString();
         LikesEffect = editor.LikesEffect;
+        LikesSteps.Load(editor.LikesMore);
         FollowEffect = editor.FollowEffect;
+        FollowSteps.Load(editor.FollowMore);
         FollowOncePerUser = editor.FollowOncePerUser;
         ShareEffect = editor.ShareEffect;
+        ShareSteps.Load(editor.ShareMore);
         ChatEnabled = editor.ChatEnabled;
         ChatPrefix = editor.ChatPrefix;
         ChatCooldownText = editor.ChatCooldownSec.ToString();
@@ -126,12 +166,15 @@ public sealed partial class EventsViewModel : ViewModelBase
         ChatCommands.Clear();
         foreach (var cmd in editor.ChatCommands)
         {
-            ChatCommands.Add(new ChatCommandRowViewModel { Word = cmd.Word, Effect = cmd.Effect });
+            var row = new ChatCommandRowViewModel { Word = cmd.Word, Effect = cmd.Effect };
+            row.AttachSteps(NewSteps(cmd.MoreSteps));
+            ChatCommands.Add(row);
         }
 
         SelectedCommand = ChatCommands.FirstOrDefault();
 
         TwitchFollowEffect = editor.TwitchFollowEffect;
+        TwitchFollowSteps.Load(editor.TwitchFollowMore);
         TwitchChatEnabled = editor.TwitchChatEnabled;
         TwitchChatPrefix = editor.TwitchChatPrefix;
         TwitchChatCooldownText = editor.TwitchChatCooldownSec.ToString();
@@ -139,7 +182,9 @@ public sealed partial class EventsViewModel : ViewModelBase
         TwitchChatCommands.Clear();
         foreach (var cmd in editor.TwitchChatCommands)
         {
-            TwitchChatCommands.Add(new ChatCommandRowViewModel { Word = cmd.Word, Effect = cmd.Effect });
+            var row = new ChatCommandRowViewModel { Word = cmd.Word, Effect = cmd.Effect };
+            row.AttachSteps(NewSteps(cmd.MoreSteps));
+            TwitchChatCommands.Add(row);
         }
 
         SelectedTwitchCommand = TwitchChatCommands.FirstOrDefault();
@@ -147,11 +192,13 @@ public sealed partial class EventsViewModel : ViewModelBase
         TwitchBits.Clear();
         foreach (var bit in editor.TwitchBits)
         {
-            TwitchBits.Add(new BitsRowViewModel
+            var row = new BitsRowViewModel
             {
                 MinText = Math.Max(1, bit.Min).ToString(),
                 Effect = bit.Effect,
-            });
+            };
+            row.AttachSteps(NewSteps(bit.MoreSteps));
+            TwitchBits.Add(row);
         }
 
         SelectedBitsRule = TwitchBits.FirstOrDefault();
@@ -162,9 +209,15 @@ public sealed partial class EventsViewModel : ViewModelBase
     {
         editor.LikesEvery = int.TryParse(LikesEveryText.Trim(), out var n) ? Math.Max(0, n) : 0;
         editor.LikesEffect = LikesEffect ?? "";
+        editor.LikesMore.Clear();
+        editor.LikesMore.AddRange(LikesSteps.Model);
         editor.FollowEffect = FollowEffect ?? "";
+        editor.FollowMore.Clear();
+        editor.FollowMore.AddRange(FollowSteps.Model);
         editor.FollowOncePerUser = FollowOncePerUser;
         editor.ShareEffect = ShareEffect ?? "";
+        editor.ShareMore.Clear();
+        editor.ShareMore.AddRange(ShareSteps.Model);
         editor.ChatEnabled = ChatEnabled;
         editor.ChatPrefix = string.IsNullOrWhiteSpace(ChatPrefix) ? "!" : ChatPrefix.Trim();
         editor.ChatCooldownSec = ParseWaitSec(ChatCooldownText, 30);
@@ -172,10 +225,17 @@ public sealed partial class EventsViewModel : ViewModelBase
         editor.ChatCommands.Clear();
         foreach (var cmd in ChatCommands)
         {
-            editor.ChatCommands.Add(new EditableChatCommand { Word = cmd.Word, Effect = cmd.Effect });
+            editor.ChatCommands.Add(new EditableChatCommand
+            {
+                Word = cmd.Word,
+                Effect = cmd.Effect,
+                MoreSteps = cmd.Steps?.Model.ToList() ?? [],
+            });
         }
 
         editor.TwitchFollowEffect = TwitchFollowEffect ?? "";
+        editor.TwitchFollowMore.Clear();
+        editor.TwitchFollowMore.AddRange(TwitchFollowSteps.Model);
         editor.TwitchChatEnabled = TwitchChatEnabled;
         editor.TwitchChatPrefix = string.IsNullOrWhiteSpace(TwitchChatPrefix) ? "!" : TwitchChatPrefix.Trim();
         editor.TwitchChatCooldownSec = ParseWaitSec(TwitchChatCooldownText, 30);
@@ -183,7 +243,12 @@ public sealed partial class EventsViewModel : ViewModelBase
         editor.TwitchChatCommands.Clear();
         foreach (var cmd in TwitchChatCommands)
         {
-            editor.TwitchChatCommands.Add(new EditableChatCommand { Word = cmd.Word, Effect = cmd.Effect });
+            editor.TwitchChatCommands.Add(new EditableChatCommand
+            {
+                Word = cmd.Word,
+                Effect = cmd.Effect,
+                MoreSteps = cmd.Steps?.Model.ToList() ?? [],
+            });
         }
 
         editor.TwitchBits.Clear();
@@ -194,7 +259,12 @@ public sealed partial class EventsViewModel : ViewModelBase
                 continue;
             }
 
-            editor.TwitchBits.Add(new EditableBitsRule { Min = min, Effect = bit.Effect ?? "" });
+            editor.TwitchBits.Add(new EditableBitsRule
+            {
+                Min = min,
+                Effect = bit.Effect ?? "",
+                MoreSteps = bit.Steps?.Model.ToList() ?? [],
+            });
         }
     }
 
@@ -240,6 +310,7 @@ public sealed partial class EventsViewModel : ViewModelBase
                      ?? _shell.EffectChoices.FirstOrDefault()?.Id
                      ?? "";
         var row = new BitsRowViewModel { MinText = "1", Effect = effect };
+        row.AttachSteps(NewSteps());
         TwitchBits.Add(row);
         SelectedBitsRule = row;
     }
@@ -275,6 +346,7 @@ public sealed partial class EventsViewModel : ViewModelBase
                      ?? _shell.EffectChoices.FirstOrDefault()?.Id
                      ?? "";
         var row = new ChatCommandRowViewModel { Word = "salto", Effect = effect };
+        row.AttachSteps(NewSteps());
         list.Add(row);
         select(row);
     }

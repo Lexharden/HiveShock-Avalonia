@@ -140,8 +140,9 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
-        BridgeLog.Info($"Chat {viewer} {prefix}{command} -> {effectId}");
-        _ = _dispatcher.EnqueueAsync(effectId, viewer, $"Chat {prefix}{command}", ct, fromChat: true);
+        var chatPlan = cfg.PlanFor(command, effectId);
+        BridgeLog.Info($"Chat {viewer} {prefix}{command} -> {chatPlan.Describe()}");
+        EnqueuePlan(chatPlan, viewer, $"Chat {prefix}{command}", ct, fromChat: true);
     }
 
     /// <summary>
@@ -233,10 +234,8 @@ public sealed class LiveEffectRouter : IDisposable
 
         _overlay.Alert("follow", user);
 
-        var effect = isTwitch
-            ? _gifts.Snapshot.TwitchFollow.Effect
-            : _gifts.Snapshot.Follow.Effect;
-        if (string.IsNullOrWhiteSpace(effect))
+        var followPlan = (isTwitch ? _gifts.Snapshot.TwitchFollow : _gifts.Snapshot.Follow).EffectivePlan;
+        if (followPlan.IsEmpty)
         {
             return;
         }
@@ -246,8 +245,8 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
-        BridgeLog.Info($"Follow {user} -> {effect}");
-        _ = _dispatcher.EnqueueAsync(effect, user, "Follow", ct);
+        BridgeLog.Info($"Follow {user} -> {followPlan.Describe()}");
+        EnqueuePlan(followPlan, user, "Follow", ct);
     }
 
     /// <summary>Sin id ni @usuario no se puede recordar a nadie: el aviso sale una vez para no inundar el log.</summary>
@@ -304,8 +303,8 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
-        BridgeLog.Info($"Bits {viewer} x{bits} -> {match.Effect}");
-        _ = _dispatcher.EnqueueAsync(match.Effect, viewer, $"Bits x{bits}", ct);
+        BridgeLog.Info($"Bits {viewer} x{bits} -> {match.EffectivePlan.Describe()}");
+        EnqueuePlan(match.EffectivePlan, viewer, $"Bits x{bits}", ct);
     }
 
     public void HandleShare(ViewerIdentity viewerId, CancellationToken ct)
@@ -315,8 +314,8 @@ public sealed class LiveEffectRouter : IDisposable
             return;
         }
 
-        var effect = _gifts.Snapshot.Share.Effect;
-        if (string.IsNullOrWhiteSpace(effect))
+        var sharePlan = _gifts.Snapshot.Share.EffectivePlan;
+        if (sharePlan.IsEmpty)
         {
             return;
         }
@@ -327,8 +326,8 @@ public sealed class LiveEffectRouter : IDisposable
         }
 
         var user = Viewer(viewerId.Label);
-        BridgeLog.Info($"Share {user} -> {effect}");
-        _ = _dispatcher.EnqueueAsync(effect, user, "Share", ct);
+        BridgeLog.Info($"Share {user} -> {sharePlan.Describe()}");
+        EnqueuePlan(sharePlan, user, "Share", ct);
     }
 
     public void HandleLike(ViewerIdentity viewerId, int likeCount, CancellationToken ct)
@@ -365,8 +364,8 @@ public sealed class LiveEffectRouter : IDisposable
             {
                 var user = Viewer(viewerId.Label);
                 _guard.Record(viewerId, $"{cfg.Every} likes", ViewerVerdict.Allowed);
-                BridgeLog.Info($"Likes {user} x{cfg.Every} -> {cfg.Effect}");
-                _ = _dispatcher.EnqueueAsync(cfg.Effect, user, $"{cfg.Every} likes", ct);
+                BridgeLog.Info($"Likes {user} x{cfg.Every} -> {cfg.EffectivePlan.Describe()}");
+                EnqueuePlan(cfg.EffectivePlan, user, $"{cfg.Every} likes", ct);
             }
         }
     }
@@ -550,10 +549,10 @@ public sealed class LiveEffectRouter : IDisposable
         if (tick != null)
         {
             BridgeLog.Info($"Meta {tick.Label} {tick.Count}/{tick.Need} ({Viewer(user)} +{tick.Added})");
-            if (tick.Fired && !string.IsNullOrWhiteSpace(tick.Effect))
+            if (tick.Fired && !tick.Plan.IsEmpty)
             {
-                BridgeLog.Info($"Meta {tick.Label} -> {tick.Effect}");
-                _ = _dispatcher.EnqueueAsync(tick.Effect, Viewer(user), $"Meta {tick.Label}", ct);
+                BridgeLog.Info($"Meta {tick.Label} -> {tick.Plan.Describe()}");
+                EnqueuePlan(tick.Plan, Viewer(user), $"Meta {tick.Label}", ct);
             }
 
             if (!tick.AlsoInstant)
@@ -592,6 +591,16 @@ public sealed class LiveEffectRouter : IDisposable
         _overlay.Notify(giftLabel, id);
 
         _dispatcher.EnqueueSequence(planned, user, ct);
+    }
+
+    /// <summary>Encola los efectos de un disparador, en orden y con sus esperas (un solo efecto = como siempre).</summary>
+    private void EnqueuePlan(EffectPlan plan, string? user, string reason, CancellationToken ct, bool fromChat = false)
+    {
+        var steps = plan.Steps;
+        var planned = steps
+            .Select((s, i) => new PlannedEffect(s, steps.Count > 1 ? $"{reason} [{i + 1}/{steps.Count}]" : reason))
+            .ToList();
+        _dispatcher.EnqueueSequence(planned, user, ct, fromChat);
     }
 
     private void LogUnmapped(string name, string id, long diamonds, int repeat)
