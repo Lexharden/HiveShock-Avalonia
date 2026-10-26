@@ -4,6 +4,17 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.10.0] - 2026-10-25
+
+### Overlays para OBS por URL
+* **Alertas, regalos, metas y contador ya se pueden usar como «Fuente de navegador» de OBS.** HiveShock abre un servidor local y en Estudio → «OBS (navegador)» copias la dirección de cada overlay (`http://127.0.0.1:7878/overlay/alertas`, `/regalos`, `/metas`, `/contador`) y la pegas en OBS: fondo transparente, sin ventanas sueltas en el escritorio y sin captura de ventana.
+* **Alertas nuevas:** aparece una tarjeta animada con la imagen del regalo, quién lo envió y el combo (`Maria envió Doughnut ×3`), y otra cuando alguien te sigue. Si llegan varias, se encolan. Botón «Probar alerta» para verlas en OBS sin esperar a un regalo.
+* Extras en la dirección: `?sonido=1` (aviso sonoro), `?duracion=8` (segundos en pantalla), `?tipos=gift` o `?tipos=follow`, y en cualquier overlay `?escala=1.2` y `?fondo=0` (sin tarjeta).
+* Usan el mismo aspecto que ya configuras (colores, tamaños, alineación, fondo y opacidad) y se actualizan solos al cambiar un regalo, una meta o el contador. Las metas muestran los iconos del catálogo y una barra de progreso.
+* Solo escucha en este equipo. «Permitir verlos desde otro PC de la red local» lo abre a la red y entonces la dirección lleva una clave (`?k=…`) sin la cual no responde. El puerto se puede cambiar (por defecto 7878) y, si está ocupado, la app lo avisa.
+* Las ventanas nativas de siempre siguen funcionando igual.
+* El servidor solo entrega las imágenes de regalos que la app registra, nunca archivos arbitrarios del disco.
+
 ## [2.9.1] - 2026-10-23
 
 ### Android

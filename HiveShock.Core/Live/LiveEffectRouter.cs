@@ -231,6 +231,8 @@ public sealed class LiveEffectRouter : IDisposable
             }
         }
 
+        _overlay.Alert("follow", user);
+
         var effect = isTwitch
             ? _gifts.Snapshot.TwitchFollow.Effect
             : _gifts.Snapshot.Follow.Effect;
@@ -541,6 +543,8 @@ public sealed class LiveEffectRouter : IDisposable
         {
             return;
         }
+
+        _overlay.Alert("gift", Viewer(user), giftLabel, repeat, id);
 
         var tick = _goals.Contribute(name, id, repeat);
         if (tick != null)

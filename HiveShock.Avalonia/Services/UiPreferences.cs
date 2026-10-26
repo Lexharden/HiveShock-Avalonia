@@ -35,6 +35,13 @@ public sealed class UiPreferences
     public bool UpdateIncludePrereleases { get; set; }
     public string UpdateSkippedVersion { get; set; } = "";
 
+    /// <summary>Overlays para la «Fuente de navegador» de OBS (servidor local).</summary>
+    public bool WebOverlayEnabled { get; set; } = true;
+    public int WebOverlayPort { get; set; } = 7878;
+    /// <summary>Escuchar también en la red local (otro PC). Exige la clave en la URL.</summary>
+    public bool WebOverlayLan { get; set; }
+    public string WebOverlayToken { get; set; } = "";
+
     public string GiftsOverlayTitle { get; set; } = "Regalos";
     public bool ShowGiftsOverlayTitle { get; set; } = true;
     public bool OverlayShowBackground { get; set; } = true;
@@ -121,6 +128,20 @@ public sealed class UiPreferences
         OverlayGiftColor = "";
         OverlayBackgroundColor = "";
         OverlayAlign = "center";
+    }
+
+    public int ResolveWebOverlayPort() => WebOverlayPort is >= 1024 and <= 65535 ? WebOverlayPort : 7878;
+
+    /// <summary>Clave de la URL en modo red local; se crea la primera vez que hace falta.</summary>
+    public string EnsureWebOverlayToken()
+    {
+        if (string.IsNullOrWhiteSpace(WebOverlayToken))
+        {
+            WebOverlayToken = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(8)).ToLowerInvariant();
+            Save();
+        }
+
+        return WebOverlayToken;
     }
 
     public int ResolveDeathValueToRestore()

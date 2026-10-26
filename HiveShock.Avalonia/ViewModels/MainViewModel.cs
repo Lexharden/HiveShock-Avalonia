@@ -62,6 +62,13 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Overlays.GiftLookup = key => Runtime.Catalog.FindByKey(key) is { } gift
             ? new GoalGiftInfo(gift.PrimaryName is { Length: > 0 } n ? n : gift.DisplayName, gift.ImagePath)
             : null;
+        Overlays.AttachFeed(key => Runtime.Catalog.FindByKey(key) is { } found
+            ? new HiveShock.Overlays.OverlayGiftRef(found.PrimaryName is { Length: > 0 } n ? n : found.DisplayName, found.ImagePath)
+            : null);
+        Overlays.StartWeb(Prefs);
+        Studio.RefreshWebStatus();
+        Overlays.PublishWeb(Prefs, Runtime.DeathCounter, Gifts.Models, Runtime.Goals.Snapshots());
+        Runtime.Overlay.AlertRaised += OnOverlayAlert;
         Overlays.CounterClosedByUser += () =>
         {
             Studio.ShowCounterOnStream = false;
@@ -268,6 +275,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Studio.RefreshStats();
         Overlays.RefreshGifts(Gifts.Models);
         Overlays.RefreshGoals(Runtime.Goals.Snapshots(), Prefs);
+        Overlays.Feed?.SetCounter(Prefs.ResolveOverlayTitle(), Runtime.DeathCounter.Value);
     }
 
     public void RefreshStatus()
@@ -626,6 +634,22 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     private void OnOverlayGift(object? sender, OverlayGiftHitEventArgs e) =>
         Dispatch(() => Overlays.HighlightGift(e.GiftName, e.GiftId));
 
+    private void OnOverlayAlert(object? sender, OverlayAlertEventArgs e) =>
+        Dispatch(() =>
+        {
+            string? image = null;
+            if (e.Kind == "gift")
+            {
+                image = Gifts.Models.FirstOrDefault(g =>
+                        (e.GiftId.Length > 0 && string.Equals(g.Id, e.GiftId, StringComparison.OrdinalIgnoreCase)) ||
+                        string.Equals(g.Gift, e.Title, StringComparison.OrdinalIgnoreCase))
+                    ?.ResolvedImagePath;
+                image ??= Runtime.Catalog.FindByKey(e.GiftId.Length > 0 ? e.GiftId : e.Title)?.ImagePath;
+            }
+
+            Overlays.Feed?.Alert(e.Kind, e.User, e.Title, e.Count, image);
+        });
+
     private void OnLogged(LogEntry entry)
     {
         if (_closing)
@@ -698,6 +722,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Studio.PersistDeath();
         Overlays.CloseAll(Prefs);
         Runtime.Overlay.GiftReceived -= OnOverlayGift;
+        Runtime.Overlay.AlertRaised -= OnOverlayAlert;
         Runtime.Ports.Changed -= OnPortsChanged;
         Runtime.Guard.PausedChanged -= OnViewerPauseChanged;
         BridgeLog.Logged -= OnLogged;
