@@ -83,7 +83,7 @@ public sealed class DialogService
     public async Task<(string Name, ProfileTemplate Template)?> NewProfileAsync(string currentProfileName)
     {
         var dlg = new NewProfileDialog(currentProfileName);
-        return await ShowAsync(dlg) ? (dlg.ProfileName, dlg.Template) : null;
+        return await ShowAsync(dlg) ? (dlg.ProfileName, dlg.StartingPoint) : null;
     }
 
     public async Task<CatalogGift?> EditCatalogAsync(CatalogGift? existing)

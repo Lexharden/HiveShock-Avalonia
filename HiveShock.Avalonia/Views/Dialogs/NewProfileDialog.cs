@@ -11,7 +11,7 @@ public sealed class NewProfileDialog : Window
 {
     public string ProfileName { get; private set; } = "";
 
-    public ProfileTemplate Template { get; private set; } = ProfileTemplate.Blank;
+    public ProfileTemplate StartingPoint { get; private set; } = ProfileTemplate.Blank;
 
     public NewProfileDialog(string currentProfileName)
     {
@@ -76,7 +76,7 @@ public sealed class NewProfileDialog : Window
             }
 
             ProfileName = name;
-            Template = copy.IsChecked == true ? ProfileTemplate.CopyOf
+            StartingPoint = copy.IsChecked == true ? ProfileTemplate.CopyOf
                 : starter.IsChecked == true ? ProfileTemplate.Starter
                 : ProfileTemplate.Blank;
             Close(true);
