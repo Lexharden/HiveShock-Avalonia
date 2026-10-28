@@ -4,6 +4,8 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.12.0] - 2026-10-28
+
 ### Perfiles
 * **Banjo-Kazooie:** enemigos nuevos (Snippet negro y mutante, Clucker, Teehee, emboscada con uno de cada) y efectos de velocidad, cámara lenta, invencible, salto gigante y borrar partida.
 * **Ocarina of Time:** 16 enemigos y jefes nuevos (Dead Hand, Nabooru, Dodongo, Baby Dodongo, Biri, Anubis, vasija voladora, larva de Gohma, guerrera gerudo, Flare Dancer, Armos, Peahat, Barinade, Ganon, Ganondorf y Ganon bestia).
@@ -11,6 +13,9 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 ### Efectos de los perfiles siempre al día
 * **Los efectos nuevos de un juego llegan solos al actualizar.** Al abrir, si la versión trae un `effects.json` distinto al último aplicado, se reemplaza el de los perfiles del catálogo (Banjo-Kazooie, Super Mario 64, etc.). Lo que tenías se guarda en `effects.previous.bak` dentro del perfil. Tus regalos (`gifts.json`), tu `profile.json` y los perfiles propios no se tocan; si editas `effects.json` a mano, tus cambios se respetan hasta la siguiente versión que lo modifique.
 * **Nombres y grupo de los efectos nuevos.** Al mismo tiempo se añaden a tu `profile.json` los `labels` y los `enemyEffects` que el catálogo trae y te faltan. Solo suma: no cambia los nombres que ya tienes ni puertos ni nada más, y no se repite hasta la siguiente versión que modifique ese archivo (copia anterior en `profile.previous.bak`).
+
+### Mantenimiento
+* Código interno más ordenado (configuración dividida en archivos, un único cliente HTTP y fallos en segundo plano registrados en el log). Sin cambios de uso.
 
 ## [2.11.0] - 2026-10-25
 
