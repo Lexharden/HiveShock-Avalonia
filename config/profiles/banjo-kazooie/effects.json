@@ -251,5 +251,121 @@
         "type": "bool"
       }
     }
+  },
+  "speed": {
+    "action": "speed",
+    "strength": 20,
+    "duration": 15,
+    "_params": {
+      "strength": {
+        "label": "Velocidad (décimas: 5=mitad, 10=normal, 20=doble, 30=triple)",
+        "min": 3,
+        "max": 30,
+        "step": 1
+      },
+      "duration": {
+        "label": "Duración (s)",
+        "min": 3,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "slow": {
+    "action": "speed",
+    "strength": 5,
+    "duration": 15,
+    "_params": {
+      "strength": {
+        "label": "Velocidad (décimas: 3=30%, 5=50%, 10=normal)",
+        "min": 3,
+        "max": 10,
+        "step": 1
+      },
+      "duration": {
+        "label": "Duración (s)",
+        "min": 3,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "invincible": {
+    "action": "invincible",
+    "duration": 15,
+    "_params": {
+      "duration": {
+        "label": "Duración (s)",
+        "min": 3,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "jump": {
+    "action": "jump",
+    "strength": 4,
+    "_params": {
+      "strength": {
+        "label": "Fuerza del salto (1-10)",
+        "min": 1,
+        "max": 10,
+        "step": 1
+      }
+    }
+  },
+  "erase_save": {
+    "action": "erase_save"
+  },
+  "spawn_black_snippet": {
+    "action": "spawn_black_snippet",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "spawn_mutie_snippet": {
+    "action": "spawn_mutie_snippet",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "spawn_clucker": {
+    "action": "spawn_clucker",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "spawn_teehee": {
+    "action": "spawn_teehee",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "spawn_horde": {
+    "action": "spawn_horde"
   }
 }

@@ -15,7 +15,12 @@
     "spawn_snippet",
     "spawn_bigbutt",
     "spawn_shrapnel",
-    "spawn_bat"
+    "spawn_bat",
+    "spawn_black_snippet",
+    "spawn_mutie_snippet",
+    "spawn_clucker",
+    "spawn_teehee",
+    "spawn_horde"
   ],
   "labels": {
     "heal": "Curar panales de miel",
@@ -39,7 +44,17 @@
     "damage_silent": "Daño sin animación",
     "hit": "Animación de golpe (sin quitar panales)",
     "knockback": "Empujón hacia atrás (daño opcional)",
-    "launch": "Lanzar hacia atrás por el aire (daño opcional)"
+    "launch": "Lanzar hacia atrás por el aire (daño opcional)",
+    "speed": "Velocidad turbo (temporal)",
+    "slow": "Cámara lenta: Banjo más lento (temporal)",
+    "invincible": "Invencible (temporal)",
+    "jump": "Salto gigante",
+    "erase_save": "☠ Borrar la partida y reiniciar (irreversible)",
+    "spawn_black_snippet": "Enemigo — Snippet negro",
+    "spawn_mutie_snippet": "Enemigo — Snippet mutante",
+    "spawn_clucker": "Enemigo — Clucker (pavo)",
+    "spawn_teehee": "Enemigo — Fantasma Teehee",
+    "spawn_horde": "Emboscada — 1 de cada enemigo básico"
   },
   "helpNotes": "Instala el mod HiveShock para Banjo-Kazooie: Recompiled (bk_recomp_hiveshock.nrm + hiveshock_native junto al .nrm) y actívalo en el menú de mods. No abras otro juego con HiveShock a la vez (mismo puerto 43000)."
 }
