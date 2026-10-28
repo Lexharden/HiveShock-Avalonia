@@ -34,6 +34,113 @@ public sealed class ProfileSeederTests : IDisposable
         }
     }
 
+    private void WriteEffects(string baseDir, string name, string text) =>
+        File.WriteAllText(Path.Combine(baseDir, name, "effects.json"), text);
+
+    private string ReadEffects(string name) => File.ReadAllText(Path.Combine(Profiles, name, "effects.json"));
+
+    [Fact]
+    public void Replaces_effects_when_the_catalog_has_a_new_version_and_keeps_a_backup()
+    {
+        MakeProfile(Catalog, "banjo");
+        MakeProfile(Profiles, "banjo", gifts: "MY-GIFTS");
+        WriteEffects(Catalog, "banjo", "{\"new\":{}}");
+        WriteEffects(Profiles, "banjo", "{\"old\":{}}");
+        var applied = new Dictionary<string, string>();
+
+        var updated = ProfileSeeder.SyncEffects(Catalog, Profiles, applied);
+
+        Assert.Equal(["banjo"], updated);
+        Assert.Equal("{\"new\":{}}", ReadEffects("banjo"));
+        Assert.Equal("{\"old\":{}}", File.ReadAllText(Path.Combine(Profiles, "banjo", ProfileSeeder.EffectsBackupFile)));
+        Assert.Equal("MY-GIFTS", File.ReadAllText(Path.Combine(Profiles, "banjo", "gifts.json")));
+    }
+
+    [Fact]
+    public void Keeps_user_edits_until_the_catalog_changes_again()
+    {
+        MakeProfile(Catalog, "banjo");
+        MakeProfile(Profiles, "banjo");
+        WriteEffects(Catalog, "banjo", "{\"v1\":{}}");
+        var applied = new Dictionary<string, string>();
+        ProfileSeeder.SyncEffects(Catalog, Profiles, applied);
+
+        WriteEffects(Profiles, "banjo", "{\"mine\":{}}");
+        Assert.Empty(ProfileSeeder.SyncEffects(Catalog, Profiles, applied));
+        Assert.Equal("{\"mine\":{}}", ReadEffects("banjo"));
+
+        WriteEffects(Catalog, "banjo", "{\"v2\":{}}");
+        Assert.Equal(["banjo"], ProfileSeeder.SyncEffects(Catalog, Profiles, applied));
+        Assert.Equal("{\"v2\":{}}", ReadEffects("banjo"));
+    }
+
+    [Fact]
+    public void Does_not_touch_deleted_or_custom_profiles()
+    {
+        MakeProfile(Catalog, "banjo");
+        MakeProfile(Profiles, "mi-perfil");
+        WriteEffects(Profiles, "mi-perfil", "{\"mine\":{}}");
+
+        var updated = ProfileSeeder.SyncEffects(Catalog, Profiles, new Dictionary<string, string>());
+
+        Assert.Empty(updated);
+        Assert.False(Directory.Exists(Path.Combine(Profiles, "banjo")));
+        Assert.Equal("{\"mine\":{}}", ReadEffects("mi-perfil"));
+    }
+
+    private void WriteProfile(string baseDir, string name, string json) =>
+        File.WriteAllText(Path.Combine(baseDir, name, "profile.json"), json);
+
+    [Fact]
+    public void Merges_new_labels_and_enemy_effects_without_touching_what_the_user_has()
+    {
+        MakeProfile(Catalog, "banjo");
+        MakeProfile(Profiles, "banjo");
+        WriteProfile(Catalog, "banjo",
+            """{"gamePort":43000,"enemyEffects":["a","b"],"labels":{"a":"Catálogo A","b":"Catálogo B"}}""");
+        WriteProfile(Profiles, "banjo",
+            """{"gamePort":9999,"enemyEffects":["a"],"labels":{"a":"Mi nombre"}}""");
+
+        var updated = ProfileSeeder.SyncProfileMeta(Catalog, Profiles, new Dictionary<string, string>());
+
+        Assert.Equal(["banjo"], updated);
+        var merged = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(Profiles, "banjo", "profile.json")))!;
+        Assert.Equal(9999, (int)merged["gamePort"]!);
+        Assert.Equal("Mi nombre", (string)merged["labels"]!["a"]!);
+        Assert.Equal("Catálogo B", (string)merged["labels"]!["b"]!);
+        Assert.Equal(["a", "b"], merged["enemyEffects"]!.AsArray().Select(n => (string)n!).ToArray());
+        Assert.True(File.Exists(Path.Combine(Profiles, "banjo", ProfileSeeder.ProfileBackupFile)));
+    }
+
+    [Fact]
+    public void Profile_merge_runs_once_per_catalog_version()
+    {
+        MakeProfile(Catalog, "banjo");
+        MakeProfile(Profiles, "banjo");
+        WriteProfile(Catalog, "banjo", """{"enemyEffects":["a"],"labels":{"a":"A"}}""");
+        WriteProfile(Profiles, "banjo", """{"enemyEffects":[],"labels":{}}""");
+        var applied = new Dictionary<string, string>();
+        ProfileSeeder.SyncProfileMeta(Catalog, Profiles, applied);
+
+        // El usuario quita el enemigo a propósito: no vuelve hasta que el catálogo cambie.
+        WriteProfile(Profiles, "banjo", """{"enemyEffects":[],"labels":{"a":"A"}}""");
+
+        Assert.Empty(ProfileSeeder.SyncProfileMeta(Catalog, Profiles, applied));
+        Assert.DoesNotContain("\"a\"", File.ReadAllText(Path.Combine(Profiles, "banjo", "profile.json")).Split("enemyEffects")[1].Split("labels")[0]);
+    }
+
+    [Fact]
+    public void Profile_merge_skips_an_unreadable_profile()
+    {
+        MakeProfile(Catalog, "banjo");
+        MakeProfile(Profiles, "banjo");
+        WriteProfile(Catalog, "banjo", """{"labels":{"a":"A"}}""");
+        WriteProfile(Profiles, "banjo", "{ not json");
+
+        Assert.Empty(ProfileSeeder.SyncProfileMeta(Catalog, Profiles, new Dictionary<string, string>()));
+        Assert.Equal("{ not json", File.ReadAllText(Path.Combine(Profiles, "banjo", "profile.json")));
+    }
+
     [Fact]
     public void Installs_the_profiles_the_user_does_not_have()
     {
