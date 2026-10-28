@@ -225,7 +225,7 @@ public sealed class EffectDispatcher : IDisposable
         for (; index < items.Count && items[index].Step.DelayMs <= 0; index++)
         {
             var now = items[index];
-            _ = EnqueueAsync(now.Step.EffectId, user, now.Reason, ct, fromChat, now.Step.Params);
+            EnqueueAsync(now.Step.EffectId, user, now.Reason, ct, fromChat, now.Step.Params).FireAndLog("Efecto en cola");
         }
 
         if (index >= items.Count)
@@ -463,7 +463,7 @@ public sealed class TestServer
             while (!ct.IsCancellationRequested)
             {
                 var client = await listener.AcceptTcpClientAsync(ct).ConfigureAwait(false);
-                _ = Task.Run(() => HandleClientAsync(client, ct), CancellationToken.None);
+                Task.Run(() => HandleClientAsync(client, ct), CancellationToken.None).FireAndLog("Cliente del juego");
             }
         }
         catch (OperationCanceledException)

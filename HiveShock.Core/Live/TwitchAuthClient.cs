@@ -183,32 +183,21 @@ public static class TwitchApi
         CancellationToken ct,
         HttpClient? http = null)
     {
-        var own = http is null;
-        http ??= new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
-        try
+        http ??= HiveShock.Net.SharedHttp.Client;
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"https://api.twitch.tv/helix/channels/followers?broadcaster_id={Uri.EscapeDataString(broadcasterId)}&first=100");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        request.Headers.TryAddWithoutValidation("Client-Id", clientId);
+        using var response = await http.SendAsync(request, ct).ConfigureAwait(false);
+        var json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+        using var doc = JsonDocument.Parse(json);
+        if (!response.IsSuccessStatusCode)
         {
-            using var request = new HttpRequestMessage(
-                HttpMethod.Get,
-                $"https://api.twitch.tv/helix/channels/followers?broadcaster_id={Uri.EscapeDataString(broadcasterId)}&first=100");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-            request.Headers.TryAddWithoutValidation("Client-Id", clientId);
-            using var response = await http.SendAsync(request, ct).ConfigureAwait(false);
-            var json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-            using var doc = JsonDocument.Parse(json);
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new InvalidOperationException(ReadHelixError(doc.RootElement, "Twitch no devolvió los seguidores."));
-            }
+            throw new InvalidOperationException(ReadHelixError(doc.RootElement, "Twitch no devolvió los seguidores."));
+        }
 
-            return ParseFollowers(doc.RootElement);
-        }
-        finally
-        {
-            if (own)
-            {
-                http.Dispose();
-            }
-        }
+        return ParseFollowers(doc.RootElement);
     }
 
     public static IReadOnlyList<TwitchFollower> ParseFollowers(JsonElement root)

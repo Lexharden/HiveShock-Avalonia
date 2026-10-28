@@ -178,7 +178,7 @@ public sealed class SystemEffectService : IDisposable
             $"Reinicio del equipo en {seconds} s ({who}, {reason}){(force ? " FORZADO" : "")}{(preview ? " [prueba: no reiniciará]" : "")}. " +
             $"Cancela con {CancelHotkey} o desde HiveShock.");
         Changed?.Invoke();
-        _ = Task.Run(() => CountdownAsync(seconds, force, preview, token));
+        Task.Run(() => CountdownAsync(seconds, force, preview, token)).FireAndLog("Cuenta atrás");
         return true;
     }
 

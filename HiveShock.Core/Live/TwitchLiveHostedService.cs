@@ -162,7 +162,7 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
                 if (gap is { } cut)
                 {
                     BridgeLog.Warn(note);
-                    _ = RecoverFollowsAsync(clientId, access, userId, DateTimeOffset.UtcNow - cut - TimeSpan.FromSeconds(30), ct);
+                    RecoverFollowsAsync(clientId, access, userId, DateTimeOffset.UtcNow - cut - TimeSpan.FromSeconds(30), ct).FireAndLog("Recuperar seguidores");
                 }
             },
             ct,

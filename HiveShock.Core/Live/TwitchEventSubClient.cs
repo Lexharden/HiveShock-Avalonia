@@ -267,7 +267,7 @@ public sealed class TwitchEventSubClient
         bool required,
         CancellationToken ct)
     {
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        var http = HiveShock.Net.SharedHttp.Client;
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.twitch.tv/helix/eventsub/subscriptions");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         request.Headers.TryAddWithoutValidation("Client-Id", clientId);
