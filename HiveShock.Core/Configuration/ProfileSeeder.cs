@@ -77,9 +77,10 @@ public static class ProfileSeeder
 
     /// <summary>
     /// Mantiene al día el <c>effects.json</c> de los perfiles del catálogo: cuando una versión nueva trae un
-    /// <c>effects.json</c> distinto al último que se aplicó, lo reemplaza para que los efectos nuevos de un juego lleguen
-    /// solos. Lo anterior se guarda en <c>effects.previous.bak</c>. Mientras el catálogo no cambie, las ediciones del
-    /// usuario se respetan. <paramref name="applied"/> (perfil → huella del catálogo aplicado) se actualiza.
+    /// <c>effects.json</c> distinto al último que se aplicó, añade los efectos que el usuario no tiene para que los efectos
+    /// nuevos de un juego lleguen solos. Solo suma: los efectos que ya tiene (editados, propios o con otros parámetros)
+    /// no se tocan ni se quitan. Lo anterior se guarda en <c>effects.previous.bak</c>. Se hace una vez por cada versión del
+    /// catálogo. <paramref name="applied"/> (perfil → huella del catálogo aplicado) se actualiza.
     /// Los perfiles que el usuario borró o creó él mismo (que no están en el catálogo) no se tocan.
     /// </summary>
     public static List<string> SyncEffects(string catalogDir, string profilesDir, IDictionary<string, string> applied)
@@ -109,10 +110,10 @@ public static class ProfileSeeder
                     continue;
                 }
 
-                if (Fingerprint(File.ReadAllText(targetFile)) != catalogHash)
+                if (MergeEffects(catalogText, File.ReadAllText(targetFile)) is { } merged)
                 {
                     File.Copy(targetFile, Path.Combine(targetDir, EffectsBackupFile), overwrite: true);
-                    AtomicFile.WriteAllText(targetFile, catalogText);
+                    AtomicFile.WriteAllText(targetFile, merged);
                     updated.Add(name);
                 }
 
@@ -122,6 +123,12 @@ public static class ProfileSeeder
             {
                 // Se reintenta en el siguiente arranque (no se anota como aplicado).
                 BridgeLog.Warn($"Perfil {name}: no se pudo actualizar effects.json ({ex.Message}).");
+            }
+            catch (JsonException ex)
+            {
+                // Un effects.json ilegible lo gestiona el cargador de perfiles; aquí solo se salta.
+                BridgeLog.Warn($"Perfil {name}: effects.json no se pudo fusionar ({ex.Message}).");
+                applied[name] = Fingerprint(File.ReadAllText(Path.Combine(source, EffectsFile)));
             }
         }
 
@@ -185,6 +192,36 @@ public static class ProfileSeeder
         }
 
         return updated;
+    }
+
+    /// <summary>Devuelve el effects.json instalado con los efectos que le faltan del catálogo, o null si ya los tiene todos.</summary>
+    private static string? MergeEffects(string catalogText, string installedText)
+    {
+        var docOptions = new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
+        if (JsonNode.Parse(catalogText, documentOptions: docOptions) is not JsonObject catalog ||
+            JsonNode.Parse(installedText, documentOptions: docOptions) is not JsonObject installed)
+        {
+            return null;
+        }
+
+        var have = new HashSet<string>(installed.Select(p => p.Key), StringComparer.OrdinalIgnoreCase);
+        var changed = false;
+        foreach (var (id, definition) in catalog)
+        {
+            if (have.Add(id))
+            {
+                installed[id] = definition?.DeepClone();
+                changed = true;
+            }
+        }
+
+        return changed
+            ? installed.ToJsonString(new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            }) + Environment.NewLine
+            : null;
     }
 
     /// <summary>Devuelve el profile.json instalado con lo que le falta del catálogo, o null si ya lo tiene todo.</summary>

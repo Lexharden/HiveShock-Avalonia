@@ -40,38 +40,68 @@ public sealed class ProfileSeederTests : IDisposable
     private string ReadEffects(string name) => File.ReadAllText(Path.Combine(Profiles, name, "effects.json"));
 
     [Fact]
-    public void Replaces_effects_when_the_catalog_has_a_new_version_and_keeps_a_backup()
+    public void Adds_new_effects_without_touching_the_ones_the_user_has_and_keeps_a_backup()
     {
         MakeProfile(Catalog, "banjo");
         MakeProfile(Profiles, "banjo", gifts: "MY-GIFTS");
-        WriteEffects(Catalog, "banjo", "{\"new\":{}}");
-        WriteEffects(Profiles, "banjo", "{\"old\":{}}");
+        WriteEffects(Catalog, "banjo", """{"impulse":{"action":"impulse"},"new":{"action":"new"}}""");
+        WriteEffects(Profiles, "banjo", """{"impulse":{"action":"impulse","speed":9},"mine":{"action":"x"}}""");
         var applied = new Dictionary<string, string>();
 
         var updated = ProfileSeeder.SyncEffects(Catalog, Profiles, applied);
 
         Assert.Equal(["banjo"], updated);
-        Assert.Equal("{\"new\":{}}", ReadEffects("banjo"));
-        Assert.Equal("{\"old\":{}}", File.ReadAllText(Path.Combine(Profiles, "banjo", ProfileSeeder.EffectsBackupFile)));
+        var merged = System.Text.Json.Nodes.JsonNode.Parse(ReadEffects("banjo"))!;
+        Assert.Equal(9, (int)merged["impulse"]!["speed"]!);
+        Assert.NotNull(merged["mine"]);
+        Assert.Equal("new", (string)merged["new"]!["action"]!);
+        Assert.Contains("\"mine\"", File.ReadAllText(Path.Combine(Profiles, "banjo", ProfileSeeder.EffectsBackupFile)));
         Assert.Equal("MY-GIFTS", File.ReadAllText(Path.Combine(Profiles, "banjo", "gifts.json")));
     }
 
     [Fact]
-    public void Keeps_user_edits_until_the_catalog_changes_again()
+    public void Never_removes_or_changes_user_effects_even_when_the_catalog_drops_one()
+    {
+        MakeProfile(Catalog, "oot");
+        MakeProfile(Profiles, "oot");
+        WriteEffects(Catalog, "oot", """{"a":{"action":"a"}}""");
+        const string mine = """{"a":{"action":"custom"},"ganon":{"action":"ganon"}}""";
+        WriteEffects(Profiles, "oot", mine);
+
+        Assert.Empty(ProfileSeeder.SyncEffects(Catalog, Profiles, new Dictionary<string, string>()));
+        Assert.Equal(mine, ReadEffects("oot"));
+    }
+
+    [Fact]
+    public void Effects_merge_runs_once_per_catalog_version()
     {
         MakeProfile(Catalog, "banjo");
         MakeProfile(Profiles, "banjo");
-        WriteEffects(Catalog, "banjo", "{\"v1\":{}}");
+        WriteEffects(Catalog, "banjo", """{"v1":{}}""");
         var applied = new Dictionary<string, string>();
         ProfileSeeder.SyncEffects(Catalog, Profiles, applied);
 
-        WriteEffects(Profiles, "banjo", "{\"mine\":{}}");
+        // El usuario borra el efecto a propósito: no vuelve hasta que el catálogo cambie.
+        WriteEffects(Profiles, "banjo", "{}");
         Assert.Empty(ProfileSeeder.SyncEffects(Catalog, Profiles, applied));
-        Assert.Equal("{\"mine\":{}}", ReadEffects("banjo"));
+        Assert.Equal("{}", ReadEffects("banjo"));
 
-        WriteEffects(Catalog, "banjo", "{\"v2\":{}}");
+        WriteEffects(Catalog, "banjo", """{"v1":{},"v2":{}}""");
         Assert.Equal(["banjo"], ProfileSeeder.SyncEffects(Catalog, Profiles, applied));
-        Assert.Equal("{\"v2\":{}}", ReadEffects("banjo"));
+        var merged = System.Text.Json.Nodes.JsonNode.Parse(ReadEffects("banjo"))!.AsObject();
+        Assert.Equal(["v1", "v2"], merged.Select(p => p.Key).ToArray());
+    }
+
+    [Fact]
+    public void Effects_merge_skips_an_unreadable_effects_file()
+    {
+        MakeProfile(Catalog, "banjo");
+        MakeProfile(Profiles, "banjo");
+        WriteEffects(Catalog, "banjo", """{"a":{}}""");
+        WriteEffects(Profiles, "banjo", "{ roto");
+
+        Assert.Empty(ProfileSeeder.SyncEffects(Catalog, Profiles, new Dictionary<string, string>()));
+        Assert.Equal("{ roto", ReadEffects("banjo"));
     }
 
     [Fact]
