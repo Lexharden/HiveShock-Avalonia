@@ -4,6 +4,10 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.12.1] - 2026-10-28
+
+* Ajustes menores en los perfiles.
+
 ## [2.12.0] - 2026-10-28
 
 ### Perfiles
