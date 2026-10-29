@@ -55,7 +55,6 @@
   "armos": { "action": "armos" },
   "peahat": { "action": "peahat" },
   "barinade": { "action": "barinade" },
-  "ganon": { "action": "ganon" },
   "ganondorf": { "action": "ganondorf" },
   "ganon_beast": { "action": "ganon_beast" },
   "random_enemy": { "action": "random_enemy" },

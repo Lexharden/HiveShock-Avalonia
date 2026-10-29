@@ -15,7 +15,7 @@
     "wolfos", "stalchild", "stalfos", "bubble", "skulltula", "freezard",
     "dinolfos", "iron_knuckle", "wallmaster", "floormaster",
     "dark_link", "arwing", "dead_hand", "nabooru", "dodongo", "baby_dodongo", "biri", "anubis", "flying_pot",
-    "gohma_larva", "gerudo_fighter", "flare_dancer", "armos", "peahat", "barinade", "ganon", "ganondorf",
+    "gohma_larva", "gerudo_fighter", "flare_dancer", "armos", "peahat", "barinade", "ganondorf",
     "ganon_beast", "random_enemy", "cucco", "cucco_army"
   ],
   "labels": {
@@ -63,7 +63,6 @@
     "armos": "Enemigo — Armos",
     "peahat": "Enemigo — Peahat",
     "barinade": "Jefe — Barinade",
-    "ganon": "Jefe — Ganon",
     "ganondorf": "Jefe — Ganondorf",
     "ganon_beast": "Jefe — Ganon (bestia)",
     "random_enemy": "Enemigo — Aleatorio",
