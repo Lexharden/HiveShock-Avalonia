@@ -4,6 +4,8 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.12.2] - 2026-10-28
+
 * **Tus efectos ya no se reemplazan al actualizar.** Antes, una versión nueva sustituía el `effects.json` de los perfiles del catálogo; ahora solo añade los efectos que te faltan y no toca los que ya tienes (editados o propios). La copia anterior sigue en `effects.previous.bak`.
 
 ## [2.12.1] - 2026-10-28
