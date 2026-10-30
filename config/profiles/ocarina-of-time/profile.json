@@ -16,7 +16,7 @@
     "dinolfos", "iron_knuckle", "wallmaster", "floormaster",
     "dark_link", "arwing", "dead_hand", "nabooru", "dodongo", "baby_dodongo", "biri", "anubis", "flying_pot",
     "gohma_larva", "gerudo_fighter", "flare_dancer", "armos", "peahat", "barinade", "ganondorf",
-    "ganon_beast", "random_enemy", "cucco", "cucco_army"
+    "ganon_beast", "birova", "random_enemy", "cucco", "cucco_army"
   ],
   "labels": {
     "impulse": "Saltito / impulso",
@@ -65,6 +65,7 @@
     "barinade": "Jefe — Barinade",
     "ganondorf": "Jefe — Ganondorf",
     "ganon_beast": "Jefe — Ganon (bestia)",
+    "birova": "Jefe — Birova (Twinrova)",
     "random_enemy": "Enemigo — Aleatorio",
     "cucco": "Enemigo — Cucco",
     "cucco_army": "Enemigo — Ejército de cuccos",

@@ -57,6 +57,7 @@
   "barinade": { "action": "barinade" },
   "ganondorf": { "action": "ganondorf" },
   "ganon_beast": { "action": "ganon_beast" },
+  "birova": { "action": "birova" },
   "random_enemy": { "action": "random_enemy" },
   "cucco": { "action": "cucco" },
   "cucco_army": { "action": "cucco_army" },
