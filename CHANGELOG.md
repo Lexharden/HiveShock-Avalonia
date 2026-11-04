@@ -4,6 +4,8 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.12.4] - 2026-11-04
+
 ### Perfiles
 * **Ocarina of Time:** nuevos efectos Cucco tranquilo, Kaepora Gaebora, Mido y Navi, con sus nombres.
 
