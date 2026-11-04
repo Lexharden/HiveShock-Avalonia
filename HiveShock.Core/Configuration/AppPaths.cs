@@ -14,7 +14,7 @@ public static class AppPaths
     {
         get
         {
-            if (OperatingSystem.IsAndroid())
+            if (MobilePlatform.IsMobile)
             {
                 var data = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 if (string.IsNullOrWhiteSpace(data))

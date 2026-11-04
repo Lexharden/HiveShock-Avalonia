@@ -37,7 +37,7 @@ public static class UserDataStore
     {
         get
         {
-            if (OperatingSystem.IsAndroid())
+            if (MobilePlatform.IsMobile)
             {
                 return AppPaths.AppDirectory;
             }

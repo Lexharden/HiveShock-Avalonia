@@ -98,8 +98,8 @@ public sealed class BridgeOptions
     /// <summary>Aplica host/puertos del perfil (sin pisar overrides explícitos de .env si ya diferían del default del perfil anterior).</summary>
     public void ApplyProfileEndpoints(GameProfileInfo profile, bool force = true)
     {
-        // En Android no pises un host que el usuario ya puso (este teléfono o IP del PC).
-        if (!OperatingSystem.IsAndroid() && (force || string.IsNullOrWhiteSpace(GameHost)))
+        // En Android e iOS no pises un host que el usuario ya puso (este teléfono o IP del PC).
+        if (!MobilePlatform.IsMobile && (force || string.IsNullOrWhiteSpace(GameHost)))
         {
             GameHost = string.IsNullOrWhiteSpace(profile.GameHost) ? "127.0.0.1" : profile.GameHost;
         }

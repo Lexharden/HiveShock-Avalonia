@@ -890,7 +890,7 @@ public sealed class BridgeRuntime : IAsyncDisposable
         else
         {
             // First load: profile fills defaults; .env already applied in FromEnvironmentAndArgs.
-            if (Environment.GetEnvironmentVariable("GAME_HOST") is null && !OperatingSystem.IsAndroid())
+            if (Environment.GetEnvironmentVariable("GAME_HOST") is null && !MobilePlatform.IsMobile)
             {
                 options.GameHost = string.IsNullOrWhiteSpace(profile.Info.GameHost)
                     ? "127.0.0.1"
