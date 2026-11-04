@@ -22,6 +22,10 @@ public static class ProfileSeeder
     public const string ProfileFile = "profile.json";
     public const string ProfileBackupFile = "profile.previous.bak";
 
+    /// <summary>Valores del catálogo que se sembraron sin que el usuario los cambiara; permiten actualizarlos solo si siguen intactos.</summary>
+    public const string EffectsBaseFile = ".hiveshock-effects-base.json";
+    public const string LabelsBaseFile = ".hiveshock-labels-base.json";
+
     /// <summary>
     /// Copia a <paramref name="profilesDir"/> los perfiles de <paramref name="catalogDir"/> que no estén ya y que no se
     /// hubieran instalado antes. Devuelve los nombres instalados. <paramref name="seeded"/> se actualiza con todo lo visto.
@@ -78,8 +82,8 @@ public static class ProfileSeeder
     /// <summary>
     /// Mantiene al día el <c>effects.json</c> de los perfiles del catálogo: cuando una versión nueva trae un
     /// <c>effects.json</c> distinto al último que se aplicó, añade los efectos que el usuario no tiene para que los efectos
-    /// nuevos de un juego lleguen solos. Solo suma: los efectos que ya tiene (editados, propios o con otros parámetros)
-    /// no se tocan ni se quitan. Lo anterior se guarda en <c>effects.previous.bak</c>. Se hace una vez por cada versión del
+    /// nuevos de un juego lleguen solos. Los que ya tiene se actualizan solo si siguen idénticos a lo sembrado
+    /// (<see cref="EffectsBaseFile"/>); los editados o propios no se tocan, y nunca se quitan. Lo anterior se guarda en <c>effects.previous.bak</c>. Se hace una vez por cada versión del
     /// catálogo. <paramref name="applied"/> (perfil → huella del catálogo aplicado) se actualiza.
     /// Los perfiles que el usuario borró o creó él mismo (que no están en el catálogo) no se tocan.
     /// </summary>
@@ -105,16 +109,22 @@ public static class ProfileSeeder
             {
                 var catalogText = File.ReadAllText(Path.Combine(source, EffectsFile));
                 var catalogHash = Fingerprint(catalogText);
-                if (applied.TryGetValue(name, out var last) && last == catalogHash)
+                var baseFile = Path.Combine(targetDir, EffectsBaseFile);
+                if (applied.TryGetValue(name, out var last) && last == catalogHash && File.Exists(baseFile))
                 {
                     continue;
                 }
 
-                if (MergeEffects(catalogText, File.ReadAllText(targetFile)) is { } merged)
+                if (MergeEffects(catalogText, File.ReadAllText(targetFile), ReadBaseline(baseFile)) is { } result)
                 {
-                    File.Copy(targetFile, Path.Combine(targetDir, EffectsBackupFile), overwrite: true);
-                    AtomicFile.WriteAllText(targetFile, merged);
-                    updated.Add(name);
+                    if (result.Text is { } merged)
+                    {
+                        File.Copy(targetFile, Path.Combine(targetDir, EffectsBackupFile), overwrite: true);
+                        AtomicFile.WriteAllText(targetFile, merged);
+                        updated.Add(name);
+                    }
+
+                    SaveBaseline(baseFile, result.Baseline);
                 }
 
                 applied[name] = catalogHash;
@@ -124,11 +134,11 @@ public static class ProfileSeeder
                 // Se reintenta en el siguiente arranque (no se anota como aplicado).
                 BridgeLog.Warn($"Perfil {name}: no se pudo actualizar effects.json ({ex.Message}).");
             }
-            catch (JsonException ex)
+            catch (Exception ex) when (ex is JsonException or InvalidOperationException or ArgumentException)
             {
-                // Un effects.json ilegible lo gestiona el cargador de perfiles; aquí solo se salta.
+                // Un effects.json ilegible lo gestiona el cargador de perfiles; aquí solo se salta (y no se reintenta en bucle).
                 BridgeLog.Warn($"Perfil {name}: effects.json no se pudo fusionar ({ex.Message}).");
-                applied[name] = Fingerprint(File.ReadAllText(Path.Combine(source, EffectsFile)));
+                applied[name] = SafeFingerprint(Path.Combine(source, EffectsFile));
             }
         }
 
@@ -136,9 +146,9 @@ public static class ProfileSeeder
     }
 
     /// <summary>
-    /// Complementa <c>effects.json</c>: añade al <c>profile.json</c> instalado los <c>labels</c> y los <c>enemyEffects</c>
+    /// Complementa <c>effects.json</c>: añade al <c>profile.json</c> instalado los <c>labels</c>, <c>enemyEffects</c> y <c>singletonEffects</c>
     /// que el catálogo trae y al usuario le faltan, para que los efectos nuevos salgan con su nombre y en su grupo.
-    /// Es una fusión que solo suma: no cambia lo que el usuario ya tiene (nombres editados, puertos, etc.) y se hace una
+    /// Un nombre ya existente solo se actualiza si el usuario no lo cambió (<see cref="LabelsBaseFile"/>); puertos y demás no se tocan. Se hace una
     /// vez por cada versión nueva del <c>profile.json</c> del catálogo. Lo anterior queda en <c>profile.previous.bak</c>.
     /// </summary>
     public static List<string> SyncProfileMeta(string catalogDir, string profilesDir, IDictionary<string, string> applied)
@@ -164,17 +174,23 @@ public static class ProfileSeeder
             {
                 var catalogText = File.ReadAllText(Path.Combine(source, ProfileFile));
                 var catalogHash = Fingerprint(catalogText);
-                if (applied.TryGetValue(key, out var last) && last == catalogHash)
+                var baseFile = Path.Combine(targetDir, LabelsBaseFile);
+                if (applied.TryGetValue(key, out var last) && last == catalogHash && File.Exists(baseFile))
                 {
                     continue;
                 }
 
                 var installedText = File.ReadAllText(targetFile);
-                if (MergeMeta(catalogText, installedText) is { } merged)
+                if (MergeMeta(catalogText, installedText, ReadBaseline(baseFile)) is { } result)
                 {
-                    File.Copy(targetFile, Path.Combine(targetDir, ProfileBackupFile), overwrite: true);
-                    AtomicFile.WriteAllText(targetFile, merged);
-                    updated.Add(name);
+                    if (result.Text is { } merged)
+                    {
+                        File.Copy(targetFile, Path.Combine(targetDir, ProfileBackupFile), overwrite: true);
+                        AtomicFile.WriteAllText(targetFile, merged);
+                        updated.Add(name);
+                    }
+
+                    SaveBaseline(baseFile, result.Baseline);
                 }
 
                 applied[key] = catalogHash;
@@ -183,105 +199,206 @@ public static class ProfileSeeder
             {
                 BridgeLog.Warn($"Perfil {name}: no se pudo actualizar profile.json ({ex.Message}).");
             }
-            catch (JsonException ex)
+            catch (Exception ex) when (ex is JsonException or InvalidOperationException or ArgumentException)
             {
-                // Un profile.json ilegible lo gestiona el cargador de perfiles; aquí solo se salta.
+                // Un profile.json ilegible lo gestiona el cargador de perfiles; aquí solo se salta (y no se reintenta en bucle).
                 BridgeLog.Warn($"Perfil {name}: profile.json no se pudo fusionar ({ex.Message}).");
-                applied[key] = Fingerprint(File.ReadAllText(Path.Combine(source, ProfileFile)));
+                applied[key] = SafeFingerprint(Path.Combine(source, ProfileFile));
             }
         }
 
         return updated;
     }
 
-    /// <summary>Devuelve el effects.json instalado con los efectos que le faltan del catálogo, o null si ya los tiene todos.</summary>
-    private static string? MergeEffects(string catalogText, string installedText)
+    /// <summary>Resultado de una fusión: el texto nuevo (null si no hubo cambios) y los valores del catálogo que quedaron intactos.</summary>
+    private sealed record MergeResult(string? Text, JsonObject Baseline);
+
+    private static readonly JsonDocumentOptions DocOptions = new() { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
+
+    private static readonly JsonSerializerOptions WriteOptions = new()
     {
-        var docOptions = new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
-        if (JsonNode.Parse(catalogText, documentOptions: docOptions) is not JsonObject catalog ||
-            JsonNode.Parse(installedText, documentOptions: docOptions) is not JsonObject installed)
+        WriteIndented = true,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
+    /// <summary>
+    /// Fusiona el effects.json del catálogo en el instalado: añade los efectos que faltan y actualiza solo los que el
+    /// usuario no ha cambiado desde que se sembraron (iguales a <paramref name="baseline"/>). Null si algún archivo no es un objeto.
+    /// </summary>
+    private static MergeResult? MergeEffects(string catalogText, string installedText, JsonObject baseline)
+    {
+        if (JsonNode.Parse(catalogText, documentOptions: DocOptions) is not JsonObject catalog ||
+            JsonNode.Parse(installedText, documentOptions: DocOptions) is not JsonObject installed)
         {
             return null;
         }
 
-        var have = new HashSet<string>(installed.Select(p => p.Key), StringComparer.OrdinalIgnoreCase);
+        var changed = MergeEntries(catalog, installed, baseline, out var newBaseline);
+        return new MergeResult(changed ? installed.ToJsonString(WriteOptions) + Environment.NewLine : null, newBaseline);
+    }
+
+    /// <summary>
+    /// Fusiona <c>labels</c>, <c>enemyEffects</c> y <c>singletonEffects</c> del profile.json del catálogo en el instalado.
+    /// Lo que falta se añade; un nombre ya existente solo se actualiza si el usuario no lo cambió (igual a <paramref name="labelsBaseline"/>).
+    /// Una sección con un tipo inesperado se deja como está.
+    /// </summary>
+    private static MergeResult? MergeMeta(string catalogText, string installedText, JsonObject labelsBaseline)
+    {
+        if (JsonNode.Parse(catalogText, documentOptions: DocOptions) is not JsonObject catalog ||
+            JsonNode.Parse(installedText, documentOptions: DocOptions) is not JsonObject installed)
+        {
+            return null;
+        }
+
+        var changed = false;
+        var newBaseline = new JsonObject();
+
+        if (catalog["labels"] is JsonObject catalogLabels)
+        {
+            var node = installed["labels"];
+            if (node is null)
+            {
+                node = new JsonObject();
+                installed["labels"] = node;
+            }
+
+            if (node is JsonObject labels)
+            {
+                changed |= MergeEntries(catalogLabels, labels, labelsBaseline, out newBaseline);
+            }
+        }
+
+        changed |= MergeStringList(catalog, installed, "enemyEffects");
+        changed |= MergeStringList(catalog, installed, "singletonEffects");
+
+        return new MergeResult(changed ? installed.ToJsonString(WriteOptions) + Environment.NewLine : null, newBaseline);
+    }
+
+    /// <summary>
+    /// Añade a <paramref name="installed"/> las entradas del catálogo que no tiene y reemplaza las que siguen idénticas a lo
+    /// sembrado antes (<paramref name="baseline"/>) y han cambiado en el catálogo. Lo editado por el usuario no se toca.
+    /// <paramref name="newBaseline"/> recoge las entradas que hoy coinciden con el catálogo.
+    /// </summary>
+    private static bool MergeEntries(JsonObject catalog, JsonObject installed, JsonObject baseline, out JsonObject newBaseline)
+    {
+        var keys = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in installed)
+        {
+            keys.TryAdd(property.Key, property.Key);
+        }
+
+        newBaseline = new JsonObject();
         var changed = false;
         foreach (var (id, definition) in catalog)
         {
-            if (have.Add(id))
+            if (!keys.TryGetValue(id, out var key))
             {
                 installed[id] = definition?.DeepClone();
+                keys[id] = id;
+                newBaseline[id] = definition?.DeepClone();
+                changed = true;
+                continue;
+            }
+
+            var current = installed[key];
+            if (JsonNode.DeepEquals(current, definition))
+            {
+                newBaseline[id] = definition?.DeepClone();
+            }
+            else if (baseline.TryGetPropertyValue(id, out var seeded) && JsonNode.DeepEquals(current, seeded))
+            {
+                installed[key] = definition?.DeepClone();
+                newBaseline[id] = definition?.DeepClone();
                 changed = true;
             }
         }
 
-        return changed
-            ? installed.ToJsonString(new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            }) + Environment.NewLine
-            : null;
+        return changed;
     }
 
-    /// <summary>Devuelve el profile.json instalado con lo que le falta del catálogo, o null si ya lo tiene todo.</summary>
-    private static string? MergeMeta(string catalogText, string installedText)
+    /// <summary>Suma a una lista de textos (<c>enemyEffects</c>, <c>singletonEffects</c>) los del catálogo que faltan. Solo suma.</summary>
+    private static bool MergeStringList(JsonObject catalog, JsonObject installed, string property)
     {
-        var docOptions = new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
-        if (JsonNode.Parse(catalogText, documentOptions: docOptions) is not JsonObject catalog ||
-            JsonNode.Parse(installedText, documentOptions: docOptions) is not JsonObject installed)
+        if (catalog[property] is not JsonArray source)
         {
-            return null;
+            return false;
+        }
+
+        var node = installed[property];
+        if (node is null)
+        {
+            node = new JsonArray();
+            installed[property] = node;
+        }
+
+        if (node is not JsonArray target)
+        {
+            return false;
+        }
+
+        var have = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in target)
+        {
+            if (AsString(item) is { } text)
+            {
+                have.Add(text);
+            }
         }
 
         var changed = false;
-
-        if (catalog["labels"] is JsonObject catalogLabels)
+        foreach (var item in source)
         {
-            if (installed["labels"] is not JsonObject labels)
+            if (AsString(item) is { } id && have.Add(id))
             {
-                labels = new JsonObject();
-                installed["labels"] = labels;
-            }
-
-            var have = new HashSet<string>(labels.Select(p => p.Key), StringComparer.OrdinalIgnoreCase);
-            foreach (var (id, text) in catalogLabels)
-            {
-                if (have.Add(id))
-                {
-                    labels[id] = text?.DeepClone();
-                    changed = true;
-                }
+                target.Add(id);
+                changed = true;
             }
         }
 
-        if (catalog["enemyEffects"] is JsonArray catalogEnemies)
-        {
-            if (installed["enemyEffects"] is not JsonArray enemies)
-            {
-                enemies = new JsonArray();
-                installed["enemyEffects"] = enemies;
-            }
+        return changed;
+    }
 
-            var have = new HashSet<string>(
-                enemies.Select(n => n?.GetValue<string>() ?? ""), StringComparer.OrdinalIgnoreCase);
-            foreach (var id in catalogEnemies.Select(n => n?.GetValue<string>()).OfType<string>())
+    private static string? AsString(JsonNode? node) =>
+        node is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
+
+    /// <summary>Lee lo sembrado antes; vacío si no existe o no se puede leer (entonces lo que difiera se trata como del usuario).</summary>
+    private static JsonObject ReadBaseline(string path)
+    {
+        try
+        {
+            if (File.Exists(path) && JsonNode.Parse(File.ReadAllText(path), documentOptions: DocOptions) is JsonObject baseline)
             {
-                if (have.Add(id))
-                {
-                    enemies.Add(id);
-                    changed = true;
-                }
+                return baseline;
             }
         }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+        }
 
-        return changed
-            ? installed.ToJsonString(new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            }) + Environment.NewLine
-            : null;
+        return new JsonObject();
+    }
+
+    private static void SaveBaseline(string path, JsonObject baseline)
+    {
+        var text = baseline.ToJsonString(WriteOptions) + Environment.NewLine;
+        if (File.Exists(path) && File.ReadAllText(path) == text)
+        {
+            return;
+        }
+
+        AtomicFile.WriteAllText(path, text);
+    }
+
+    private static string SafeFingerprint(string path)
+    {
+        try
+        {
+            return Fingerprint(File.ReadAllText(path));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return "";
+        }
     }
 
     /// <summary>Busca <c>profiles-catalog/</c> junto al programa e instala los perfiles que falten. Nunca lanza.</summary>

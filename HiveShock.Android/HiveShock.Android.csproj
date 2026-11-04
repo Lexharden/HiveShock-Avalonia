@@ -44,7 +44,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AndroidAsset Include="..\config\profiles\**\*">
+    <AndroidAsset Include="..\config\profiles\**\*" Exclude="..\config\profiles\**\*.bak;..\config\profiles\**\*.tmp;..\config\profiles\**\*.corrupt">
       <Link>profiles-catalog\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </AndroidAsset>
     <AndroidAsset Include="..\config\gift-catalog.json" Link="gift-catalog.json" />

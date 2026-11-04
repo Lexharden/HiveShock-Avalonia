@@ -1,13 +1,13 @@
 <Project>
   <!-- Configuración que viaja junto al ejecutable de escritorio (GUI y CLI). -->
   <ItemGroup>
-    <Content Include="$(MSBuildThisFileDirectory)config\profiles\**\*" Link="profiles\%(RecursiveDir)%(Filename)%(Extension)">
+    <Content Include="$(MSBuildThisFileDirectory)config\profiles\**\*" Exclude="$(MSBuildThisFileDirectory)config\profiles\**\*.bak;$(MSBuildThisFileDirectory)config\profiles\**\*.tmp;$(MSBuildThisFileDirectory)config\profiles\**\*.corrupt" Link="profiles\%(RecursiveDir)%(Filename)%(Extension)">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
     <!-- Copia para el actualizador: las versiones viejas protegen profiles/, esta carpeta sí llega y ProfileSeeder la instala. -->
-    <Content Include="$(MSBuildThisFileDirectory)config\profiles\**\*" Link="profiles-catalog\%(RecursiveDir)%(Filename)%(Extension)">
+    <Content Include="$(MSBuildThisFileDirectory)config\profiles\**\*" Exclude="$(MSBuildThisFileDirectory)config\profiles\**\*.bak;$(MSBuildThisFileDirectory)config\profiles\**\*.tmp;$(MSBuildThisFileDirectory)config\profiles\**\*.corrupt" Link="profiles-catalog\%(RecursiveDir)%(Filename)%(Extension)">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>

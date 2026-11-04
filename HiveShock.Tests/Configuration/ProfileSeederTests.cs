@@ -250,4 +250,96 @@ public sealed class ProfileSeederTests : IDisposable
         var layout = new UpdateLayout("t", "s", "Contents/MacOS/", "Contents/MacOS/HiveShock");
         Assert.False(layout.IsProtected("Contents/MacOS/profiles-catalog/mario/profile.json"));
     }
+
+    private string ReadProfile(string name) => File.ReadAllText(Path.Combine(Profiles, name, "profile.json"));
+
+    [Fact]
+    public void Updates_a_label_the_user_never_changed_but_keeps_the_ones_they_edited()
+    {
+        MakeProfile(Catalog, "oot");
+        MakeProfile(Profiles, "oot");
+        var applied = new Dictionary<string, string>();
+
+        // v1: se siembra "Hada" y "Navi".
+        WriteProfile(Catalog, "oot", """{"labels":{"fairy":"Hada","navi":"Navi"}}""");
+        WriteProfile(Profiles, "oot", """{"labels":{"fairy":"Hada","navi":"Navi"}}""");
+        ProfileSeeder.SyncProfileMeta(Catalog, Profiles, applied);
+
+        // El usuario cambia "navi"; v2 cambia los dos nombres.
+        WriteProfile(Profiles, "oot", """{"labels":{"fairy":"Hada","navi":"Mi Navi"}}""");
+        WriteProfile(Catalog, "oot", """{"labels":{"fairy":"Hada (cura)","navi":"Navi (guía)"}}""");
+        Assert.Equal(["oot"], ProfileSeeder.SyncProfileMeta(Catalog, Profiles, applied));
+
+        var labels = System.Text.Json.Nodes.JsonNode.Parse(ReadProfile("oot"))!["labels"]!;
+        Assert.Equal("Hada (cura)", (string)labels["fairy"]!);
+        Assert.Equal("Mi Navi", (string)labels["navi"]!);
+    }
+
+    [Fact]
+    public void Without_a_baseline_an_existing_label_that_differs_is_treated_as_the_users()
+    {
+        MakeProfile(Catalog, "oot");
+        MakeProfile(Profiles, "oot");
+        WriteProfile(Catalog, "oot", """{"labels":{"fairy":"Hada (cura)","owl":"Búho"}}""");
+        WriteProfile(Profiles, "oot", """{"labels":{"fairy":"Hada"}}""");
+
+        ProfileSeeder.SyncProfileMeta(Catalog, Profiles, new Dictionary<string, string>());
+
+        var labels = System.Text.Json.Nodes.JsonNode.Parse(ReadProfile("oot"))!["labels"]!;
+        Assert.Equal("Hada", (string)labels["fairy"]!);
+        Assert.Equal("Búho", (string)labels["owl"]!);
+    }
+
+    [Fact]
+    public void Updates_an_effect_definition_the_user_never_changed()
+    {
+        MakeProfile(Catalog, "oot");
+        MakeProfile(Profiles, "oot");
+        var applied = new Dictionary<string, string>();
+        WriteEffects(Catalog, "oot", """{"a":{"action":"a","n":1},"b":{"action":"b"}}""");
+        WriteEffects(Profiles, "oot", """{"a":{"action":"a","n":1},"b":{"action":"b"}}""");
+        ProfileSeeder.SyncEffects(Catalog, Profiles, applied);
+
+        WriteEffects(Profiles, "oot", """{"a":{"action":"a","n":1},"b":{"action":"mio"}}""");
+        WriteEffects(Catalog, "oot", """{"a":{"action":"a","n":2},"b":{"action":"b2"}}""");
+        Assert.Equal(["oot"], ProfileSeeder.SyncEffects(Catalog, Profiles, applied));
+
+        var effects = System.Text.Json.Nodes.JsonNode.Parse(ReadEffects("oot"))!;
+        Assert.Equal(2, (int)effects["a"]!["n"]!);
+        Assert.Equal("mio", (string)effects["b"]!["action"]!);
+    }
+
+    [Fact]
+    public void Merges_new_singleton_effects()
+    {
+        MakeProfile(Catalog, "oot");
+        MakeProfile(Profiles, "oot");
+        WriteProfile(Catalog, "oot", """{"singletonEffects":["delete_save","clear_enemies"]}""");
+        WriteProfile(Profiles, "oot", """{"singletonEffects":["delete_save"]}""");
+
+        ProfileSeeder.SyncProfileMeta(Catalog, Profiles, new Dictionary<string, string>());
+
+        var singles = System.Text.Json.Nodes.JsonNode.Parse(ReadProfile("oot"))!["singletonEffects"]!.AsArray();
+        Assert.Equal(["delete_save", "clear_enemies"], singles.Select(n => (string)n!).ToArray());
+    }
+
+    [Fact]
+    public void Unexpected_value_types_in_the_users_profile_do_not_break_the_sync()
+    {
+        MakeProfile(Catalog, "bad");
+        MakeProfile(Profiles, "bad");
+        MakeProfile(Catalog, "good");
+        MakeProfile(Profiles, "good");
+        WriteProfile(Catalog, "bad", """{"enemyEffects":["a"],"labels":{"a":"A"}}""");
+        WriteProfile(Profiles, "bad", """{"enemyEffects":[1,null,{"x":1}],"labels":[1]}""");
+        WriteProfile(Catalog, "good", """{"labels":{"a":"A"}}""");
+        WriteProfile(Profiles, "good", """{"labels":{}}""");
+
+        var updated = ProfileSeeder.SyncProfileMeta(Catalog, Profiles, new Dictionary<string, string>());
+
+        Assert.Contains("good", updated);
+        var bad = System.Text.Json.Nodes.JsonNode.Parse(ReadProfile("bad"))!;
+        Assert.True(bad["labels"] is System.Text.Json.Nodes.JsonArray);
+        Assert.Equal(4, bad["enemyEffects"]!.AsArray().Count);
+    }
 }
