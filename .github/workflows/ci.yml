@@ -96,6 +96,9 @@ jobs:
           set -euo pipefail
           echo '{"sdk":{"version":"10.0.100","rollForward":"latestPatch"}}' > global.json
           dotnet --version
+          for v in $(dotnet workload search version --take 60 | grep -E '^[0-9]+\.[0-9]+\.[0-9]+'); do
+            echo "== $v $(dotnet workload install ios --version "$v" --print-download-link-only 2>&1 | grep -io 'sdk\.ios\.manifest-10[^/]*/[^/]*' | head -1)"
+          done
           dotnet workload install ios
           VER=$(ls ~/.dotnet/packs | sed -n -E 's/^Microsoft\.iOS\.Sdk\.net10\.0_//p' | sort -V | tail -1)
           echo "iOS SDK $VER"
