@@ -159,15 +159,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # El SDK actual (10.0.4xx) trae iOS 27, que pide Xcode 27; macos-latest solo llega a Xcode 26.x.
+      # Se usa la banda 10.0.1xx (iOS 26) y se elige el Xcode que corresponde al iOS que se instale.
       - uses: actions/setup-dotnet@v4
         with:
-          global-json-file: global.json
+          dotnet-version: 10.0.1xx
 
-      - name: Xcode
-        run: xcodebuild -version
-
-      - name: Workload iOS
-        run: dotnet workload install ios
+      - name: SDK 10.0.1xx, workload iOS y Xcode a juego
+        run: |
+          set -euo pipefail
+          echo '{"sdk":{"version":"10.0.100","rollForward":"latestPatch"}}' > global.json
+          dotnet --version
+          dotnet workload install ios
+          VER=$(ls ~/.dotnet/packs | sed -n -E 's/^Microsoft\.iOS\.Sdk\.net10\.0_//p' | sort -V | tail -1)
+          echo "iOS SDK $VER"
+          sudo xcode-select -s "/Applications/Xcode_${VER}.app/Contents/Developer"
+          xcodebuild -version
 
       - name: Pack (iOS)
         run: |

@@ -85,31 +85,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # El SDK actual (10.0.4xx) trae iOS 27, que pide Xcode 27; macos-latest solo llega a Xcode 26.x.
+      # Se usa la banda 10.0.1xx (iOS 26) y se elige el Xcode que corresponde al iOS que se instale.
       - uses: actions/setup-dotnet@v4
         with:
-          global-json-file: global.json
+          dotnet-version: 10.0.1xx
 
-      - name: Xcode y workloads disponibles
+      - name: SDK 10.0.1xx, workload iOS y Xcode a juego
         run: |
-          xcodebuild -version
-          ls -d /Applications/Xcode* || true
+          set -euo pipefail
+          echo '{"sdk":{"version":"10.0.100","rollForward":"latestPatch"}}' > global.json
           dotnet --version
-          dotnet workload search version --take 15 || true
-
-      - name: Que iOS trae cada conjunto de workloads
-        run: |
-          for v in $(dotnet workload search version --take 40 | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' ); do
-            echo "== $v"
-            dotnet workload install ios --version "$v" --print-download-link-only 2>&1 | grep -io 'sdk\.ios\.manifest[^ "]*' | head -2 || true
-          done
-
-      - name: Workload iOS
-        run: dotnet workload install ios
-
-      - name: Versiones instaladas
-        run: |
-          dotnet workload list
-          ls ~/.dotnet/packs | grep -i ios || true
+          dotnet workload install ios
+          VER=$(ls ~/.dotnet/packs | sed -n -E 's/^Microsoft\.iOS\.Sdk\.net10\.0_//p' | sort -V | tail -1)
+          echo "iOS SDK $VER"
+          sudo xcode-select -s "/Applications/Xcode_${VER}.app/Contents/Developer"
+          xcodebuild -version
 
       - name: Build (sin firmar)
         run: dotnet build HiveShock.iOS/HiveShock.iOS.csproj -f net10.0-ios -c Release -r ios-arm64 -p:EnableCodeSigning=false -p:CodesignRequireProvisioningProfile=false
