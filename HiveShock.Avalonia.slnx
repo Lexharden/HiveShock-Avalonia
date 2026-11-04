@@ -4,6 +4,7 @@
   <Project Path="HiveShock.Cli/HiveShock.Cli.csproj" />
   <Project Path="HiveShock.Android/HiveShock.Android.csproj" />
   <Project Path="HiveShock.Mobile/HiveShock.Mobile.csproj" />
+  <Project Path="HiveShock.iOS/HiveShock.iOS.csproj" />
   <Project Path="HiveShock.Tests/HiveShock.Tests.csproj" />
   <Project Path="libs/TikTokLive/TikTokLive.csproj" />
 </Solution>

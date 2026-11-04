@@ -76,3 +76,24 @@ jobs:
           ACTUAL=$(dotnet msbuild HiveShock.Android/HiveShock.Android.csproj -getProperty:ApplicationVersion | tr -d '[:space:]')
           echo "esperado=$EXPECTED real=$ACTUAL"
           [[ "$EXPECTED" == "$ACTUAL" ]]
+
+  # iOS es experimental (nunca se ha compilado en un Mac real): no bloquea el CI hasta que se verifique.
+  ios:
+    name: Build (iOS, experimental)
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Xcode
+        run: xcodebuild -version
+
+      - name: Workload iOS
+        run: dotnet workload install ios
+
+      - name: Build (sin firmar)
+        run: dotnet build HiveShock.iOS/HiveShock.iOS.csproj -f net10.0-ios -c Release -r ios-arm64 -p:EnableCodeSigning=false -p:CodesignRequireProvisioningProfile=false

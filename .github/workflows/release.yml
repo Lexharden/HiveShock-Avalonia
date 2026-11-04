@@ -149,9 +149,41 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  # iOS es experimental: nunca se ha compilado en un Mac real. Si falla, el release de escritorio y Android sale igual.
+  # El .ipa va sin firmar; el usuario lo instala con AltStore o Sideloadly (ver README).
+  pack-ios:
+    name: Pack ios (experimental)
+    needs: version
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Xcode
+        run: xcodebuild -version
+
+      - name: Workload iOS
+        run: dotnet workload install ios
+
+      - name: Pack (iOS)
+        run: |
+          chmod +x scripts/Pack-iOS.sh
+          ./scripts/Pack-iOS.sh ${{ needs.version.outputs.version }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: HiveShock-${{ needs.version.outputs.version }}-ios
+          path: dist/*
+          if-no-files-found: error
+
   publish:
     name: GitHub Release
-    needs: [version, pack, pack-android]
+    needs: [version, pack, pack-android, pack-ios]
     runs-on: ubuntu-latest
     # El escritorio no se queda sin release si Android falla (p. ej. faltan los secrets de firma):
     # el job de Android queda en rojo y el APK se añade al relanzar.

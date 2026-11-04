@@ -8,6 +8,8 @@ Cada **canal** (TikTok, Twitch) tiene su propia ficha en Inicio. El programa no 
 
 - `HiveShock.Avalonia` — GUI (`HiveShock` / `HiveShock.exe`)
 - `HiveShock.Android` — compañero en el teléfono (misma lógica, sin overlays OBS)
+- `HiveShock.Mobile` — pantallas y ViewModels compartidos por Android e iOS
+- `HiveShock.iOS` — compañero en iPhone/iPad (**experimental**, ver más abajo)
 - `HiveShock.Core` — runtime, perfiles, canales (TikTok/Twitch), TCP al juego
 - `HiveShock.Cli` — misma lógica en consola
 - `HiveShock.Tests` — pruebas xUnit (corren en Windows, macOS y Linux)
@@ -99,6 +101,29 @@ El `versionCode` se calcula solo desde `Version` (`major*10000 + minor*100 + pat
 
 El CI de escritorio **no** restaura el `.slnx` entero (el proyecto Android exige el workload). Hay un job aparte `android`.
 
+## iOS (compañero, experimental)
+
+Misma interfaz que Android (`HiveShock.Mobile`): TikTok y Twitch, regalos, eventos, metas y editor de perfil. El juego corre en **otro aparato** (tu PC): escribe su IP de la red local como host (el iPhone no tiene un «127.0.0.1» donde corra el juego) y acepta el permiso de **red local** la primera vez.
+
+| Función | iOS |
+| --- | --- |
+| TikTok / Twitch, regalos, eventos, metas (mapeo y efectos) | Sí |
+| Editor de perfil, perfiles del catálogo | Sí |
+| Seguir conectado con la app en segundo plano | **No**: iOS la suspende. Mientras está conectado, HiveShock impide que la pantalla se apague; déjalo en primer plano |
+| Aviso de versión nueva / actualizar desde la app | No (se instala el `.ipa` nuevo encima) |
+| Overlays OBS, teclas / macros, recibir eventos del juego | No, por diseño |
+
+**Estado:** el código está escrito pero **nunca se ha compilado en un Mac**. El AOT de iOS (sin JIT) puede romper `protobuf-net` (TikTok) o la serialización JSON; hay que probarlo en un iPhone antes de fiarse.
+
+**Compilar (macOS con Xcode):**
+
+```bash
+dotnet workload install ios
+./scripts/Pack-iOS.sh        # dist/HiveShock-<ver>-ios-unsigned.ipa
+```
+
+**Instalar:** el `.ipa` va **sin firmar** (no hay cuenta de pago de Apple). Ábrelo con [AltStore](https://altstore.io) o [Sideloadly](https://sideloadly.io) e instálalo con tu Apple ID. La firma gratuita dura **7 días** y permite hasta 3 apps: hay que volver a instalar cada semana. Con una cuenta de pago (99 USD/año) se podría firmar y repartir por TestFlight sin cambiar el código.
+
 ## Twitch (empaquetado)
 
 El Client ID de la app HiveShock vive en `TWITCH_CLIENT_ID` o en `TwitchApp.ClientId`. El streamer solo pulsa **Entrar con Twitch**. Device Code + EventSub WebSocket en el PC.
@@ -166,6 +191,7 @@ Salida en `dist/`:
 | `HiveShock-<ver>-linux-x64-full.zip` | Linux |
 | `HiveShock-<ver>-<rid>-update.zip` | Actualizar sin pisar perfiles |
 | `HiveShock-<ver>-android.apk` | Teléfono Android (compañero, sin overlays) |
+| `HiveShock-<ver>-ios-unsigned.ipa` | iPhone/iPad (experimental, sin firmar: AltStore o Sideloadly) |
 
 En otra Mac: abre el DMG, arrastra HiveShock a Aplicaciones, **clic derecho → Abrir** (solo la primera vez). En Tahoe, si no aparece Abrir: Ajustes del Sistema → Privacidad y seguridad → Abrir de todos modos.
 
@@ -175,7 +201,7 @@ Opcional: `-IncludeCli` / `--cli` añade la consola.
 
 ## GitHub Actions
 
-- [`ci.yml`](.github/workflows/ci.yml) — escritorio en Windows, macOS y Ubuntu, con `dotnet test`; job `android` aparte (workload + SDK).
+- [`ci.yml`](.github/workflows/ci.yml) — escritorio en Windows, macOS y Ubuntu, con `dotnet test`; job `android` aparte (workload + SDK). Job `ios` experimental en macOS (no bloquea).
 - [`release.yml`](.github/workflows/release.yml) — al pushear `vX.Y.Z` (o *Run workflow*) genera:
 
   - `win-x64`
@@ -184,6 +210,7 @@ Opcional: `-IncludeCli` / `--cli` añade la consola.
   - `linux-x64`
   - `linux-arm64`
   - `android` (`HiveShock-<ver>-android.apk`, firmado con los secrets `ANDROID_*`; en un tag es obligatorio)
+  - `ios` (`HiveShock-<ver>-ios-unsigned.ipa`, experimental: si falla no bloquea el release)
 
 ## Checklist de paridad (vs WPF)
 
