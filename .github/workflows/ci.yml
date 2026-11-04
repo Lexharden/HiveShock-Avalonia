@@ -89,11 +89,20 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Xcode
-        run: xcodebuild -version
+      - name: Xcode y workloads disponibles
+        run: |
+          xcodebuild -version
+          ls -d /Applications/Xcode* || true
+          dotnet --version
+          dotnet workload search version --take 15 || true
 
       - name: Workload iOS
         run: dotnet workload install ios
+
+      - name: Versiones instaladas
+        run: |
+          dotnet workload list
+          ls ~/.dotnet/packs | grep -i ios || true
 
       - name: Build (sin firmar)
         run: dotnet build HiveShock.iOS/HiveShock.iOS.csproj -f net10.0-ios -c Release -r ios-arm64 -p:EnableCodeSigning=false -p:CodesignRequireProvisioningProfile=false
