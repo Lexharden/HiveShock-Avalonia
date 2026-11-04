@@ -181,7 +181,9 @@ public static class ProfileSeeder
                 }
 
                 var installedText = File.ReadAllText(targetFile);
-                if (MergeMeta(catalogText, installedText, ReadBaseline(baseFile)) is { } result)
+                var labelsBaseline = ReadBaseline(baseFile);
+                AddKnownSeededLabels(name, labelsBaseline);
+                if (MergeMeta(catalogText, installedText, labelsBaseline) is { } result)
                 {
                     if (result.Text is { } merged)
                     {
@@ -360,6 +362,32 @@ public static class ProfileSeeder
 
     private static string? AsString(JsonNode? node) =>
         node is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
+
+    /// <summary>
+    /// Nombres que versiones anteriores sembraron y que aún no tenían copia de lo sembrado. Si el usuario conserva exactamente
+    /// ese valor, se sabe que no lo editó y puede actualizarse. Solo para cambios de nombre anteriores a <see cref="LabelsBaseFile"/>.
+    /// </summary>
+    private static readonly Dictionary<string, Dictionary<string, string>> KnownSeededLabels =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ocarina-of-time"] = new(StringComparer.OrdinalIgnoreCase) { ["fairy"] = "Hada" },
+        };
+
+    private static void AddKnownSeededLabels(string profile, JsonObject baseline)
+    {
+        if (!KnownSeededLabels.TryGetValue(profile, out var known))
+        {
+            return;
+        }
+
+        foreach (var (id, text) in known)
+        {
+            if (!baseline.ContainsKey(id))
+            {
+                baseline[id] = text;
+            }
+        }
+    }
 
     /// <summary>Lee lo sembrado antes; vacío si no existe o no se puede leer (entonces lo que difiera se trata como del usuario).</summary>
     private static JsonObject ReadBaseline(string path)

@@ -342,4 +342,20 @@ public sealed class ProfileSeederTests : IDisposable
         Assert.True(bad["labels"] is System.Text.Json.Nodes.JsonArray);
         Assert.Equal(4, bad["enemyEffects"]!.AsArray().Count);
     }
+
+    [Theory]
+    [InlineData("Hada", "Hada (cura)")]
+    [InlineData("Mi hada", "Mi hada")]
+    public void The_old_ocarina_fairy_name_is_updated_only_if_the_user_kept_it(string installed, string expected)
+    {
+        MakeProfile(Catalog, "ocarina-of-time");
+        MakeProfile(Profiles, "ocarina-of-time");
+        WriteProfile(Catalog, "ocarina-of-time", """{"labels":{"fairy":"Hada (cura)"}}""");
+        WriteProfile(Profiles, "ocarina-of-time", "{\"labels\":{\"fairy\":\"" + installed + "\"}}");
+
+        ProfileSeeder.SyncProfileMeta(Catalog, Profiles, new Dictionary<string, string>());
+
+        var labels = System.Text.Json.Nodes.JsonNode.Parse(ReadProfile("ocarina-of-time"))!["labels"]!;
+        Assert.Equal(expected, (string)labels["fairy"]!);
+    }
 }
