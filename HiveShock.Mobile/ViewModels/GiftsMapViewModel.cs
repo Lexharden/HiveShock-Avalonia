@@ -3,7 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HiveShock.Configuration;
 
-namespace HiveShock.Android.ViewModels;
+namespace HiveShock.Mobile.ViewModels;
 
 public sealed partial class GiftsMapViewModel : ObservableObject
 {

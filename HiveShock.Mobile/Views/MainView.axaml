@@ -1,8 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:HiveShock.Android.ViewModels"
-             xmlns:views="using:HiveShock.Android.Views"
-             x:Class="HiveShock.Android.Views.MainView"
+             xmlns:vm="using:HiveShock.Mobile.ViewModels"
+             xmlns:views="using:HiveShock.Mobile.Views"
+             x:Class="HiveShock.Mobile.Views.MainView"
              x:DataType="vm:MainViewModel">
     <DockPanel>
         <Border DockPanel.Dock="Top" Padding="16,12" Background="#075BAA">

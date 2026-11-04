@@ -7,7 +7,7 @@ using HiveShock.Hosting;
 using HiveShock.Live;
 using HiveShock.Logging;
 
-namespace HiveShock.Android.ViewModels;
+namespace HiveShock.Mobile.ViewModels;
 
 public sealed class ProfileItem
 {
@@ -31,7 +31,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public MainViewModel()
     {
-        Runtime = AndroidBridge.Shared;
+        Runtime = MobileHost.Runtime;
         Gifts = new GiftsMapViewModel(this);
         Events = new EventsMapViewModel(this);
         Profile = new ProfileEditorViewModel(this);
@@ -330,7 +330,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                     TwitchCodeVisible = true;
                     try
                     {
-                        AndroidIntents.OpenUrl(start.VerificationUri);
+                        MobileHost.OpenUrl(start.VerificationUri);
                     }
                     catch (Exception ex)
                     {
@@ -372,7 +372,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         try
         {
-            AndroidIntents.OpenUrl(TwitchDeviceHint);
+            MobileHost.OpenUrl(TwitchDeviceHint);
         }
         catch (Exception ex)
         {
@@ -388,7 +388,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
-        AndroidIntents.CopyText(TwitchDeviceHint);
+        MobileHost.CopyText(TwitchDeviceHint);
         AppendActivity("URL de Twitch copiada");
     }
 
@@ -400,7 +400,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
-        AndroidIntents.CopyText(TwitchDeviceCode);
+        MobileHost.CopyText(TwitchDeviceCode);
         AppendActivity("Código Twitch copiado");
     }
 
@@ -454,7 +454,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         try
         {
-            BridgeKeepAliveService.Start();
+            MobileHost.StartKeepAlive();
         }
         catch (Exception ex)
         {
@@ -466,7 +466,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         try
         {
-            BridgeKeepAliveService.Stop();
+            MobileHost.StopKeepAlive();
         }
         catch (Exception ex)
         {

@@ -5,7 +5,7 @@ using HiveShock.Configuration;
 using HiveShock.Logging;
 using HiveShock.Updates;
 
-namespace HiveShock.Android.ViewModels;
+namespace HiveShock.Mobile.ViewModels;
 
 public sealed partial class AboutViewModel : ObservableObject
 {
@@ -72,20 +72,20 @@ public sealed partial class AboutViewModel : ObservableObject
     {
         if (!string.IsNullOrWhiteSpace(_updateUrl))
         {
-            AndroidIntents.OpenUrl(_updateUrl);
+            MobileHost.OpenUrl(_updateUrl);
         }
     }
 
     [RelayCommand]
     private void OpenWebsite()
     {
-        AndroidIntents.OpenUrl(WebsiteUrl);
+        MobileHost.OpenUrl(WebsiteUrl);
     }
 
     [RelayCommand]
     private void OpenKofi()
     {
-        AndroidIntents.OpenUrl(KoFiUrl);
+        MobileHost.OpenUrl(KoFiUrl);
     }
 
     private static string ReadVersion()

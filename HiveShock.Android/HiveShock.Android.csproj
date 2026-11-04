@@ -32,15 +32,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HiveShock.Core\HiveShock.Core.csproj" />
+    <ProjectReference Include="..\HiveShock.Mobile\HiveShock.Mobile.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <AndroidResource Include="..\HiveShock.Avalonia\Assets\app.png">
       <Link>Resources\drawable\icon.png</Link>
     </AndroidResource>
-    <AvaloniaResource Include="..\HiveShock.Avalonia\Assets\app.png">
-      <Link>Assets\app.png</Link>
-    </AvaloniaResource>
   </ItemGroup>
 
   <ItemGroup>

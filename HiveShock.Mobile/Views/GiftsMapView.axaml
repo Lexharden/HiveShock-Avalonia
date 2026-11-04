@@ -1,8 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:HiveShock.Android.ViewModels"
+             xmlns:vm="using:HiveShock.Mobile.ViewModels"
              xmlns:cfg="using:HiveShock.Configuration"
-             x:Class="HiveShock.Android.Views.GiftsMapView"
+             x:Class="HiveShock.Mobile.Views.GiftsMapView"
              x:DataType="vm:GiftsMapViewModel">
     <Grid>
         <ScrollViewer>

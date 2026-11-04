@@ -5,7 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using HiveShock.Configuration;
 using HiveShock.Logging;
 
-namespace HiveShock.Android.ViewModels;
+namespace HiveShock.Mobile.ViewModels;
 
 /// <summary>
 /// Edita profile.json y effects.json del perfil activo. Import/export son independientes
@@ -376,7 +376,7 @@ public sealed partial class ProfileEditorViewModel : ObservableObject
             return;
         }
 
-        var provider = AndroidStorage.Provider;
+        var provider = MobileStorage.Provider;
         if (provider is null)
         {
             return;
@@ -415,7 +415,7 @@ public sealed partial class ProfileEditorViewModel : ObservableObject
             return;
         }
 
-        var provider = AndroidStorage.Provider;
+        var provider = MobileStorage.Provider;
         if (provider is null)
         {
             return;
@@ -455,7 +455,7 @@ public sealed partial class ProfileEditorViewModel : ObservableObject
             return;
         }
 
-        var provider = AndroidStorage.Provider;
+        var provider = MobileStorage.Provider;
         if (provider is null)
         {
             return;
@@ -494,7 +494,7 @@ public sealed partial class ProfileEditorViewModel : ObservableObject
             return;
         }
 
-        var provider = AndroidStorage.Provider;
+        var provider = MobileStorage.Provider;
         if (provider is null)
         {
             return;

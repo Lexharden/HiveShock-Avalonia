@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- UI móvil compartida (Android e iOS): vistas, ViewModels y estilos. Sin código de plataforma: lo específico entra por IMobileHost. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>HiveShock.Mobile</RootNamespace>
+    <AssemblyName>HiveShock.Mobile</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HiveShock.Core\HiveShock.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="..\HiveShock.Avalonia\Assets\app.png">
+      <Link>Assets\app.png</Link>
+    </AvaloniaResource>
+  </ItemGroup>
+</Project>

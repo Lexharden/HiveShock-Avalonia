@@ -4,7 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using HiveShock.Configuration;
 using HiveShock.Live;
 
-namespace HiveShock.Android.ViewModels;
+namespace HiveShock.Mobile.ViewModels;
 
 public sealed partial class EventsMapViewModel : ObservableObject
 {

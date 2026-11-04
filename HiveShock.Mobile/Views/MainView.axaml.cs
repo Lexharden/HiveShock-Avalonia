@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace HiveShock.Android.Views;
+namespace HiveShock.Mobile.Views;
 
 public partial class MainView : UserControl
 {
@@ -14,6 +14,6 @@ public partial class MainView : UserControl
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        AndroidStorage.Current = TopLevel.GetTopLevel(this);
+        MobileStorage.Current = TopLevel.GetTopLevel(this);
     }
 }

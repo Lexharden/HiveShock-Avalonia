@@ -1,14 +1,14 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:HiveShock.Android.ViewModels"
-             x:Class="HiveShock.Android.Views.AboutView"
+             xmlns:vm="using:HiveShock.Mobile.ViewModels"
+             x:Class="HiveShock.Mobile.Views.AboutView"
              x:DataType="vm:AboutViewModel">
     <ScrollViewer>
         <StackPanel Margin="16">
             <TextBlock Classes="pageTitle" Text="Acerca de" />
             <Border Classes="card">
                 <StackPanel>
-                    <Image Source="avares://HiveShock.Android/Assets/app.png" Width="96" Height="96" Stretch="Uniform"
+                    <Image Source="avares://HiveShock.Mobile/Assets/app.png" Width="96" Height="96" Stretch="Uniform"
                            HorizontalAlignment="Left" Margin="0,0,0,12" />
                     <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding AppName}" />
                     <TextBlock Margin="0,4,0,12" FontSize="14" Foreground="#9AA4B2"

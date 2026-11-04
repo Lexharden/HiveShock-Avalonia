@@ -29,11 +29,13 @@ jobs:
         run: |
           dotnet restore HiveShock.Avalonia/HiveShock.Avalonia.csproj
           dotnet restore HiveShock.Cli/HiveShock.Cli.csproj
+          dotnet restore HiveShock.Mobile/HiveShock.Mobile.csproj
 
       - name: Build
         run: |
           dotnet build HiveShock.Avalonia/HiveShock.Avalonia.csproj -c Release --no-restore
           dotnet build HiveShock.Cli/HiveShock.Cli.csproj -c Release --no-restore
+          dotnet build HiveShock.Mobile/HiveShock.Mobile.csproj -c Release --no-restore
 
       - name: Test
         run: dotnet test HiveShock.Tests/HiveShock.Tests.csproj -c Release
