@@ -96,6 +96,13 @@ jobs:
           dotnet --version
           dotnet workload search version --take 15 || true
 
+      - name: Que iOS trae cada conjunto de workloads
+        run: |
+          for v in $(dotnet workload search version --take 40 | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' ); do
+            echo "== $v"
+            dotnet workload install ios --version "$v" --print-download-link-only 2>&1 | grep -io 'sdk\.ios\.manifest[^ "]*' | head -2 || true
+          done
+
       - name: Workload iOS
         run: dotnet workload install ios
 
