@@ -170,7 +170,7 @@ jobs:
           set -euo pipefail
           dotnet workload install ios --from-rollback-file scripts/ios-workload-rollback.json
           ls ~/.dotnet/packs | grep -i ios || true
-          VER=$(ls ~/.dotnet/packs | sed -n -E 's/^Microsoft\.iOS\.Sdk\.net10\.0_(26\.[0-9]+)$//p' | sort -V | tail -1)
+          VER=$(ls ~/.dotnet/packs | grep -E '^Microsoft\.iOS\.Sdk\.net10\.0_26\.[0-9]+$' | sed 's/.*_//' | sort -V | tail -1)
           echo "iOS SDK $VER"
           sudo xcode-select -s "/Applications/Xcode_${VER}.app/Contents/Developer"
           xcodebuild -version
