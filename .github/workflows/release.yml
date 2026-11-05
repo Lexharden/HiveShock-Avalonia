@@ -160,7 +160,7 @@ jobs:
       - uses: actions/checkout@v4
 
       # El workload más reciente de iOS (27.x) pide Xcode 27; macos-latest solo llega a Xcode 26.x.
-      # Se fija iOS 26.5 (scripts/ios-workload-rollback.json) y se selecciona el Xcode 26.5 que le corresponde.
+      # Se fija iOS 26.5 (scripts/ios-workload-rollback.json) y se selecciona Xcode 26.6.
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
@@ -170,9 +170,8 @@ jobs:
           set -euo pipefail
           dotnet workload install ios --from-rollback-file scripts/ios-workload-rollback.json
           ls ~/.dotnet/packs | grep -i ios || true
-          VER=$(ls ~/.dotnet/packs | grep -E '^Microsoft\.iOS\.Sdk\.net10\.0_26\.[0-9]+$' | sed 's/.*_//' | sort -V | tail -1)
-          echo "iOS SDK $VER"
-          sudo xcode-select -s "/Applications/Xcode_${VER}.app/Contents/Developer"
+          # El SDK iOS 26.5.10318 exige Xcode 26.6 (ver el error "requires Xcode" si cambia la version).
+          sudo xcode-select -s "/Applications/Xcode_26.6.app/Contents/Developer"
           xcodebuild -version
 
       - name: Pack (iOS)
