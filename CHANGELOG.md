@@ -4,6 +4,13 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [2.12.5] - 2026-11-05
+
+### Perfiles
+* **Majora's Mask:** nuevos enemigos Nejiron, Dodongo y Takkuri, élites Death Armos, Pirata gerudo y Gomess, y los jefes Odolwa y Majora's Wrath. Los nuevos cuentan como enemigos para «Enemigo aleatorio».
+* **Majora's Mask:** «Saltar tiempo» avisa de que el día 3 hace caer la luna (el nombre se actualiza solo si no lo habías cambiado).
+
+
 ## [2.12.4] - 2026-11-04
 
 ### Perfiles
