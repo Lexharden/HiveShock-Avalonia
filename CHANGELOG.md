@@ -1,8 +1,12 @@
-﻿# Changelog
+# Changelog
 
 Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.props`.
 
 ## [Unreleased]
+
+## [3.0.0-beta.1] - 2026-11-11
+
+> **Beta de la nueva interfaz.** Solo se ofrece a quien tenga activadas las versiones beta en Actualizaciones. Perfiles, regalos y ajustes se conservan tal cual.
 
 ### Interfaz nueva
 * **Rediseño completo de la app de escritorio:** barra de título propia, menú lateral con iconos (plegable con Ctrl+B), tarjeta de «Conectar» siempre visible y panel de actividad a la derecha con la última línea siempre a la vista abajo.
