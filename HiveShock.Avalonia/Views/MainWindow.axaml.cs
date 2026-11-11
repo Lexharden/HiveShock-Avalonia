@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Threading;
 using HiveShock.Avalonia.Services;
 using HiveShock.Avalonia.ViewModels;
 using HiveShock.Avalonia.Views.Dialogs;
@@ -34,7 +35,78 @@ public partial class MainWindow : Window
         else
         {
             TitleBarContent.Margin = new Thickness(8, 0, 0, 0);
-            TitleBarActions.Margin = new Thickness(0, 0, 150, 0);
+            TitleBarActions.Margin = new Thickness(0, 0, CaptionFallbackWidth, 0);
+            // El ancho real depende del tema, del escalado y de qué botones muestre el sistema:
+            // se mide sobre los botones dibujados en cuanto existen y cada vez que cambian.
+            Opened += (_, _) => Dispatcher.UIThread.Post(TrackCaptionButtons, DispatcherPriority.Loaded);
+            PropertyChanged += (_, e) =>
+            {
+                if (e.Property == WindowStateProperty)
+                {
+                    Dispatcher.UIThread.Post(TrackCaptionButtons, DispatcherPriority.Loaded);
+                }
+            };
+        }
+    }
+
+    private readonly List<Control> _captionButtons = [];
+
+    /// <summary>Busca los botones del sistema (cambian al maximizar o restaurar) y sigue sus cambios de tamaño.</summary>
+    private void TrackCaptionButtons()
+    {
+        foreach (var c in global::Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(this))
+        {
+            if (c is Control { Name: { } name } ctl && Array.IndexOf(CaptionButtonNames, name) >= 0 &&
+                !_captionButtons.Contains(ctl))
+            {
+                _captionButtons.Add(ctl);
+                ctl.PropertyChanged += (_, e) =>
+                {
+                    if (e.Property == BoundsProperty || e.Property == IsVisibleProperty)
+                    {
+                        FitTitleBarToCaptionButtons();
+                    }
+                };
+            }
+        }
+
+        FitTitleBarToCaptionButtons();
+    }
+
+    /// <summary>Minimizar + maximizar + cerrar de Avalonia 12 (≈46 px cada uno) con margen.</summary>
+    private const double CaptionFallbackWidth = 150;
+
+    private static readonly string[] CaptionButtonNames =
+        ["PART_FullScreenButton", "PART_MinimizeButton", "PART_MaximizeButton", "PART_RestoreButton", "PART_CloseButton"];
+
+    /// <summary>
+    /// Deja a la derecha justo el hueco que ocupan los botones del sistema visibles (más 8 px de aire), para que
+    /// ningún botón de la barra propia quede debajo. Si no se encuentran, se queda el ancho de reserva.
+    /// </summary>
+    private void FitTitleBarToCaptionButtons()
+    {
+        if (Bounds.Width <= 0)
+        {
+            return;
+        }
+
+        double? left = null;
+        foreach (var ctl in _captionButtons)
+        {
+            if (!ctl.IsEffectivelyVisible || ctl.Bounds.Width <= 0 || ctl.TranslatePoint(default, this) is not { } p)
+            {
+                continue;
+            }
+
+            left = left is { } l ? Math.Min(l, p.X) : p.X;
+        }
+
+        var reserve = left is { } x && x > Bounds.Width / 2
+            ? Math.Ceiling(Bounds.Width - x) + 8
+            : CaptionFallbackWidth;
+        if (Math.Abs(TitleBarActions.Margin.Right - reserve) > 0.5)
+        {
+            TitleBarActions.Margin = new Thickness(0, 0, reserve, 0);
         }
     }
 

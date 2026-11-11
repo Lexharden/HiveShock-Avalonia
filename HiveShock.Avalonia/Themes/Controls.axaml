@@ -23,6 +23,11 @@
         <Setter Property="IsVisible" Value="False" />
         <Setter Property="Opacity" Value="0" />
     </Style>
+    <!-- Avalonia 12 añade un cuarto botón (pantalla completa) junto a minimizar/maximizar/cerrar: se tapaba con
+         los botones de la barra propia y una app de directo no lo necesita (maximizar ya cubre la pantalla). -->
+    <Style Selector=":is(Control)#PART_FullScreenButton, :is(Control)#PART_PopoverFullScreenButton">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
 
     <!-- Ventanas secundarias (diálogos). La principal y los overlays fijan su propio fondo. -->
     <Style Selector="Window">
