@@ -89,6 +89,7 @@ public sealed class CatalogEditDialog : Window
 
         var buttons = new StackPanel
         {
+            Classes = { "bar" },
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Right,
             Spacing = 8,

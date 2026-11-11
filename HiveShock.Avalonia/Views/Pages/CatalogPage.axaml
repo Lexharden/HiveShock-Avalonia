@@ -3,49 +3,103 @@
              xmlns:vm="using:HiveShock.Avalonia.ViewModels"
              xmlns:cfg="using:HiveShock.Configuration"
              xmlns:conv="using:HiveShock.Avalonia.Converters"
+             xmlns:ctl="using:HiveShock.Avalonia.Views.Controls"
              x:Class="HiveShock.Avalonia.Views.Pages.CatalogPage"
              x:DataType="vm:CatalogViewModel">
-    <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-            <WrapPanel>
-                <Button Classes="secondary" Content="Nuevo" Command="{Binding NewItemCommand}" />
-                <Button Classes="secondary" Content="Editar" Command="{Binding EditCommand}" />
-                <Button Classes="secondary" Content="Recargar" Command="{Binding ReloadCommand}" />
-                <Button Classes="secondary" Content="Abrir carpeta" Command="{Binding OpenFolderCommand}" />
-                <Button Classes="primary" Content="Usar en este juego" Command="{Binding AddToGiftsCommand}" />
-            </WrapPanel>
-            <DockPanel Margin="0,4,0,0">
-                <ToggleSwitch DockPanel.Dock="Right" Margin="12,0,0,0"
-                              OnContent="Todos los regalos de TikTok" OffContent="Solo los vistos en mis lives"
-                              IsChecked="{Binding ShowAllTikTokGifts}" />
-                <TextBox Text="{Binding SearchText}" PlaceholderText="Buscar por nombre o id…" />
-            </DockPanel>
-            <TextBlock Text="{Binding Summary}" FontSize="12" Margin="4,6,0,0"
-                       Foreground="{DynamicResource MutedBrush}" />
-            <Grid Margin="8,8,8,4" ColumnDefinitions="48,*,90,90">
-                <TextBlock Grid.Column="1" Classes="fieldLabel" Text="Nombre" Margin="0" />
-                <TextBlock Grid.Column="2" Classes="fieldLabel" Text="Diamantes" Margin="0" />
-                <TextBlock Grid.Column="3" Classes="fieldLabel" Text="Veces visto" Margin="0" />
-            </Grid>
-        </StackPanel>
-        <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}">
-            <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="cfg:CatalogGift">
-                    <Grid ColumnDefinitions="48,*,90,90" Margin="0,4" ToolTip.Tip="{Binding IdsText}">
-                        <Border Width="40" Height="40" CornerRadius="8" ClipToBounds="True"
-                                Background="{DynamicResource CardAltBrush}">
-                            <Image Width="36" Height="36" Stretch="Uniform"
-                                   Source="{Binding Converter={x:Static conv:GiftImageConverter.Instance}}" />
-                        </Border>
-                        <TextBlock Grid.Column="1" Text="{Binding DisplayName}" FontWeight="SemiBold"
-                                   VerticalAlignment="Center" Margin="8,0,8,0" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Grid.Column="2" VerticalAlignment="Center"
-                                   Text="{Binding Diamonds}" Foreground="{DynamicResource MutedBrush}" />
-                        <TextBlock Grid.Column="3" VerticalAlignment="Center"
-                                   Text="{Binding Seen}" Foreground="{DynamicResource MutedBrush}" />
+    <!-- Tabla de regalos de TikTok: buscador + filtro arriba, columnas fijas y la acción principal a la derecha. -->
+    <Border Classes="panel">
+        <DockPanel>
+            <!-- Barra de herramientas -->
+            <Border DockPanel.Dock="Top" Classes="paneHeader" Padding="12,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="4" Margin="12,0,0,0">
+                        <Button Classes="icon" Command="{Binding EditCommand}" ToolTip.Tip="Editar el regalo seleccionado">
+                            <ctl:Icon Data="{StaticResource Icon.Sliders}" />
+                        </Button>
+                        <Button Classes="icon" ToolTip.Tip="Más acciones">
+                            <ctl:Icon Data="{StaticResource Icon.More}" />
+                            <Button.Flyout>
+                                <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                    <MenuItem Header="Añadir un regalo a mano…" Command="{Binding NewItemCommand}">
+                                        <MenuItem.Icon>
+                                            <ctl:Icon Data="{StaticResource Icon.Plus}" Size="16" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Recargar" Command="{Binding ReloadCommand}">
+                                        <MenuItem.Icon>
+                                            <ctl:Icon Data="{StaticResource Icon.Refresh}" Size="16" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Abrir carpeta del catálogo" Command="{Binding OpenFolderCommand}">
+                                        <MenuItem.Icon>
+                                            <ctl:Icon Data="{StaticResource Icon.Folder}" Size="16" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                </MenuFlyout>
+                            </Button.Flyout>
+                        </Button>
+                        <Button Classes="primary" Margin="4,0,0,0" Command="{Binding AddToGiftsCommand}"
+                                ToolTip.Tip="Añade el regalo seleccionado a la lista de Regalos de este juego.">
+                            <StackPanel Classes="btnContent">
+                                <ctl:Icon Data="{StaticResource Icon.Plus}" />
+                                <TextBlock Text="Usar en este juego" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBox Classes="search" MaxWidth="340" HorizontalAlignment="Stretch" Text="{Binding SearchText}"
+                                 PlaceholderText="Buscar por nombre o id…" Padding="34,0,10,0" />
+                        <CheckBox Grid.Column="1" Margin="12,0,0,0" Content="Todos los de TikTok"
+                                  IsChecked="{Binding ShowAllTikTokGifts}" VerticalAlignment="Center"
+                                  ToolTip.Tip="Marcado: todos los regalos de TikTok. Sin marcar: solo los que han llegado en tus lives." />
                     </Grid>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
-    </DockPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Pie: resumen -->
+            <Border DockPanel.Dock="Bottom" Classes="paneFooter" Padding="14,8">
+                <TextBlock Classes="caption" Text="{Binding Summary}" />
+            </Border>
+
+            <!-- Cabecera de columnas -->
+            <Border DockPanel.Dock="Top" Padding="22,8,26,8" Background="{DynamicResource CardAltBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="52,*,110,110">
+                    <TextBlock Grid.Column="1" Classes="overline" Text="NOMBRE" />
+                    <TextBlock Grid.Column="2" Classes="overline" Text="DIAMANTES" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="3" Classes="overline" Text="VECES VISTO" HorizontalAlignment="Right" />
+                </Grid>
+            </Border>
+
+            <Panel>
+                <ListBox Classes="plain" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="cfg:CatalogGift">
+                            <Grid ColumnDefinitions="52,*,110,110" ToolTip.Tip="{Binding IdsText}">
+                                <Border Width="36" Height="36" CornerRadius="8" ClipToBounds="True" HorizontalAlignment="Left"
+                                        Background="{DynamicResource CardAltBrush}">
+                                    <Image Width="32" Height="32" Stretch="Uniform"
+                                           Source="{Binding Converter={x:Static conv:GiftImageConverter.Instance}}" />
+                                </Border>
+                                <TextBlock Grid.Column="1" Text="{Binding DisplayName}" FontWeight="SemiBold"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right"
+                                            VerticalAlignment="Center">
+                                    <ctl:Icon Data="{StaticResource Icon.Gem}" Size="13" Foreground="{DynamicResource AccentTextBrush}" />
+                                    <TextBlock Text="{Binding Diamonds}" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                           Text="{Binding Seen}" Foreground="{DynamicResource MutedBrush}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <StackPanel Classes="empty" IsVisible="{Binding !Rows.Count}">
+                    <ctl:Icon Data="{StaticResource Icon.Search}" />
+                    <TextBlock Classes="h2" Text="No hay regalos que mostrar" />
+                    <TextBlock Classes="caption" Text="Cambia la búsqueda o activa «Todos los regalos de TikTok»." />
+                </StackPanel>
+            </Panel>
+        </DockPanel>
+    </Border>
 </UserControl>

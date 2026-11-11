@@ -74,7 +74,7 @@ public sealed class CatalogPickDialog : Window
         };
 
         var count = new TextBlock { FontSize = 12, Opacity = 0.75, Margin = new Thickness(2, 6, 0, 8) };
-        var search = new TextBox { PlaceholderText = "Buscar por nombre o id…" };
+        var search = new TextBox { PlaceholderText = "Buscar por nombre o id…", Classes = { "search" }, Padding = new Thickness(34, 0, 10, 0) };
         void Filter()
         {
             var query = search.Text;
@@ -120,6 +120,7 @@ public sealed class CatalogPickDialog : Window
 
         var buttons = new StackPanel
         {
+            Classes = { "bar" },
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Right,
             Spacing = 8,

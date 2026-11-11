@@ -225,6 +225,19 @@ public static class ThemeManager
         Alias(r, "RepeatButtonBackgroundPointerOver", "HoverBrush");
         Alias(r, "RepeatButtonBackgroundPressed", "PressedBrush");
         Alias(r, "RepeatButtonBorderBrush", "BorderBrush");
+        // Estados deshabilitados: atenuados sobre la propia superficie, no el gris claro de Fluent.
+        Alias(r, "TextControlBackgroundDisabled", "CardAltBrush");
+        Alias(r, "TextControlBorderBrushDisabled", "BorderBrush");
+        Alias(r, "TextControlForegroundDisabled", "FaintBrush");
+        Alias(r, "ButtonBackgroundDisabled", "CardAltBrush");
+        Alias(r, "ButtonBorderBrushDisabled", "BorderBrush");
+        Alias(r, "ButtonForegroundDisabled", "FaintBrush");
+        Alias(r, "ComboBoxBackgroundDisabled", "CardAltBrush");
+        Alias(r, "ComboBoxBorderBrushDisabled", "BorderBrush");
+        Alias(r, "ComboBoxForegroundDisabled", "FaintBrush");
+        Alias(r, "RepeatButtonBackgroundDisabled", "CardAltBrush");
+        Alias(r, "RepeatButtonBorderBrushDisabled", "BorderBrush");
+        Alias(r, "RepeatButtonForegroundDisabled", "FaintBrush");
 
         Set(r, "BrandBlueBrush", "#075BAA");
         Set(r, "BrandGoldBrush", "#EBA00A");

@@ -209,7 +209,7 @@
                 </TabItem.Header>
                 <Grid Margin="0,12,0,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" MinWidth="420" />
+                        <ColumnDefinition Width="*" MinWidth="340" />
                         <ColumnDefinition Width="16" />
                         <ColumnDefinition Width="400" />
                     </Grid.ColumnDefinitions>

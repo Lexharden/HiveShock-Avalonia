@@ -13,6 +13,19 @@
         Icon="/Assets/app.ico"
         ExtendClientAreaToDecorationsHint="True"
         Closing="Window_Closing">
+    <!-- Atajos: Ctrl+1…5 páginas, F1 ayuda, Ctrl+S guardar todo, Ctrl+Mayús+P pausa, Ctrl+B menú. -->
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+D1" Command="{Binding NavStudioCommand}" />
+        <KeyBinding Gesture="Ctrl+D2" Command="{Binding NavTikTokCommand}" />
+        <KeyBinding Gesture="Ctrl+D3" Command="{Binding NavTwitchCommand}" />
+        <KeyBinding Gesture="Ctrl+D4" Command="{Binding NavModerationCommand}" />
+        <KeyBinding Gesture="Ctrl+D5" Command="{Binding NavKeyMacrosCommand}" />
+        <KeyBinding Gesture="F1" Command="{Binding NavHelpCommand}" />
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveAllCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+P" Command="{Binding ToggleViewerEffectsPauseCommand}" />
+        <KeyBinding Gesture="Ctrl+B" Command="{Binding ToggleNavCommand}" />
+    </Window.KeyBindings>
+
     <Window.Styles>
         <!-- Punto de estado: gris en reposo, oro conectando, verde en vivo/ok (late en vivo). -->
         <Style Selector="Ellipse.statusDot">
@@ -101,7 +114,7 @@
                     <Button Classes="ghost pauseBtn" Classes.paused="{Binding ViewerEffectsPaused}"
                             Padding="10,4" MinHeight="28"
                             Command="{Binding ToggleViewerEffectsPauseCommand}"
-                            ToolTip.Tip="Pausa de emergencia: los espectadores dejan de activar efectos en el juego. Se reanuda sola al reabrir HiveShock.">
+                            ToolTip.Tip="Pausa de emergencia (Ctrl+Mayús+P): los espectadores dejan de activar efectos en el juego. Se reanuda sola al reabrir HiveShock.">
                         <StackPanel Classes="btnContent">
                             <Panel>
                                 <ctl:Icon Data="{StaticResource Icon.Pause}" IsVisible="{Binding !ViewerEffectsPaused}" />
@@ -209,7 +222,7 @@
                     <!-- Secundarias -->
                     <StackPanel DockPanel.Dock="Bottom">
                         <Button Classes="nav" Classes.active="{Binding IsHelpNav}"
-                                Command="{Binding NavHelpCommand}" ToolTip.Tip="Ayuda">
+                                Command="{Binding NavHelpCommand}" ToolTip.Tip="Ayuda (F1)">
                             <DockPanel>
                                 <Border Classes="navIndicator" />
                                 <ctl:Icon Data="{StaticResource Icon.Help}" Width="42" />
@@ -244,7 +257,7 @@
                         <TextBlock Classes="navGroup" Text="DIRECTO" IsVisible="{Binding NavExpanded}" />
                         <Border Height="14" IsVisible="{Binding NavCollapsed}" />
                         <Button Classes="nav" Classes.active="{Binding IsStudioNav}"
-                                Command="{Binding NavStudioCommand}" ToolTip.Tip="Inicio">
+                                Command="{Binding NavStudioCommand}" ToolTip.Tip="Inicio (Ctrl+1)">
                             <DockPanel>
                                 <Border Classes="navIndicator" />
                                 <ctl:Icon Data="{StaticResource Icon.Home}" Width="42" />
@@ -252,7 +265,7 @@
                             </DockPanel>
                         </Button>
                         <Button Classes="nav" Classes.active="{Binding IsTikTokNav}"
-                                Command="{Binding NavTikTokCommand}" ToolTip.Tip="TikTok">
+                                Command="{Binding NavTikTokCommand}" ToolTip.Tip="TikTok (Ctrl+2)">
                             <DockPanel>
                                 <Border Classes="navIndicator" />
                                 <ctl:Icon Data="{StaticResource Icon.TikTok}" Width="42" />
@@ -260,7 +273,7 @@
                             </DockPanel>
                         </Button>
                         <Button Classes="nav" Classes.active="{Binding IsTwitchNav}"
-                                Command="{Binding NavTwitchCommand}" ToolTip.Tip="Twitch">
+                                Command="{Binding NavTwitchCommand}" ToolTip.Tip="Twitch (Ctrl+3)">
                             <DockPanel>
                                 <Border Classes="navIndicator" />
                                 <ctl:Icon Data="{StaticResource Icon.Twitch}" Width="42" />
@@ -272,7 +285,7 @@
                         <Border Height="1" Margin="14,10" Background="{DynamicResource BorderBrush}"
                                 IsVisible="{Binding NavCollapsed}" />
                         <Button Classes="nav" Classes.active="{Binding IsModerationNav}"
-                                Command="{Binding NavModerationCommand}" ToolTip.Tip="Moderación">
+                                Command="{Binding NavModerationCommand}" ToolTip.Tip="Moderación (Ctrl+4)">
                             <DockPanel>
                                 <Border Classes="navIndicator" />
                                 <ctl:Icon Data="{StaticResource Icon.Shield}" Width="42" />
@@ -280,7 +293,7 @@
                             </DockPanel>
                         </Button>
                         <Button Classes="nav" Classes.active="{Binding IsKeyMacrosNav}"
-                                Command="{Binding NavKeyMacrosCommand}" ToolTip.Tip="Teclas">
+                                Command="{Binding NavKeyMacrosCommand}" ToolTip.Tip="Teclas (Ctrl+5)">
                             <DockPanel>
                                 <Border Classes="navIndicator" />
                                 <ctl:Icon Data="{StaticResource Icon.Keyboard}" Width="42" />

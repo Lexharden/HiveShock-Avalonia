@@ -24,6 +24,12 @@
         <Setter Property="Opacity" Value="0" />
     </Style>
 
+    <!-- Ventanas secundarias (diálogos). La principal y los overlays fijan su propio fondo. -->
+    <Style Selector="Window">
+        <Setter Property="Background" Value="{DynamicResource CardBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    </Style>
+
     <!-- ===================================================== Tipografía -->
     <Style Selector="TextBlock.h1">
         <Setter Property="FontSize" Value="20" />
@@ -179,6 +185,23 @@
         <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
         <Setter Property="Margin" Value="0,12" />
     </Style>
+    <!--
+        Fila de formulario de dos columnas. Dentro de un contenedor «editor» estrecho (p. ej. con el panel de
+        actividad abierto) pasa a una columna: ContainerQuery de Avalonia, como las container queries de CSS.
+    -->
+    <Style Selector="UniformGrid.formRow">
+        <Setter Property="Columns" Value="2" />
+        <Setter Property="ColumnSpacing" Value="16" />
+    </Style>
+    <ContainerQuery Name="editor" Query="max-width:620">
+        <Style Selector="UniformGrid.formRow">
+            <Setter Property="Columns" Value="1" />
+        </Style>
+        <Style Selector=":is(Control).wideOnly">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+    </ContainerQuery>
+
     <!-- Grupo de campo: etiqueta + control, con aire debajo. -->
     <Style Selector="StackPanel.field">
         <Setter Property="Spacing" Value="6" />

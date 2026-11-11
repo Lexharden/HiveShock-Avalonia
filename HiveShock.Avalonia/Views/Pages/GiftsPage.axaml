@@ -10,9 +10,9 @@
     -->
     <Grid Margin="0,12,0,0">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300" MinWidth="240" MaxWidth="520" />
+            <ColumnDefinition Width="280" MinWidth="220" MaxWidth="520" />
             <ColumnDefinition Width="12" />
-            <ColumnDefinition Width="*" MinWidth="420" />
+            <ColumnDefinition Width="*" MinWidth="340" />
         </Grid.ColumnDefinitions>
 
         <!-- ===================== Lista -->
@@ -126,7 +126,7 @@
         <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="Transparent" />
 
         <!-- ===================== Editor -->
-        <Border Grid.Column="2" Classes="panel">
+        <Border Grid.Column="2" Classes="panel" Container.Name="editor" Container.Sizing="Width">
             <Panel>
                 <StackPanel Classes="empty" IsVisible="{Binding !HasSelection}">
                     <ctl:Icon Data="{StaticResource Icon.Gift}" />
@@ -139,7 +139,7 @@
                     <Border DockPanel.Dock="Top" Classes="paneHeader" Padding="16,10">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="8">
-                                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center"
+                                <StackPanel Classes="wideOnly" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center"
                                             ToolTip.Tip="Cuántos regalos seguidos simular al probar.">
                                     <TextBlock Text="×" Classes="caption" FontSize="14" VerticalAlignment="Center" />
                                     <TextBox Text="{Binding TestComboText}" Width="52" HorizontalContentAlignment="Center" />
@@ -174,7 +174,7 @@
                                     <ctl:Icon Data="{StaticResource Icon.Bolt}" Size="16" Foreground="{DynamicResource GoldTextBrush}" />
                                     <TextBlock Classes="overline" Text="QUÉ HACE EN EL JUEGO" VerticalAlignment="Center" />
                                 </StackPanel>
-                                <Grid ColumnDefinitions="*,16,*">
+                                <UniformGrid Classes="formRow">
                                     <StackPanel Grid.Column="0" Classes="field">
                                         <TextBlock Classes="fieldLabel" Text="Nombre del regalo" />
                                         <TextBox Text="{Binding Selected.Name}" />
@@ -187,7 +187,7 @@
                                                   SelectedValueBinding="{Binding Id}"
                                                   DisplayMemberBinding="{Binding Display}" />
                                     </StackPanel>
-                                </Grid>
+                                </UniformGrid>
                                 <Border Classes="callout warn" Margin="0,0,0,14" IsVisible="{Binding Selected.ShowInstaKillHint}">
                                     <TextBlock Classes="caption" Foreground="{DynamicResource TextBrush}"
                                                Text="Para quitar N corazones usa Daño, no Instakill." />
@@ -259,7 +259,7 @@
                             <!-- Avanzado -->
                             <Expander Header="Avanzado: identificación del regalo">
                                 <StackPanel Margin="0,8,0,0">
-                                    <Grid ColumnDefinitions="*,16,*">
+                                    <UniformGrid Classes="formRow">
                                         <StackPanel Grid.Column="0" Classes="field">
                                             <TextBlock Classes="fieldLabel" Text="ID en TikTok (opcional)" />
                                             <TextBox Text="{Binding Selected.Id}" />
@@ -268,7 +268,7 @@
                                             <TextBlock Classes="fieldLabel" Text="Diamantes" />
                                             <TextBox Text="{Binding Selected.Diamonds}" />
                                         </StackPanel>
-                                    </Grid>
+                                    </UniformGrid>
                                     <StackPanel Classes="field">
                                         <TextBlock Classes="fieldLabel" Text="Otros nombres, separados por coma" />
                                         <TextBox Text="{Binding Selected.Also}" />

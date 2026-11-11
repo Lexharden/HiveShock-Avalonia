@@ -1,49 +1,196 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+             xmlns:ctl="using:HiveShock.Avalonia.Views.Controls"
              x:Class="HiveShock.Avalonia.Views.Pages.HelpPage"
              x:DataType="vm:HelpViewModel">
+    <UserControl.Styles>
+        <!-- Paso numerado: [1] texto -->
+        <Style Selector="Border.stepNum">
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="{DynamicResource GoldSubtleBrush}" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+        </Style>
+        <Style Selector="Border.stepNum > TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{DynamicResource GoldTextBrush}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="DockPanel.step">
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+        <Style Selector="DockPanel.step > TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="LineHeight" Value="20" />
+        </Style>
+        <!-- Término: definición -->
+        <Style Selector="StackPanel.term">
+            <Setter Property="Spacing" Value="2" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+        <Style Selector="StackPanel.term > TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="StackPanel.term > TextBlock:nth-child(1)">
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="StackPanel.term > TextBlock:nth-child(2)">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+        </Style>
+        <Style Selector="StackPanel.cardTitle">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Spacing" Value="10" />
+            <Setter Property="Margin" Value="0,0,0,16" />
+        </Style>
+        <Style Selector="StackPanel.cardTitle > ctl|Icon">
+            <Setter Property="Foreground" Value="{DynamicResource GoldTextBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Styles>
+
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel MaxWidth="640" HorizontalAlignment="Left">
-            <TextBlock Classes="pageTitle" Text="Ayuda" />
-            <TextBlock Classes="pageLead"
-                       Text="HiveShock lleva lo que pasa en el live al juego. Cada canal se configura por separado." />
+        <StackPanel MaxWidth="1080" HorizontalAlignment="Left">
+            <StackPanel Margin="0,0,0,18" Spacing="2">
+                <TextBlock Classes="h1" Text="Ayuda" />
+                <TextBlock Classes="caption" Text="HiveShock lleva lo que pasa en el live al juego. Cada canal se configura por separado." />
+            </StackPanel>
 
-            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,8,0,8" Text="Arranque" />
-            <TextBlock Classes="helpBullet" Text="1. Abre el juego, entra en una partida y deja el puente o el mod encendido." />
-            <TextBlock Classes="helpBullet" Text="2. En Inicio elige el mismo perfil." />
-            <TextBlock Classes="helpBullet" Text="3. En TikTok y/o Twitch entra con tu cuenta." />
-            <TextBlock Classes="helpBullet" Text="4. En cada canal, asigna efectos y guarda." />
-            <TextBlock Classes="helpBullet" Text="5. Inicio → En vivo → Conectar." />
+            <Grid ColumnDefinitions="*,16,*">
+                <StackPanel Grid.Column="0" Spacing="16">
+                    <Border Classes="section">
+                        <StackPanel>
+                            <StackPanel Classes="cardTitle">
+                                <ctl:Icon Data="{StaticResource Icon.Play}" />
+                                <TextBlock Classes="h2" Text="Primer directo en 5 pasos" />
+                            </StackPanel>
+                            <DockPanel Classes="step">
+                                <Border Classes="stepNum"><TextBlock Text="1" /></Border>
+                                <TextBlock Text="Abre el juego, entra en una partida y deja el puente o el mod encendido." />
+                            </DockPanel>
+                            <DockPanel Classes="step">
+                                <Border Classes="stepNum"><TextBlock Text="2" /></Border>
+                                <TextBlock Text="En Inicio, elige el mismo perfil (juego)." />
+                            </DockPanel>
+                            <DockPanel Classes="step">
+                                <Border Classes="stepNum"><TextBlock Text="3" /></Border>
+                                <TextBlock Text="En TikTok y/o Twitch, entra con tu cuenta." />
+                            </DockPanel>
+                            <DockPanel Classes="step">
+                                <Border Classes="stepNum"><TextBlock Text="4" /></Border>
+                                <TextBlock Text="En cada canal, asigna efectos a regalos, comandos y eventos." />
+                            </DockPanel>
+                            <DockPanel Classes="step" Margin="0">
+                                <Border Classes="stepNum"><TextBlock Text="5" /></Border>
+                                <TextBlock Text="Pulsa Conectar (abajo a la izquierda, siempre visible)." />
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
 
-            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,16,0,8" Text="Páginas" />
-            <TextBlock Classes="helpBullet" Text="Inicio — juego, conectar y ventanas de OBS." />
-            <TextBlock Classes="helpBullet" Text="TikTok — tu usuario, regalos, catálogo (todos los regalos de TikTok), metas y chat de TikTok." />
-            <TextBlock Classes="helpBullet" Text="Twitch — entrar con tu cuenta, chat, follows y bits." />
-            <TextBlock Classes="helpBullet" Text="Acerca de — versión, comunidad (Discord y YouTube), equipo y cómo apoyar el proyecto." />
-            <TextBlock Classes="helpBullet" Text="Chat: el mismo viewer espera unos segundos entre comandos. 0 = sin espera." />
+                    <Border Classes="section">
+                        <StackPanel>
+                            <StackPanel Classes="cardTitle">
+                                <ctl:Icon Data="{StaticResource Icon.Sliders}" />
+                                <TextBlock Classes="h2" Text="Modos de sesión" />
+                            </StackPanel>
+                            <StackPanel Classes="term">
+                                <TextBlock Text="En vivo" />
+                                <TextBlock Text="Los canales activos mandan efectos al juego." />
+                            </StackPanel>
+                            <StackPanel Classes="term">
+                                <TextBlock Text="Anotar regalos" />
+                                <TextBlock Text="Solo TikTok: guarda los nombres de los regalos que llegan, sin tocar el juego." />
+                            </StackPanel>
+                            <StackPanel Classes="term" Margin="0">
+                                <TextBlock Text="Probar sin live" />
+                                <TextBlock Text="Sin canales: para probar efectos con el puerto de pruebas." />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
 
-            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,16,0,8" Text="Cuentas" />
-            <TextBlock Classes="helpBody"
-                       Text="TikTok pide tu usuario (sin @). Twitch abre el navegador: autorizas y listo. Los mapeos de un canal no se mezclan con los del otro. Los bits se configuran solo en Twitch. Si ya habías entrado, Salir y Entrar otra vez para autorizar bits." />
+                    <Border Classes="section">
+                        <StackPanel>
+                            <StackPanel Classes="cardTitle">
+                                <ctl:Icon Data="{StaticResource Icon.Warning}" />
+                                <TextBlock Classes="h2" Text="Si no pasa nada" />
+                            </StackPanel>
+                            <StackPanel Spacing="8">
+                                <TextBlock Classes="body" Text="• ¿Perfil correcto y partida cargada?" />
+                                <TextBlock Classes="body" Text="• ¿El canal está en vivo y HiveShock conectado?" />
+                                <TextBlock Classes="body" Text="• ¿Ese evento tiene un efecto guardado en su canal?" />
+                                <TextBlock Classes="body" Text="• Metas: varios espectadores suman el mismo regalo (no hace falta combo de uno). Se ven en TikTok → Metas." />
+                                <TextBlock Classes="body" Text="• Abre el panel de actividad (icono arriba a la derecha) para ver qué está llegando." />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
 
-            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,8,0,8" Text="Modos" />
-            <TextBlock Classes="helpBullet" Text="En vivo — canales activos → efectos." />
-            <TextBlock Classes="helpBullet" Text="Anotar regalos — solo TikTok, guarda nombres." />
-            <TextBlock Classes="helpBullet" Text="Probar sin live — sin canales." />
+                <StackPanel Grid.Column="2" Spacing="16">
+                    <Border Classes="section">
+                        <StackPanel>
+                            <StackPanel Classes="cardTitle">
+                                <ctl:Icon Data="{StaticResource Icon.PanelLeft}" />
+                                <TextBlock Classes="h2" Text="Qué hay en cada página" />
+                            </StackPanel>
+                            <StackPanel Classes="term">
+                                <TextBlock Text="Inicio" />
+                                <TextBlock Text="Juego, modo de sesión, herramientas del juego y overlays para OBS." />
+                            </StackPanel>
+                            <StackPanel Classes="term">
+                                <TextBlock Text="TikTok" />
+                                <TextBlock Text="Tu usuario, regalos, catálogo de regalos, comandos de chat, eventos (seguidores, likes, compartir) y metas." />
+                            </StackPanel>
+                            <StackPanel Classes="term">
+                                <TextBlock Text="Twitch" />
+                                <TextBlock Text="Entrar con tu cuenta, comandos de chat, bits y seguidores." />
+                            </StackPanel>
+                            <StackPanel Classes="term">
+                                <TextBlock Text="Moderación" />
+                                <TextBlock Text="Pausa de emergencia y bloqueo de espectadores que abusan." />
+                            </StackPanel>
+                            <StackPanel Classes="term" Margin="0">
+                                <TextBlock Text="Teclas" />
+                                <TextBlock Text="Macros de teclado que se usan como un efecto más." />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
 
-            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,16,0,8" Text="Tus datos" />
-            <TextBlock Classes="helpBody"
-                       Text="El contador de muertes, el tema y los overlays se guardan solos cada vez que cambian, en tu carpeta de usuario y con una copia junto al programa. Por eso se conservan aunque actualices HiveShock o lo descomprimas en otra carpeta." />
+                    <Border Classes="section">
+                        <StackPanel>
+                            <StackPanel Classes="cardTitle">
+                                <ctl:Icon Data="{StaticResource Icon.Link}" />
+                                <TextBlock Classes="h2" Text="Cuentas" />
+                            </StackPanel>
+                            <TextBlock Classes="body" LineHeight="20"
+                                       Text="TikTok pide tu usuario (sin @). Twitch abre el navegador: autorizas y listo. Los efectos de un canal no se mezclan con los del otro. Los bits se configuran solo en Twitch; si ya habías entrado, sal y entra otra vez para autorizarlos." />
+                            <TextBlock Classes="caption" Margin="0,10,0,0"
+                                       Text="Chat: el mismo espectador espera unos segundos entre comandos (0 = sin espera)." />
+                        </StackPanel>
+                    </Border>
 
-            <TextBlock FontWeight="SemiBold" FontSize="15" Margin="0,16,0,8" Text="Si no pasa nada" />
-            <TextBlock Classes="helpBullet" Text="¿Perfil correcto y partida cargada?" />
-            <TextBlock Classes="helpBullet" Text="¿El canal está en vivo y HiveShock conectado?" />
-            <TextBlock Classes="helpBullet" Text="¿Ese evento tiene efecto guardado en su canal?" />
-            <TextBlock Classes="helpBullet" Text="Metas: varios viewers suman el mismo regalo (no hace falta combo de uno). Se ven en TikTok → Metas." />
+                    <Border Classes="section">
+                        <StackPanel>
+                            <StackPanel Classes="cardTitle">
+                                <ctl:Icon Data="{StaticResource Icon.Save}" />
+                                <TextBlock Classes="h2" Text="Tus datos" />
+                            </StackPanel>
+                            <TextBlock Classes="body" LineHeight="20"
+                                       Text="El contador de muertes, el tema y los overlays se guardan solos cada vez que cambian, en tu carpeta de usuario y con una copia junto al programa. Se conservan aunque actualices HiveShock o lo descomprimas en otra carpeta." />
+                        </StackPanel>
+                    </Border>
 
-            <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,24,0,0" TextWrapping="Wrap"
-                       Text="¿Dudas o ideas? Únete al Discord desde Acerca de. Quién hace el programa, también ahí." />
+                    <Border Classes="callout">
+                        <TextBlock Classes="caption" Foreground="{DynamicResource TextBrush}"
+                                   Text="¿Dudas o ideas? Únete al Discord desde Acerca de." />
+                    </Border>
+                </StackPanel>
+            </Grid>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

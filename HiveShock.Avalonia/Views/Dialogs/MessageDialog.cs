@@ -26,6 +26,7 @@ public sealed class MessageDialog : Window
 
         var buttons = new StackPanel
         {
+            Classes = { "bar" },
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Right,
             Spacing = 8,

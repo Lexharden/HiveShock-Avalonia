@@ -25,7 +25,7 @@ public sealed class UiPreferences
     public bool NavExpanded { get; set; } = true;
     public double ActivityPanelHeight { get; set; } = 220;
     /// <summary>Ancho del panel lateral de actividad (interfaz nueva: el panel va a la derecha).</summary>
-    public double ActivityPanelWidth { get; set; } = 340;
+    public double ActivityPanelWidth { get; set; } = 300;
     /// <summary>El panel de actividad empieza recogido: solo pesa lo justo salvo que el usuario lo abra.</summary>
     public bool ActivityPanelOpen { get; set; }
 

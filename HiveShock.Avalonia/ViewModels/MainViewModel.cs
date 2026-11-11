@@ -188,7 +188,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public bool StatusOn => StatusTone is "connecting" or "ok" or "live";
     public bool NavCollapsed => !NavExpanded;
     public double SidebarWidth => NavExpanded ? 220 : 64;
-    public string NavToggleTip => NavExpanded ? "Ocultar menú" : "Mostrar menú";
+    public string NavToggleTip => NavExpanded ? "Ocultar menú (Ctrl+B)" : "Mostrar menú (Ctrl+B)";
 
     public void Attach()
     {
@@ -542,6 +542,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [RelayCommand]
     private void NavStudio() => GoStudio();
 
+
     [RelayCommand]
     private void NavTikTok() => GoTikTok();
 
@@ -590,6 +591,15 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     [RelayCommand]
     private void ToggleActivityPanel() => ActivityPanelOpen = !ActivityPanelOpen;
+
+    /// <summary>Ctrl+S: guarda ya todo lo pendiente (regalos, metas, eventos, macros), con o sin autoguardado.</summary>
+    [RelayCommand]
+    private void SaveAll()
+    {
+        LastActivityLine = AutoSaver.FlushAll(out var error)
+            ? "Todo guardado."
+            : $"No se pudo guardar: {error}";
+    }
 
     private void OnViewerPauseChanged(bool paused) => Dispatch(() => ViewerEffectsPaused = paused);
 

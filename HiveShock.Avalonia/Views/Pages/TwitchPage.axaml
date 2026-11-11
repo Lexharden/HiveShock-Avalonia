@@ -48,7 +48,7 @@
                 <TabItem.Header>
                     <StackPanel Classes="tabHeader">
                         <ctl:Icon Data="{StaticResource Icon.Chat}" />
-                        <TextBlock Text="Comandos de chat" />
+                        <TextBlock Text="Chat" />
                     </StackPanel>
                 </TabItem.Header>
                 <DockPanel Margin="0,12,0,0">
@@ -77,9 +77,9 @@
 
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="300" MinWidth="240" MaxWidth="520" />
+                            <ColumnDefinition Width="280" MinWidth="220" MaxWidth="520" />
                             <ColumnDefinition Width="12" />
-                            <ColumnDefinition Width="*" MinWidth="380" />
+                            <ColumnDefinition Width="*" MinWidth="340" />
                         </Grid.ColumnDefinitions>
                         <Border Classes="panel">
                             <DockPanel>
@@ -153,7 +153,7 @@
 
                         <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
 
-                        <Border Grid.Column="2" Classes="panel">
+                        <Border Grid.Column="2" Classes="panel" Container.Name="editor" Container.Sizing="Width">
                             <Panel>
                                 <StackPanel Classes="empty" IsVisible="{Binding Events.SelectedTwitchCommand, Converter={x:Static ObjectConverters.IsNull}}">
                                     <ctl:Icon Data="{StaticResource Icon.Chat}" />
@@ -164,7 +164,7 @@
                                               IsVisible="{Binding Events.SelectedTwitchCommand, Converter={x:Static ObjectConverters.IsNotNull}}">
                                     <StackPanel Margin="20,18,20,24" MaxWidth="720" DataContext="{Binding Events.SelectedTwitchCommand}"
                                                 x:DataType="vm:ChatCommandRowViewModel">
-                                        <Grid ColumnDefinitions="*,16,*">
+                                        <UniformGrid Classes="formRow">
                                             <StackPanel Grid.Column="0" Classes="field">
                                                 <TextBlock Classes="fieldLabel" Text="Palabra que escribe el espectador" />
                                                 <TextBox Text="{Binding Word}" PlaceholderText="p. ej. saltar" />
@@ -177,7 +177,7 @@
                                                           SelectedValueBinding="{Binding Id}"
                                                           DisplayMemberBinding="{Binding Display}" />
                                             </StackPanel>
-                                        </Grid>
+                                        </UniformGrid>
                                         <ctl:StepListEditor DataContext="{Binding Steps}" Margin="0,6,0,0" />
                                     </StackPanel>
                                 </ScrollViewer>
@@ -197,9 +197,9 @@
                 </TabItem.Header>
                 <Grid Margin="0,12,0,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="300" MinWidth="240" MaxWidth="520" />
+                        <ColumnDefinition Width="280" MinWidth="220" MaxWidth="520" />
                         <ColumnDefinition Width="12" />
-                        <ColumnDefinition Width="*" MinWidth="380" />
+                        <ColumnDefinition Width="*" MinWidth="340" />
                     </Grid.ColumnDefinitions>
                     <Border Classes="panel">
                         <DockPanel>
@@ -273,7 +273,7 @@
 
                     <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
 
-                    <Border Grid.Column="2" Classes="panel">
+                    <Border Grid.Column="2" Classes="panel" Container.Name="editor" Container.Sizing="Width">
                         <Panel>
                             <StackPanel Classes="empty" IsVisible="{Binding Events.SelectedBitsRule, Converter={x:Static ObjectConverters.IsNull}}">
                                 <ctl:Icon Data="{StaticResource Icon.Gem}" />

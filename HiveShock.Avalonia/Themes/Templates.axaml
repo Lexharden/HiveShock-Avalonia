@@ -15,7 +15,7 @@
     <DataTemplate x:Key="ParamFieldTemplate" x:DataType="vm:EffectParamFieldViewModel">
         <StackPanel Spacing="6" MinWidth="120">
             <TextBlock Classes="fieldLabel" Margin="0" Text="{Binding Label}" />
-            <TextBox Text="{Binding ValueText}" Width="120" HorizontalAlignment="Left"
+            <TextBox Text="{Binding ValueText}" Width="170" HorizontalAlignment="Left"
                      PlaceholderText="{Binding Hint}" />
         </StackPanel>
     </DataTemplate>
