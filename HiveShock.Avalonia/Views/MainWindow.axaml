@@ -111,7 +111,7 @@
                         </StackPanel>
                     </Button>
 
-                    <Button Classes="ghost pauseBtn" Classes.paused="{Binding ViewerEffectsPaused}"
+                    <Button ctl:Tour.Key="titlebar.pause" Classes="ghost pauseBtn" Classes.paused="{Binding ViewerEffectsPaused}"
                             Padding="10,4" MinHeight="28"
                             Command="{Binding ToggleViewerEffectsPauseCommand}"
                             ToolTip.Tip="Pausa de emergencia (Ctrl+Mayús+P): los espectadores dejan de activar efectos en el juego. Se reanuda sola al reabrir HiveShock.">
@@ -126,27 +126,44 @@
 
                     <Border Width="1" Height="18" Margin="4,0" Background="{DynamicResource BorderBrush}" />
 
-                    <Button Classes="icon" ToolTip.Tip="Tema de la aplicación">
-                        <ctl:Icon Data="{StaticResource Icon.Palette}" />
+                    <Button x:Name="PrefsButton" ctl:Tour.Key="titlebar.prefs" Classes="icon" ToolTip.Tip="Preferencias">
+                        <ctl:Icon Data="{StaticResource Icon.Sliders}" />
                         <Button.Flyout>
                             <Flyout Placement="BottomEdgeAlignedRight">
-                                <StackPanel Width="220" Spacing="8" Margin="4">
-                                    <TextBlock Classes="overline" Text="TEMA" />
-                                    <ComboBox HorizontalAlignment="Stretch"
-                                              ItemsSource="{Binding ThemeOptions}"
-                                              SelectedItem="{Binding SelectedTheme}">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate x:DataType="vm:ThemeOption">
-                                                <TextBlock Text="{Binding Label}" />
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
+                                <StackPanel Width="280" Spacing="14" Margin="6">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Classes="overline" Text="TEMA" />
+                                        <ComboBox HorizontalAlignment="Stretch"
+                                                  ItemsSource="{Binding ThemeOptions}"
+                                                  SelectedItem="{Binding SelectedTheme}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:ThemeOption">
+                                                    <TextBlock Text="{Binding Label}" />
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Classes="overline" Text="AL CERRAR LA VENTANA (X)" />
+                                        <ToggleSwitch IsChecked="{Binding CloseToTray}"
+                                                      OnContent="Seguir en segundo plano" OffContent="Cerrar HiveShock" />
+                                        <TextBlock Classes="caption" FontSize="11"
+                                                   Text="En segundo plano el directo, los efectos y los overlays siguen funcionando. Vuelves desde el icono de la bandeja; para cerrar del todo, «Salir» en su menú." />
+                                    </StackPanel>
+                                    <Border Classes="divider" Margin="0" />
+                                    <Button Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                            Click="ReplayTutorial_Click">
+                                        <StackPanel Classes="btnContent">
+                                            <ctl:Icon Data="{StaticResource Icon.Help}" />
+                                            <TextBlock Text="Ver el tutorial otra vez" />
+                                        </StackPanel>
+                                    </Button>
                                 </StackPanel>
                             </Flyout>
                         </Button.Flyout>
                     </Button>
 
-                    <ToggleButton Classes="icon" IsChecked="{Binding ActivityPanelOpen}"
+                    <ToggleButton ctl:Tour.Key="titlebar.activity" Classes="icon" IsChecked="{Binding ActivityPanelOpen}"
                                   ToolTip.Tip="Actividad del directo (lo que está pasando)">
                         <ctl:Icon Data="{StaticResource Icon.PanelRight}" />
                     </ToggleButton>
@@ -173,7 +190,7 @@
         <!-- ============================================================ Cuerpo -->
         <DockPanel Grid.Row="1">
             <!-- Barra lateral -->
-            <Border DockPanel.Dock="Left"
+            <Border DockPanel.Dock="Left" ctl:Tour.Key="nav"
                     Width="{Binding SidebarWidth}"
                     Background="{DynamicResource SidebarBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
@@ -186,7 +203,7 @@
                 </Border.Transitions>
                 <DockPanel Margin="0,8,0,10">
                     <!-- Sesión: estado + conectar, siempre a mano desde cualquier página. -->
-                    <Border DockPanel.Dock="Bottom" Margin="8,8,8,0" Padding="10" CornerRadius="8"
+                    <Border DockPanel.Dock="Bottom" ctl:Tour.Key="sidebar.connect" Margin="8,8,8,0" Padding="10" CornerRadius="8"
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                             IsVisible="{Binding NavExpanded}">
@@ -208,7 +225,7 @@
                                     IsEnabled="{Binding Studio.CanConnect}" />
                         </StackPanel>
                     </Border>
-                    <Button DockPanel.Dock="Bottom" Classes="connect" Margin="10,8,10,0" Padding="0" Height="40"
+                    <Button DockPanel.Dock="Bottom" ctl:Tour.Key="sidebar.connect" Classes="connect" Margin="10,8,10,0" Padding="0" Height="40"
                             IsVisible="{Binding NavCollapsed}"
                             Classes.connecting="{Binding Studio.IsToneConnecting}"
                             Classes.live="{Binding Studio.IsToneLive}"
@@ -221,7 +238,7 @@
 
                     <!-- Secundarias -->
                     <StackPanel DockPanel.Dock="Bottom">
-                        <Button Classes="nav" Classes.active="{Binding IsHelpNav}"
+                        <Button ctl:Tour.Key="nav.help" Classes="nav" Classes.active="{Binding IsHelpNav}"
                                 Command="{Binding NavHelpCommand}" ToolTip.Tip="Ayuda (F1)">
                             <DockPanel>
                                 <Border Classes="navIndicator" />
@@ -391,5 +408,9 @@
                 </Border>
             </Grid>
         </DockPanel>
+
+        <!-- Tutorial guiado: por encima de todo (incluida la barra de título). -->
+        <ctl:TourOverlay Grid.Row="0" Grid.RowSpan="2" ZIndex="500"
+                         DataContext="{Binding Tutorial}" IsVisible="{Binding IsOpen}" />
     </Grid>
 </Window>

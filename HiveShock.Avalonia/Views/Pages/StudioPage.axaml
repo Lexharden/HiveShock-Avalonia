@@ -26,7 +26,7 @@
 
         <TabControl>
             <!-- ================================================= Directo -->
-            <TabItem>
+            <TabItem ctl:Tour.Key="studio.tab.live">
                 <TabItem.Header>
                     <StackPanel Classes="tabHeader">
                         <ctl:Icon Data="{StaticResource Icon.Play}" />
@@ -41,7 +41,7 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Juegos -->
-                    <Border Grid.Column="0" Classes="panel">
+                    <Border Grid.Column="0" Classes="panel" ctl:Tour.Key="studio.games">
                         <DockPanel>
                             <Border DockPanel.Dock="Top" Classes="paneHeader">
                                 <DockPanel>
@@ -115,7 +115,7 @@
                     <!-- Sesión y herramientas del juego -->
                     <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
                         <StackPanel Spacing="12">
-                            <Border Classes="section">
+                            <Border Classes="section" ctl:Tour.Key="studio.session">
                                 <StackPanel>
                                     <TextBlock Classes="h2" Text="Sesión" Margin="0,0,0,12" />
                                     <TextBlock Classes="fieldLabel" Text="Modo" />
@@ -200,14 +200,14 @@
             </TabItem>
 
             <!-- ================================================= Overlays -->
-            <TabItem>
+            <TabItem ctl:Tour.Key="studio.tab.overlays">
                 <TabItem.Header>
                     <StackPanel Classes="tabHeader">
                         <ctl:Icon Data="{StaticResource Icon.Monitor}" />
                         <TextBlock Text="Overlays para OBS" />
                     </StackPanel>
                 </TabItem.Header>
-                <Grid Margin="0,12,0,0">
+                <Grid Margin="0,12,0,0" ctl:Tour.Key="studio.overlays">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" MinWidth="340" />
                         <ColumnDefinition Width="16" />

@@ -84,7 +84,7 @@
             </ScrollViewer>
 
             <!-- ================= Espectadores -->
-            <Grid Grid.Column="2" RowDefinitions="*,12,*">
+            <Grid Grid.Column="2" RowDefinitions="*,12,*" ctl:Tour.Key="mod.viewers">
                 <Border Grid.Row="0" Classes="panel">
                     <DockPanel>
                         <Border DockPanel.Dock="Top" Classes="paneHeader">

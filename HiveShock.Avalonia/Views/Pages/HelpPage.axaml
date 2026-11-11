@@ -57,10 +57,20 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="1080" HorizontalAlignment="Left">
-            <StackPanel Margin="0,0,0,18" Spacing="2">
-                <TextBlock Classes="h1" Text="Ayuda" />
-                <TextBlock Classes="caption" Text="HiveShock lleva lo que pasa en el live al juego. Cada canal se configura por separado." />
-            </StackPanel>
+            <DockPanel Margin="0,0,0,18">
+                <Button DockPanel.Dock="Right" Classes="primary" Margin="16,0,0,0" VerticalAlignment="Center"
+                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).Tutorial.StartCommand}"
+                        ToolTip.Tip="Recorrido guiado por toda la app, paso a paso.">
+                    <StackPanel Classes="btnContent">
+                        <ctl:Icon Data="{StaticResource Icon.Play}" />
+                        <TextBlock Text="Ver el tutorial" />
+                    </StackPanel>
+                </Button>
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="h1" Text="Ayuda" />
+                    <TextBlock Classes="caption" Text="HiveShock lleva lo que pasa en el live al juego. Cada canal se configura por separado." />
+                </StackPanel>
+            </DockPanel>
 
             <Grid ColumnDefinitions="*,16,*">
                 <StackPanel Grid.Column="0" Spacing="16">
@@ -182,6 +192,27 @@
                             </StackPanel>
                             <TextBlock Classes="body" LineHeight="20"
                                        Text="El contador de muertes, el tema y los overlays se guardan solos cada vez que cambian, en tu carpeta de usuario y con una copia junto al programa. Se conservan aunque actualices HiveShock o lo descomprimas en otra carpeta." />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Classes="section">
+                        <StackPanel>
+                            <StackPanel Classes="cardTitle">
+                                <ctl:Icon Data="{StaticResource Icon.Keyboard}" />
+                                <TextBlock Classes="h2" Text="Atajos y segundo plano" />
+                            </StackPanel>
+                            <StackPanel Classes="term">
+                                <TextBlock Text="Ctrl+1…5 · F1 · Ctrl+B" />
+                                <TextBlock Text="Ir a cada página, abrir la Ayuda y plegar el menú." />
+                            </StackPanel>
+                            <StackPanel Classes="term">
+                                <TextBlock Text="Ctrl+S · Ctrl+Mayús+P" />
+                                <TextBlock Text="Guardar todo lo pendiente y pausa de emergencia." />
+                            </StackPanel>
+                            <StackPanel Classes="term" Margin="0">
+                                <TextBlock Text="La X de la ventana" />
+                                <TextBlock Text="Deja HiveShock en la bandeja del sistema con el directo funcionando. Vuelves con su icono; para cerrar del todo, «Salir de HiveShock» en su menú. Se cambia en Preferencias." />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 

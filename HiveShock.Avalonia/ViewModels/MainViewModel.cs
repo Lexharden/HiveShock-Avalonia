@@ -58,6 +58,8 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         ActivityPanelHeight = Math.Clamp(Prefs.ActivityPanelHeight, MinActivityPanelHeight, MaxActivityPanelHeight);
         ActivityPanelWidth = Math.Clamp(Prefs.ActivityPanelWidth, MinActivityPanelWidth, MaxActivityPanelWidth);
         NavExpanded = Prefs.NavExpanded;
+        CloseToTray = Prefs.CloseToTray;
+        Tutorial = new TutorialViewModel(this);
         SelectedThemeId = Prefs.Theme is "dark" or "light" ? Prefs.Theme : "system";
 
         Overlays.GiftLookup = key => Runtime.Catalog.FindByKey(key) is { } gift
@@ -110,6 +112,12 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public OverlayService Overlays { get; }
 
     public StudioViewModel Studio { get; }
+
+    /// <summary>Tutorial guiado (primera vez y desde Ayuda/Preferencias).</summary>
+    public TutorialViewModel Tutorial { get; }
+
+    /// <summary>Ya empezó el cierre real (ShutdownAsync): la X o un Close() ya no deben esconder la ventana.</summary>
+    public bool IsShuttingDown => _closing;
     public GiftsViewModel Gifts { get; }
     public CatalogViewModel Catalog { get; }
     public EventsViewModel Events { get; }
@@ -165,6 +173,8 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private string _selectedThemeId = "system";
     [ObservableProperty] private bool _navExpanded = true;
     [ObservableProperty] private bool _viewerEffectsPaused;
+    /// <summary>La X deja HiveShock en la bandeja (Preferencias). Se guarda en <see cref="UiPreferences.CloseToTray"/>.</summary>
+    [ObservableProperty] private bool _closeToTray = true;
 
     public string PauseButtonText => ViewerEffectsPaused ? "▶ Efectos en pausa · Reanudar" : "⏸ Pausar efectos";
 
@@ -602,6 +612,19 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     }
 
     private void OnViewerPauseChanged(bool paused) => Dispatch(() => ViewerEffectsPaused = paused);
+
+    partial void OnCloseToTrayChanged(bool value)
+    {
+        if (Prefs.CloseToTray == value)
+        {
+            return;
+        }
+
+        Prefs.CloseToTray = value;
+        // Cambiarlo a mano en Preferencias también cuenta como elección: ya no se vuelve a preguntar.
+        Prefs.CloseActionChosen = true;
+        Prefs.Save();
+    }
 
     partial void OnNavExpandedChanged(bool value)
     {

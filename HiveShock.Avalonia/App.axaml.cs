@@ -51,9 +51,44 @@ public partial class App : Application
             desktop.MainWindow = window;
             // Show de la principal ocurre al arrancar el lifetime; overlays después de Opened.
             window.Opened += (_, _) => vm.Attach();
+            WireBackgroundMode(desktop, window, vm);
+
+            // Tutorial la primera vez: un poco después de abrir, con la ventana ya maquetada.
+            window.Opened += (_, _) => DispatcherTimer.RunOnce(vm.Tutorial.StartIfFirstRun, TimeSpan.FromMilliseconds(700));
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    /// <summary>
+    /// Segundo plano: icono en la bandeja, otra copia que se abre (instancia única), Dock de macOS y la cuenta
+    /// atrás de «Reiniciar el equipo», que debe verse aunque la ventana esté escondida para poder cancelarla.
+    /// </summary>
+    private void WireBackgroundMode(IClassicDesktopStyleApplicationLifetime desktop, MainWindow window, MainViewModel vm)
+    {
+        var tray = new TrayService(vm, window.ShowFromBackground, window.QuitApplication);
+        desktop.Exit += (_, _) => tray.Dispose();
+
+        SingleInstance.Listen(() => Dispatcher.UIThread.Post(window.ShowFromBackground));
+
+        if (TryGetFeature(typeof(IActivatableLifetime)) is IActivatableLifetime activatable)
+        {
+            activatable.Activated += (_, e) =>
+            {
+                if (e.Kind == ActivationKind.Reopen)
+                {
+                    window.ShowFromBackground();
+                }
+            };
+        }
+
+        vm.SystemFx.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SystemEffectsViewModel.IsCounting) && vm.SystemFx.IsCounting)
+            {
+                Dispatcher.UIThread.Post(window.ShowFromBackground);
+            }
+        };
     }
 
     private async void OnUiUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs args)

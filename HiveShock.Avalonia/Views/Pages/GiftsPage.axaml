@@ -16,7 +16,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- ===================== Lista -->
-        <Border Grid.Column="0" Classes="panel">
+        <Border Grid.Column="0" Classes="panel" ctl:Tour.Key="tiktok.gifts.list">
             <DockPanel>
                 <Border DockPanel.Dock="Top" Classes="paneHeader">
                     <DockPanel>
@@ -126,7 +126,7 @@
         <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="Transparent" />
 
         <!-- ===================== Editor -->
-        <Border Grid.Column="2" Classes="panel" Container.Name="editor" Container.Sizing="Width">
+        <Border Grid.Column="2" Classes="panel" ctl:Tour.Key="tiktok.gifts.editor" Container.Name="editor" Container.Sizing="Width">
             <Panel>
                 <StackPanel Classes="empty" IsVisible="{Binding !HasSelection}">
                     <ctl:Icon Data="{StaticResource Icon.Gift}" />

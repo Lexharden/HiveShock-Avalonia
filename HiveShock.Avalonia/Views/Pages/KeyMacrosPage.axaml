@@ -35,7 +35,7 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Lista -->
-                    <Border Classes="panel">
+                    <Border Classes="panel" ctl:Tour.Key="keys.list">
                         <DockPanel>
                             <Border DockPanel.Dock="Top" Classes="paneHeader">
                                 <DockPanel>

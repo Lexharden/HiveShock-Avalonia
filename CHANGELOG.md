@@ -4,6 +4,20 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+### Interfaz nueva
+* **Rediseño completo de la app de escritorio:** barra de título propia, menú lateral con iconos (plegable con Ctrl+B), tarjeta de «Conectar» siempre visible y panel de actividad a la derecha con la última línea siempre a la vista abajo.
+* **Más espacio para editar:** Regalos, Comandos, Metas, Bits y Teclas en lista + editor, con las acciones (añadir, probar, guardar) fijas arriba y abajo. Los formularios pasan a una columna si la ventana es estrecha.
+* Catálogo como tabla con buscador, Moderación en dos columnas, Inicio con la sesión a la derecha y los overlays de OBS en su propia pestaña con vista previa. Tema claro y oscuro revisados.
+* **Atajos:** Ctrl+1…5 (páginas), F1 (Ayuda), Ctrl+S (guardar todo), Ctrl+Mayús+P (pausa de emergencia).
+
+### Tutorial guiado
+* La primera vez que se abre, un recorrido paso a paso resalta cada parte de la app y explica para qué sirve. Se navega con los botones o con ← → y Esc; se puede saltar en cualquier momento y repetir desde Ayuda o Preferencias.
+
+### Segundo plano y bandeja del sistema
+* **La X ya no cierra HiveShock:** lo deja en la bandeja del sistema (barra de menús en macOS) con el directo, los efectos y los overlays funcionando. Su icono lo vuelve a abrir y su menú permite pausar los efectos o salir. La primera vez se pregunta qué prefieres; se cambia en Preferencias. En Linux la X minimiza a la barra de tareas.
+* **Una sola copia abierta:** abrir HiveShock cuando ya está en marcha muestra la ventana existente en vez de arrancar otra (dos copias peleaban por los puertos y podían lanzar los efectos dos veces).
+* Si se dispara «Reiniciar el equipo» con la ventana escondida, la ventana vuelve a aparecer para poder cancelar la cuenta atrás.
+
 ## [2.12.5] - 2026-11-05
 
 ### Perfiles

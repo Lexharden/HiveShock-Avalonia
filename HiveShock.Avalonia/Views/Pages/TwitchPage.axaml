@@ -8,7 +8,7 @@
     <DockPanel>
         <!-- ============================== Cabecera -->
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-            <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="10">
+            <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="10" ctl:Tour.Key="twitch.account">
                 <ToggleSwitch IsChecked="{Binding Studio.TwitchEnabled}" IsEnabled="{Binding Studio.CanEditSetup}"
                               OnContent="Activo en este directo" OffContent="Desactivado"
                               ToolTip.Tip="Si está desactivado, HiveShock no se conecta al chat de Twitch." />

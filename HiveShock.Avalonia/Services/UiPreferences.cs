@@ -29,6 +29,13 @@ public sealed class UiPreferences
     /// <summary>El panel de actividad empieza recogido: solo pesa lo justo salvo que el usuario lo abra.</summary>
     public bool ActivityPanelOpen { get; set; }
 
+    /// <summary>La X de la ventana deja HiveShock en la bandeja del sistema (el directo sigue) en vez de cerrarlo.</summary>
+    public bool CloseToTray { get; set; } = true;
+    /// <summary>Ya se preguntó (una vez) qué hacer al pulsar la X; desde entonces se respeta <see cref="CloseToTray"/>.</summary>
+    public bool CloseActionChosen { get; set; }
+    /// <summary>El tutorial guiado ya se vio (terminado o saltado). Se puede repetir desde Ayuda o Preferencias.</summary>
+    public bool TutorialCompleted { get; set; }
+
     /// <summary>Guarda solo (con una pequeña espera) los cambios de regalos, metas y eventos.</summary>
     public bool AutoSaveEnabled { get; set; } = true;
 
