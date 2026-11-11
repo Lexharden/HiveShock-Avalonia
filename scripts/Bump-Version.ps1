@@ -3,7 +3,7 @@
   Sube o fija la versión de HiveShock (Directory.Build.props + CHANGELOG).
 
 .DESCRIPTION
-  No hace git commit ni tag. Admite versiones preliminares SemVer (alpha → beta → rc → final):
+  No hace git commit ni tag (eso lo hace .\scripts\Release.ps1). Lo apuntado en [Unreleased] pasa a la nueva versión. Admite versiones preliminares SemVer (alpha → beta → rc → final):
 
     patch | minor | major          1.3.0 → 1.3.1 | 1.4.0 | 2.0.0
     major alpha                    1.3.0 → 2.0.0-alpha.1   (también con patch/minor y beta/rc)
@@ -115,12 +115,21 @@ $props2 = [regex]::Replace($props, "<Version>[^<]+</Version>", "<Version>$next</
 [System.IO.File]::WriteAllText($propsPath, $props2.TrimEnd() + "`n", $utf8)
 
 $today = Get-Date -Format "yyyy-MM-dd"
-$section = "## [$next] - $today`n`n- `n`n"
+$header = "## [$next] - $today"
+$section = "$header`n`n- `n`n"
 if (Test-Path $changelogPath) {
-    $body = [System.IO.File]::ReadAllText($changelogPath, $utf8)
+    $body = [System.IO.File]::ReadAllText($changelogPath, $utf8).TrimStart([char]0xFEFF)
     $marker = "## [Unreleased]"
-    if ($body.Contains($marker)) {
-        $body = $body.Replace($marker, "$marker`n`n$($section.TrimEnd())`n")
+    $at = $body.IndexOf($marker)
+    if ($at -ge 0) {
+        # Lo apuntado en [Unreleased] pasa a la nueva versión; [Unreleased] queda vacío.
+        # Sin nada apuntado, se deja un punto vacío que check_release.py obliga a rellenar.
+        $start = $at + $marker.Length
+        $end = $body.IndexOf("`n## [", $start)
+        $end = if ($end -lt 0) { $body.Length } else { $end + 1 }
+        $pending = $body.Substring($start, $end - $start).Trim()
+        $newSection = if ($pending) { "$header`n`n$pending`n`n" } else { $section }
+        $body = $body.Substring(0, $at) + "$marker`n`n" + $newSection + $body.Substring($end)
     }
     else {
         $body = $section + $body
@@ -136,10 +145,7 @@ if ($next.Contains("-")) {
     Write-Host "(Preliminar: GitHub la publicará marcada como pre-release, no como la última estable.)"
 }
 Write-Host ""
-Write-Host "Siguiente (tú, cuando quieras):"
-Write-Host "  git add Directory.Build.props CHANGELOG.md"
-Write-Host "  git commit -m `"release: v$next`""
-Write-Host "  git tag v$next"
-Write-Host "  git push && git push --tags"
+Write-Host "Revisa la sección $next del CHANGELOG (de ahí salen las notas del release) y después:"
+Write-Host "  .\scripts\Release.ps1 -Push"
 Write-Host ""
 Write-Host "El tag v$next dispara el release de Windows, macOS y Linux en GitHub Actions."

@@ -153,16 +153,16 @@ Versiones preliminares (alpha → beta → rc → final):
 
 En Windows: `.\scripts\Bump-Version.ps1 patch` (mismos argumentos). Una versión con `-` se publica en GitHub como **pre-release**, y en el `Info.plist` de macOS se usa solo la parte numérica.
 
-Eso actualiza `Directory.Build.props` y añade una sección en `CHANGELOG.md`. **No hace commit ni tag.** Cuando quieras publicar:
+Eso actualiza `Directory.Build.props` y **mueve lo apuntado en `[Unreleased]` del `CHANGELOG.md` a la nueva versión** (si no había nada, deja un punto vacío que hay que rellenar). **No hace commit ni tag.** Revisa la sección y publica:
 
-```bash
-git add Directory.Build.props CHANGELOG.md
-git commit -m "release: v1.0.1"
-git tag v1.0.1
-git push && git push --tags
+```powershell
+.\scripts\Release.ps1          # comprueba, compila, pasa los tests, commit «release: vX» y tag anotado
+.\scripts\Release.ps1 -Push    # lo mismo y además sube la rama y el tag
 ```
 
-El tag `vX.Y.Z` tiene que coincidir con `Directory.Build.props`. GitHub Actions empaqueta Windows, macOS, Linux y Android y crea el Release.
+`Release.ps1` se para si la sección del CHANGELOG falta o está vacía, si hay otros cambios sin commit, si el tag ya existe o si la rama va por detrás del remoto. Las versiones estables solo salen de `main`; las preliminares (alpha/beta/rc) pueden salir de su rama para que `main` siga libre para arreglos. La misma comprobación (`python scripts/check_release.py`) corre en el workflow antes de compilar.
+
+El tag `vX.Y.Z` tiene que coincidir con `Directory.Build.props`. GitHub Actions empaqueta Windows, macOS, Linux y Android y crea el Release con las notas de esa sección del CHANGELOG. Una pre-release solo la ofrece el actualizador a quien tenga activadas las versiones beta.
 
 ## Publicar en local
 

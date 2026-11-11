@@ -14,10 +14,13 @@ set -euo pipefail
 #   ./scripts/bump-version.sh 2.0.0-alpha.1         fija la versión exacta
 #
 # No hace git commit ni tag. Después:
+#   pwsh scripts/Release.ps1 -Push     (comprueba, compila, prueba, commit, tag y sube)
+# o a mano:
+#   python3 scripts/check_release.py
 #   git add Directory.Build.props CHANGELOG.md
 #   git commit -m "release: vX.Y.Z"
-#   git tag vX.Y.Z
-#   git push && git push --tags
+#   git tag -a vX.Y.Z -m "HiveShock X.Y.Z"
+#   git push && git push origin vX.Y.Z
 # ============================================================
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -115,13 +118,22 @@ if n != 1:
 props.write_text(new_text, encoding="utf-8", newline="\n")
 
 today = datetime.date.today().isoformat()
-section = f"## [{next_ver}] - {today}\n\n- \n\n"
+header = f"## [{next_ver}] - {today}"
+section = f"{header}\n\n- \n\n"
 clog = pathlib.Path(changelog_path)
 if clog.exists():
-    body = clog.read_text(encoding="utf-8")
+    body = clog.read_text(encoding="utf-8-sig")
     marker = "## [Unreleased]"
-    if marker in body:
-        body = body.replace(marker, marker + "\n\n" + section.rstrip() + "\n", 1)
+    at = body.find(marker)
+    if at >= 0:
+        # Lo apuntado en [Unreleased] pasa a la nueva versión; [Unreleased] queda vacío.
+        # Sin nada apuntado, se deja un punto vacío que check_release.py obliga a rellenar.
+        start = at + len(marker)
+        end = body.find("\n## [", start)
+        end = len(body) if end < 0 else end + 1
+        pending = body[start:end].strip()
+        new_section = f"{header}\n\n{pending}\n\n" if pending else section
+        body = body[:at] + marker + "\n\n" + new_section + body[end:]
     else:
         body = section + body
 else:
@@ -142,10 +154,7 @@ if [[ "$next" == *-* ]]; then
   echo "(Preliminar: GitHub la publicará marcada como pre-release, no como la última estable.)"
 fi
 echo
-echo "Siguiente (tú, cuando quieras):"
-echo "  git add Directory.Build.props CHANGELOG.md"
-echo "  git commit -m \"release: v$next\""
-echo "  git tag v$next"
-echo "  git push && git push --tags"
+echo "Revisa la sección $next del CHANGELOG (de ahí salen las notas del release) y después:"
+echo "  pwsh scripts/Release.ps1 -Push"
 echo
 echo "El tag v$next dispara el release de Windows, macOS y Linux en GitHub Actions."

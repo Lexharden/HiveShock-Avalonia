@@ -41,6 +41,10 @@ jobs:
           fi
           echo "HiveShock ${PROPS}"
 
+      # Antes de compilar en 7 runners: versión válida y notas del CHANGELOG escritas (son las del release).
+      - name: Comprobar versión y CHANGELOG
+        run: python3 scripts/check_release.py "${{ steps.out.outputs.version }}"
+
   pack:
     name: Pack ${{ matrix.runtime }}
     needs: version
