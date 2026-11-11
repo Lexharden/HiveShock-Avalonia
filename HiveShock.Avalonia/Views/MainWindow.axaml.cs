@@ -54,7 +54,15 @@ public partial class MainWindow : Window
     /// <summary>Busca los botones del sistema (cambian al maximizar o restaurar) y sigue sus cambios de tamaño.</summary>
     private void TrackCaptionButtons()
     {
-        foreach (var c in global::Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(this))
+        // Avalonia 12 dibuja la decoración en el contenedor de la ventana (TopLevelHost), no dentro de ella:
+        // se busca desde la raíz visual.
+        Visual root = this;
+        while (global::Avalonia.VisualTree.VisualExtensions.GetVisualParent(root) is { } parent)
+        {
+            root = parent;
+        }
+
+        foreach (var c in global::Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(root))
         {
             if (c is Control { Name: { } name } ctl && Array.IndexOf(CaptionButtonNames, name) >= 0 &&
                 !_captionButtons.Contains(ctl))
@@ -73,8 +81,8 @@ public partial class MainWindow : Window
         FitTitleBarToCaptionButtons();
     }
 
-    /// <summary>Minimizar + maximizar + cerrar de Avalonia 12 (≈46 px cada uno) con margen.</summary>
-    private const double CaptionFallbackWidth = 150;
+    /// <summary>Si no se encuentran: pantalla completa + minimizar + maximizar + cerrar de Avalonia 12 (47 px cada uno) y aire.</summary>
+    private const double CaptionFallbackWidth = 196;
 
     private static readonly string[] CaptionButtonNames =
         ["PART_FullScreenButton", "PART_MinimizeButton", "PART_MaximizeButton", "PART_RestoreButton", "PART_CloseButton"];
