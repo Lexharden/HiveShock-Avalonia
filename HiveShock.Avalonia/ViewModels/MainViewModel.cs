@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -56,6 +56,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         DetailLogOpen = Prefs.DetailLogOpen;
         ActivityPanelOpen = Prefs.ActivityPanelOpen;
         ActivityPanelHeight = Math.Clamp(Prefs.ActivityPanelHeight, MinActivityPanelHeight, MaxActivityPanelHeight);
+        ActivityPanelWidth = Math.Clamp(Prefs.ActivityPanelWidth, MinActivityPanelWidth, MaxActivityPanelWidth);
         NavExpanded = Prefs.NavExpanded;
         SelectedThemeId = Prefs.Theme is "dark" or "light" ? Prefs.Theme : "system";
 
@@ -155,6 +156,10 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private bool _detailLogOpen;
     [ObservableProperty] private bool _activityPanelOpen;
     [ObservableProperty] private double _activityPanelHeight = 220;
+    [ObservableProperty] private double _activityPanelWidth = 340;
+    [ObservableProperty] private string _lastActivityLine = NoActivityLine;
+
+    private const string NoActivityLine = "Sin actividad todavía. Cuando conectes, aquí verás lo último que pasó.";
     [ObservableProperty] private string _activityText = "Nada todavía. Cuando conectes, aquí verás lo que pasa.";
     [ObservableProperty] private string _detailLogText = "";
     [ObservableProperty] private string _selectedThemeId = "system";
@@ -162,6 +167,9 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private bool _viewerEffectsPaused;
 
     public string PauseButtonText => ViewerEffectsPaused ? "▶ Efectos en pausa · Reanudar" : "⏸ Pausar efectos";
+
+    /// <summary>Texto corto del botón de pausa de la barra de título (el icono ya indica el estado).</summary>
+    public string PauseShortText => ViewerEffectsPaused ? "En pausa · Reanudar" : "Pausar efectos";
 
     public bool IsStudioNav => CurrentPageKey == "studio";
     public bool IsTikTokNav => CurrentPageKey is "tiktok" or "gifts" or "catalog";
@@ -179,7 +187,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public bool IsToneLive => StatusTone == "live";
     public bool StatusOn => StatusTone is "connecting" or "ok" or "live";
     public bool NavCollapsed => !NavExpanded;
-    public double SidebarWidth => NavExpanded ? 208 : 56;
+    public double SidebarWidth => NavExpanded ? 220 : 64;
     public string NavToggleTip => NavExpanded ? "Ocultar menú" : "Mostrar menú";
 
     public void Attach()
@@ -233,7 +241,8 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         foreach (var (id, label) in entries.Where(e => !have.Contains(e.Id)))
         {
             EffectChoices.Add(new EffectChoice(id, label));
-        }
+        }
+
 
         Events?.RefreshBroken();
     }
@@ -261,9 +270,13 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     /// <summary>Perfil activo, siempre visible en la barra superior para no confundir a qué perfil pertenece lo que editas.</summary>
     public string ActiveProfileText => $"Perfil: {Runtime.Profile.ShortDisplayName}";
 
+    /// <summary>Nombre corto del perfil activo (píldora de la barra de título).</summary>
+    public string ActiveProfileName => Runtime.Profile.ShortDisplayName;
+
     public void OnProfileChanged()
     {
         OnPropertyChanged(nameof(ActiveProfileText));
+        OnPropertyChanged(nameof(ActiveProfileName));
         ReloadEffectChoices();
         KeyMacros.Load();
         Studio.RefreshProfiles();
@@ -563,12 +576,20 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         _logLines.Clear();
         ActivityText = "";
         DetailLogText = "";
+        LastActivityLine = NoActivityLine;
     }
 
     [RelayCommand]
     private void ClearLog() => ClearActivity();
 
-    partial void OnViewerEffectsPausedChanged(bool value) => OnPropertyChanged(nameof(PauseButtonText));
+    partial void OnViewerEffectsPausedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(PauseButtonText));
+        OnPropertyChanged(nameof(PauseShortText));
+    }
+
+    [RelayCommand]
+    private void ToggleActivityPanel() => ActivityPanelOpen = !ActivityPanelOpen;
 
     private void OnViewerPauseChanged(bool paused) => Dispatch(() => ViewerEffectsPaused = paused);
 
@@ -599,6 +620,20 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     /// <summary>Arrastra el separador del panel "Qué está pasando" (ver MainWindow.axaml.cs).</summary>
     public void ResizeActivityPanel(double deltaY) =>
         ActivityPanelHeight = Math.Clamp(ActivityPanelHeight - deltaY, MinActivityPanelHeight, MaxActivityPanelHeight);
+
+    public const double MinActivityPanelWidth = 260;
+    public const double MaxActivityPanelWidth = 640;
+
+    /// <summary>Arrastra el borde izquierdo del panel lateral de actividad (ver MainWindow.axaml.cs).</summary>
+    public void ResizeActivityPanelWidth(double deltaX) =>
+        ActivityPanelWidth = Math.Clamp(ActivityPanelWidth - deltaX, MinActivityPanelWidth, MaxActivityPanelWidth);
+
+    /// <summary>Guarda el ancho al soltar el borde (no en cada movimiento del ratón).</summary>
+    public void CommitActivityPanelWidth()
+    {
+        Prefs.ActivityPanelWidth = ActivityPanelWidth;
+        Prefs.Save();
+    }
 
     partial void OnActivityPanelHeightChanged(double value)
     {
@@ -677,6 +712,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
                 }
 
                 ActivityText = string.Join(Environment.NewLine, _activityLines);
+                LastActivityLine = friendly;
             }
 
             if (MarksSessionReady(entry.Message))

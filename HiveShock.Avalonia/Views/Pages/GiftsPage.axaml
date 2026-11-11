@@ -4,165 +4,285 @@
              xmlns:vm="using:HiveShock.Avalonia.ViewModels"
              x:Class="HiveShock.Avalonia.Views.Pages.GiftsPage"
              x:DataType="vm:GiftsViewModel">
-    <Grid RowDefinitions="Auto,*">
-        <StackPanel Grid.Row="0" Margin="0,0,0,8">
-            <WrapPanel>
-                <Button Classes="secondary" Content="Nuevo" Command="{Binding NewGiftCommand}" />
-                <Button Classes="secondary" Content="Elegir del catálogo" Command="{Binding FromCatalogCommand}" />
-                <Button Classes="secondary" Content="Quitar" Command="{Binding DeleteGiftCommand}" />
-                <Button Classes="secondary" Content="Recargar" Command="{Binding ReloadCommand}" />
-                <Button Classes="secondary" Content="Abrir imágenes" Command="{Binding OpenImagesCommand}" />
-                <Button Classes="primary" Content="Guardar" Command="{Binding SaveCommand}" />
-                <ctl:SaveStatusChip DataContext="{Binding SaveStatus}" Margin="8,0,0,8" />
-            </WrapPanel>
-        </StackPanel>
+    <!--
+        Maestro / detalle. La lista y el editor tienen cabecera y pie fijos: las acciones (añadir, probar,
+        guardar) no se desplazan con el contenido y el editor aprovecha todo el alto disponible.
+    -->
+    <Grid Margin="0,12,0,0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300" MinWidth="240" MaxWidth="520" />
+            <ColumnDefinition Width="12" />
+            <ColumnDefinition Width="*" MinWidth="420" />
+        </Grid.ColumnDefinitions>
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,8,1.6*">
-            <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}"
-                     MinWidth="200"
-                     ScrollViewer.VerticalScrollBarVisibility="Auto">
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="vm:GiftRowViewModel">
-                        <DockPanel>
-                            <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="8"
-                                    ClipToBounds="True" Margin="0,0,10,0"
-                                    Background="{DynamicResource CardAltBrush}">
-                                <Image Width="36" Height="36" Stretch="Uniform" Source="{Binding Thumb}" />
+        <!-- ===================== Lista -->
+        <Border Grid.Column="0" Classes="panel">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Classes="paneHeader">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="2">
+                            <Button Classes="icon" ToolTip.Tip="Añadir un regalo">
+                                <ctl:Icon Data="{StaticResource Icon.Plus}" />
+                                <Button.Flyout>
+                                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                        <MenuItem Header="Elegir del catálogo…" Command="{Binding FromCatalogCommand}">
+                                            <MenuItem.Icon>
+                                                <ctl:Icon Data="{StaticResource Icon.Book}" Size="16" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Regalo en blanco" Command="{Binding NewGiftCommand}">
+                                            <MenuItem.Icon>
+                                                <ctl:Icon Data="{StaticResource Icon.Plus}" Size="16" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                    </MenuFlyout>
+                                </Button.Flyout>
+                            </Button>
+                            <Button Classes="icon" ToolTip.Tip="Más acciones">
+                                <ctl:Icon Data="{StaticResource Icon.More}" />
+                                <Button.Flyout>
+                                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                        <MenuItem Header="Recargar desde el archivo" Command="{Binding ReloadCommand}">
+                                            <MenuItem.Icon>
+                                                <ctl:Icon Data="{StaticResource Icon.Refresh}" Size="16" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Abrir carpeta de imágenes" Command="{Binding OpenImagesCommand}">
+                                            <MenuItem.Icon>
+                                                <ctl:Icon Data="{StaticResource Icon.Folder}" Size="16" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <Separator />
+                                        <MenuItem Header="Quitar el regalo seleccionado" Command="{Binding DeleteGiftCommand}">
+                                            <MenuItem.Icon>
+                                                <ctl:Icon Data="{StaticResource Icon.Trash}" Size="16" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                    </MenuFlyout>
+                                </Button.Flyout>
+                            </Button>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <TextBlock Classes="h2" Text="Regalos" VerticalAlignment="Center" />
+                            <Border Classes="pill">
+                                <TextBlock Text="{Binding Rows.Count}" />
                             </Border>
-                            <StackPanel>
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding Note}" Foreground="{DynamicResource MutedBrush}"
-                                           FontSize="12" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding StepSummary}" IsVisible="{Binding HasExtraSteps}"
-                                           Foreground="{DynamicResource BrandGoldBrush}" FontSize="12" />
-                            </StackPanel>
-                        </DockPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-
-            <GridSplitter Grid.Column="1" Width="8" ResizeDirection="Columns" />
-
-            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto"
-                          IsVisible="{Binding HasSelection}">
-                <Border Classes="card">
-                    <StackPanel>
-                        <TextBlock Classes="fieldLabel" Text="Nombre del regalo" />
-                        <TextBox Text="{Binding Selected.Name}" Margin="0,0,0,12" />
-
-                        <TextBlock Classes="fieldLabel" Text="Qué hace en el juego" />
-                        <ComboBox Margin="0,0,0,8"
-                                  ItemsSource="{Binding EffectChoices}"
-                                  SelectedValue="{Binding Selected.Effect}"
-                                  SelectedValueBinding="{Binding Id}"
-                                  DisplayMemberBinding="{Binding Display}" />
-                        <TextBlock IsVisible="{Binding Selected.ShowInstaKillHint}"
-                                   Foreground="{DynamicResource MutedBrush}" FontSize="12"
-                                   Margin="0,0,0,12" TextWrapping="Wrap"
-                                   Text="Para quitar N corazones usa Daño, no Instakill." />
-
-                        <ItemsControl ItemsSource="{Binding Selected.ParamFields}"
-                                      IsVisible="{Binding Selected.HasParams}"
-                                      Margin="0,0,0,12">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:EffectParamFieldViewModel">
-                                    <StackPanel Margin="0,0,0,8">
-                                        <TextBlock Classes="fieldLabel" Text="{Binding Label}" />
-                                        <TextBox Text="{Binding ValueText}" Width="100"
-                                                 HorizontalAlignment="Left" PlaceholderText="{Binding Hint}" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <TextBlock Classes="fieldLabel" Text="Más efectos con este mismo regalo"
-                                   Margin="0,4,0,2" />
-                        <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12"
-                                   Margin="0,0,0,8" TextWrapping="Wrap"
-                                   Text="Se lanzan después del anterior, en este orden. «Esperar» son los segundos desde el efecto anterior (0 = enseguida)." />
-                        <ItemsControl ItemsSource="{Binding Selected.ExtraSteps}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:GiftStepRowViewModel">
-                                    <Border Background="{DynamicResource CardAltBrush}" CornerRadius="8"
-                                            Padding="10" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <ComboBox Margin="0,0,0,8" HorizontalAlignment="Stretch"
-                                                      ItemsSource="{Binding EffectChoices}"
-                                                      SelectedValue="{Binding Effect}"
-                                                      SelectedValueBinding="{Binding Id}"
-                                                      DisplayMemberBinding="{Binding Display}" />
-                                            <ItemsControl ItemsSource="{Binding ParamFields}"
-                                                          IsVisible="{Binding HasParams}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate x:DataType="vm:EffectParamFieldViewModel">
-                                                        <StackPanel Margin="0,0,0,8">
-                                                            <TextBlock Classes="fieldLabel" Text="{Binding Label}" />
-                                                            <TextBox Text="{Binding ValueText}" Width="100"
-                                                                     HorizontalAlignment="Left"
-                                                                     PlaceholderText="{Binding Hint}" />
-                                                        </StackPanel>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                            <DockPanel>
-                                                <Button DockPanel.Dock="Right" Classes="secondary" Content="Quitar"
-                                                        Command="{Binding RemoveCommand}" />
-                                                <TextBlock Classes="fieldLabel" Text="Esperar (s)"
-                                                           VerticalAlignment="Center" Margin="0,0,8,0" />
-                                                <TextBox Text="{Binding DelayText}" Width="70"
-                                                         HorizontalAlignment="Left" PlaceholderText="0" />
-                                            </DockPanel>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <Button Classes="secondary" Content="Añadir otro efecto"
-                                Command="{Binding Selected.AddStepCommand}"
-                                HorizontalAlignment="Left" Margin="0,0,0,12" />
-
-                        <TextBlock Classes="fieldLabel" Text="Nota (solo para ti)" />
-                        <TextBox Text="{Binding Selected.Note}" Margin="0,0,0,12" />
-
-                        <TextBlock Classes="fieldLabel" Text="Mínimo de regalos seguidos" />
-                        <TextBox Text="{Binding Selected.MinCount}" Width="80"
-                                 HorizontalAlignment="Left" Margin="0,0,0,8" />
-                        <CheckBox Content="Repetir el efecto en cada uno"
-                                  IsChecked="{Binding Selected.Each}" Margin="0,0,0,12" />
-
-                        <CheckBox Content="Mostrar en pantalla" IsChecked="{Binding Selected.Overlay}" />
-                        <TextBlock Classes="fieldLabel" Text="Texto en pantalla (vacío = el nombre)"
-                                   Margin="0,8,0,6" />
-                        <TextBox Text="{Binding Selected.OverlayText}" Margin="0,0,0,16" />
-
-                        <Expander Header="Más opciones"
-                                  HorizontalAlignment="Stretch"
-                                  HorizontalContentAlignment="Stretch">
-                            <StackPanel Margin="0,10,0,0">
-                                <TextBlock Classes="fieldLabel" Text="ID en TikTok (opcional)" />
-                                <TextBox Text="{Binding Selected.Id}" Margin="0,0,0,10" />
-                                <TextBlock Classes="fieldLabel" Text="Diamantes" />
-                                <TextBox Text="{Binding Selected.Diamonds}" Margin="0,0,0,10" />
-                                <TextBlock Classes="fieldLabel" Text="Otros nombres, separados por coma" />
-                                <TextBox Text="{Binding Selected.Also}" Margin="0,0,0,10" />
-                                <TextBlock Classes="fieldLabel" Text="Nombre de la imagen" />
-                                <TextBox Text="{Binding Selected.Image}" />
-                            </StackPanel>
-                        </Expander>
-
-                        <DockPanel Margin="0,18,0,0">
-                            <TextBlock Classes="fieldLabel" Text="Probar ×"
-                                       VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <TextBox Text="{Binding TestComboText}" Width="56" Margin="0,0,12,0" />
-                            <Button Classes="primary" Content="Enviar al juego"
-                                    Command="{Binding TestCommand}" HorizontalAlignment="Left" />
-                        </DockPanel>
-                        <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12"
-                                   Margin="0,8,0,0" TextWrapping="Wrap"
-                                   Text="Prueba el efecto ahora, sin esperar un regalo. El juego tiene que estar abierto." />
-                    </StackPanel>
+                        </StackPanel>
+                    </DockPanel>
                 </Border>
-            </ScrollViewer>
-        </Grid>
+
+                <Border DockPanel.Dock="Bottom" Classes="paneFooter">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Classes="primary" Margin="8,0,0,0" Command="{Binding SaveCommand}">
+                            <StackPanel Classes="btnContent">
+                                <ctl:Icon Data="{StaticResource Icon.Save}" />
+                                <TextBlock Text="Guardar" />
+                            </StackPanel>
+                        </Button>
+                        <ctl:SaveStatusChip DataContext="{Binding SaveStatus}" />
+                    </DockPanel>
+                </Border>
+
+                <Panel>
+                    <ListBox Classes="plain" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:GiftRowViewModel">
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="8"
+                                            ClipToBounds="True" Margin="0,0,12,0"
+                                            Background="{DynamicResource CardAltBrush}">
+                                        <Image Width="34" Height="34" Stretch="Uniform" Source="{Binding Thumb}" />
+                                    </Border>
+                                    <Border DockPanel.Dock="Right" Classes="pill gold" Margin="8,0,0,0"
+                                            IsVisible="{Binding HasExtraSteps}">
+                                        <TextBlock Text="{Binding StepSummary}" />
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}"
+                                                   TextTrimming="CharacterEllipsis">
+                                            <TextBlock.Text>
+                                                <MultiBinding Converter="{StaticResource EffectDisplay}">
+                                                    <Binding Path="Effect" />
+                                                    <Binding Path="$parent[UserControl].((vm:GiftsViewModel)DataContext).EffectChoices" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <StackPanel Classes="empty" IsVisible="{Binding !Rows.Count}">
+                        <ctl:Icon Data="{StaticResource Icon.Gift}" />
+                        <TextBlock Classes="h2" Text="Todavía no hay regalos" />
+                        <TextBlock Classes="caption" Text="Añade uno del catálogo con el botón + y elige qué hace en el juego." />
+                    </StackPanel>
+                </Panel>
+            </DockPanel>
+        </Border>
+
+        <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="Transparent" />
+
+        <!-- ===================== Editor -->
+        <Border Grid.Column="2" Classes="panel">
+            <Panel>
+                <StackPanel Classes="empty" IsVisible="{Binding !HasSelection}">
+                    <ctl:Icon Data="{StaticResource Icon.Gift}" />
+                    <TextBlock Classes="h2" Text="Elige un regalo" />
+                    <TextBlock Classes="caption" Text="Selecciona un regalo de la lista para editar qué hace en el juego." />
+                </StackPanel>
+
+                <DockPanel IsVisible="{Binding HasSelection}">
+                    <!-- Cabecera fija: qué regalo es y probarlo ya. -->
+                    <Border DockPanel.Dock="Top" Classes="paneHeader" Padding="16,10">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="8">
+                                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center"
+                                            ToolTip.Tip="Cuántos regalos seguidos simular al probar.">
+                                    <TextBlock Text="×" Classes="caption" FontSize="14" VerticalAlignment="Center" />
+                                    <TextBox Text="{Binding TestComboText}" Width="52" HorizontalContentAlignment="Center" />
+                                </StackPanel>
+                                <Button Classes="primary" Command="{Binding TestCommand}"
+                                        ToolTip.Tip="Prueba el efecto ahora, sin esperar un regalo. El juego tiene que estar abierto.">
+                                    <StackPanel Classes="btnContent">
+                                        <ctl:Icon Data="{StaticResource Icon.Send}" />
+                                        <TextBlock Text="Probar en el juego" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <Border DockPanel.Dock="Left" Width="44" Height="44" CornerRadius="10" ClipToBounds="True"
+                                    Margin="0,0,12,0" Background="{DynamicResource CardAltBrush}">
+                                <Image Width="38" Height="38" Stretch="Uniform" Source="{Binding Selected.Thumb}" />
+                            </Border>
+                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Classes="h2" FontSize="16" Text="{Binding Selected.Name}"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock Classes="caption" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                           Text="{Binding Selected.Note}" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="20,18,20,24" MaxWidth="760" HorizontalAlignment="Stretch" Spacing="22">
+
+                            <!-- Qué hace -->
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+                                    <ctl:Icon Data="{StaticResource Icon.Bolt}" Size="16" Foreground="{DynamicResource GoldTextBrush}" />
+                                    <TextBlock Classes="overline" Text="QUÉ HACE EN EL JUEGO" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <Grid ColumnDefinitions="*,16,*">
+                                    <StackPanel Grid.Column="0" Classes="field">
+                                        <TextBlock Classes="fieldLabel" Text="Nombre del regalo" />
+                                        <TextBox Text="{Binding Selected.Name}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Classes="field">
+                                        <TextBlock Classes="fieldLabel" Text="Efecto" />
+                                        <ComboBox HorizontalAlignment="Stretch"
+                                                  ItemsSource="{Binding EffectChoices}"
+                                                  SelectedValue="{Binding Selected.Effect}"
+                                                  SelectedValueBinding="{Binding Id}"
+                                                  DisplayMemberBinding="{Binding Display}" />
+                                    </StackPanel>
+                                </Grid>
+                                <Border Classes="callout warn" Margin="0,0,0,14" IsVisible="{Binding Selected.ShowInstaKillHint}">
+                                    <TextBlock Classes="caption" Foreground="{DynamicResource TextBrush}"
+                                               Text="Para quitar N corazones usa Daño, no Instakill." />
+                                </Border>
+                                <ItemsControl ItemsSource="{Binding Selected.ParamFields}" Margin="0,0,0,14"
+                                              IsVisible="{Binding Selected.HasParams}"
+                                              ItemsPanel="{StaticResource ParamFieldsPanel}"
+                                              ItemTemplate="{StaticResource ParamFieldTemplate}" />
+
+                                <!-- Efectos adicionales -->
+                                <DockPanel Margin="0,4,0,8">
+                                    <Button DockPanel.Dock="Right" Classes="ghost" Padding="8,4" MinHeight="28"
+                                            Command="{Binding Selected.AddStepCommand}">
+                                        <StackPanel Classes="btnContent">
+                                            <ctl:Icon Data="{StaticResource Icon.Plus}" />
+                                            <TextBlock Text="Añadir efecto" />
+                                        </StackPanel>
+                                    </Button>
+                                    <StackPanel VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock Classes="fieldLabel" Margin="0" Text="Después, más efectos con este regalo" />
+                                        <TextBlock Classes="caption" FontSize="11"
+                                                   Text="Salen en orden. La espera cuenta desde el efecto anterior (0 = enseguida)." />
+                                    </StackPanel>
+                                </DockPanel>
+                                <ItemsControl ItemsSource="{Binding Selected.ExtraSteps}"
+                                              ItemTemplate="{StaticResource StepRowTemplate}" />
+                            </StackPanel>
+
+                            <!-- Cuándo -->
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+                                    <ctl:Icon Data="{StaticResource Icon.Target}" Size="16" Foreground="{DynamicResource GoldTextBrush}" />
+                                    <TextBlock Classes="overline" Text="CUÁNDO SE ACTIVA" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <Grid ColumnDefinitions="Auto,24,*">
+                                    <StackPanel Grid.Column="0" Classes="field">
+                                        <TextBlock Classes="fieldLabel" Text="Mínimo de regalos seguidos" />
+                                        <NumericUpDown Value="{Binding Selected.MinCount}" Minimum="1" Maximum="9999"
+                                                       Increment="1" FormatString="0" Width="140"
+                                                       HorizontalAlignment="Left" />
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="2" Content="Repetir el efecto en cada regalo del combo"
+                                              IsChecked="{Binding Selected.Each}" VerticalAlignment="Center"
+                                              Margin="0,8,0,0" />
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- En pantalla -->
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+                                    <ctl:Icon Data="{StaticResource Icon.Monitor}" Size="16" Foreground="{DynamicResource GoldTextBrush}" />
+                                    <TextBlock Classes="overline" Text="EN PANTALLA (OBS)" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <Grid ColumnDefinitions="Auto,24,*">
+                                    <ToggleSwitch Grid.Column="0" IsChecked="{Binding Selected.Overlay}"
+                                                  OnContent="Se muestra" OffContent="No se muestra"
+                                                  VerticalAlignment="Bottom" Margin="0,0,0,14" />
+                                    <StackPanel Grid.Column="2" Classes="field" IsEnabled="{Binding Selected.Overlay}">
+                                        <TextBlock Classes="fieldLabel" Text="Texto en pantalla" />
+                                        <TextBox Text="{Binding Selected.OverlayText}" PlaceholderText="Vacío = el nombre del regalo" />
+                                    </StackPanel>
+                                </Grid>
+                                <StackPanel Classes="field">
+                                    <TextBlock Classes="fieldLabel" Text="Nota (solo para ti)" />
+                                    <TextBox Text="{Binding Selected.Note}" PlaceholderText="Para recordar por qué está así" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Avanzado -->
+                            <Expander Header="Avanzado: identificación del regalo">
+                                <StackPanel Margin="0,8,0,0">
+                                    <Grid ColumnDefinitions="*,16,*">
+                                        <StackPanel Grid.Column="0" Classes="field">
+                                            <TextBlock Classes="fieldLabel" Text="ID en TikTok (opcional)" />
+                                            <TextBox Text="{Binding Selected.Id}" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Classes="field">
+                                            <TextBlock Classes="fieldLabel" Text="Diamantes" />
+                                            <TextBox Text="{Binding Selected.Diamonds}" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <StackPanel Classes="field">
+                                        <TextBlock Classes="fieldLabel" Text="Otros nombres, separados por coma" />
+                                        <TextBox Text="{Binding Selected.Also}" />
+                                    </StackPanel>
+                                    <StackPanel Classes="field" Margin="0">
+                                        <TextBlock Classes="fieldLabel" Text="Nombre de la imagen" />
+                                        <TextBox Text="{Binding Selected.Image}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Expander>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Panel>
+        </Border>
     </Grid>
 </UserControl>

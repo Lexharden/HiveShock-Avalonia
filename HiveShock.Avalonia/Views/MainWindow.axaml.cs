@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using HiveShock.Avalonia.ViewModels;
@@ -14,6 +14,25 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        ReserveCaptionButtonsSpace();
+    }
+
+    /// <summary>
+    /// La barra de título es propia (ExtendClientAreaToDecorationsHint). Los botones del sistema quedan encima:
+    /// a la derecha en Windows/Linux y a la izquierda (semáforo) en macOS, así que se deja hueco para ellos.
+    /// </summary>
+    private void ReserveCaptionButtonsSpace()
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            TitleBarContent.Margin = new Thickness(76, 0, 0, 0);
+            TitleBarActions.Margin = new Thickness(0, 0, 12, 0);
+        }
+        else
+        {
+            TitleBarContent.Margin = new Thickness(8, 0, 0, 0);
+            TitleBarActions.Margin = new Thickness(0, 0, 150, 0);
+        }
     }
 
     private void ActivityResizeHandle_PointerPressed(object? sender, PointerPressedEventArgs e)
@@ -35,12 +54,17 @@ public partial class MainWindow : Window
         }
 
         var current = e.GetPosition(this);
-        vm.ResizeActivityPanel(current.Y - last.Y);
+        vm.ResizeActivityPanelWidth(current.X - last.X);
         _activityDragLast = current;
     }
 
     private void ActivityResizeHandle_PointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        if (_activityDragLast != null && DataContext is MainViewModel vm)
+        {
+            vm.CommitActivityPanelWidth();
+        }
+
         _activityDragLast = null;
         e.Pointer.Capture(null);
     }

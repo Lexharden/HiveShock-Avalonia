@@ -1,303 +1,382 @@
 ﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:HiveShock.Avalonia.ViewModels"
+        xmlns:ctl="using:HiveShock.Avalonia.Views.Controls"
+        xmlns:chrome="using:Avalonia.Controls.Chrome"
         x:Class="HiveShock.Avalonia.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="HiveShock"
-        Width="1180" Height="760"
-        MinWidth="880" MinHeight="560"
+        Width="1280" Height="800"
+        MinWidth="960" MinHeight="600"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BgBrush}"
         Icon="/Assets/app.ico"
+        ExtendClientAreaToDecorationsHint="True"
         Closing="Window_Closing">
-    <Grid RowDefinitions="56,*">
-        <Border Grid.Row="0"
-                Background="{DynamicResource CardBrush}"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,0,0,1">
-            <DockPanel Margin="10,0,18,0">
-                <Button DockPanel.Dock="Left" Classes="menu" Margin="0,0,10,0"
-                        VerticalAlignment="Center"
+    <Window.Styles>
+        <!-- Punto de estado: gris en reposo, oro conectando, verde en vivo/ok (late en vivo). -->
+        <Style Selector="Ellipse.statusDot">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Height" Value="8" />
+            <Setter Property="Fill" Value="{DynamicResource FaintBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Ellipse.statusDot.connecting">
+            <Setter Property="Fill" Value="{DynamicResource BrandGoldBrush}" />
+        </Style>
+        <Style Selector="Ellipse.statusDot.ok">
+            <Setter Property="Fill" Value="{DynamicResource StatusOkBrush}" />
+        </Style>
+        <Style Selector="Ellipse.statusDot.live">
+            <Setter Property="Fill" Value="{DynamicResource LiveTextBrush}" />
+            <Style.Animations>
+                <Animation Duration="0:0:1.2" IterationCount="Infinite" PlaybackDirection="Alternate">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="1" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="0.35" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+        <!-- Botón de pausa de la barra de título: rojo suave cuando los efectos están en pausa. -->
+        <Style Selector="Button.pauseBtn.paused">
+            <Setter Property="Background" Value="{DynamicResource DangerSubtleBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+        </Style>
+        <Style Selector="Button.pauseBtn.paused:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource DangerSubtleBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="44,*">
+        <!-- ============================================================ Barra de título -->
+        <Panel Grid.Row="0">
+            <!-- Fondo arrastrable: mover la ventana y doble clic para maximizar. -->
+            <Border Background="{DynamicResource TitleBarBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+                    chrome:WindowDecorationProperties.ElementRole="TitleBar" />
+            <Grid x:Name="TitleBarContent" ColumnDefinitions="Auto,Auto,*,Auto" Margin="8,0,0,0">
+                <Button Grid.Column="0" Classes="menu" Margin="0,0,6,0"
                         Command="{Binding ToggleNavCommand}"
                         ToolTip.Tip="{Binding NavToggleTip}">
-                    <TextBlock Text="☰" FontSize="18" HorizontalAlignment="Center" />
+                    <ctl:Icon Data="{StaticResource Icon.PanelLeft}" Size="18" />
                 </Button>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Width="34" Height="34" CornerRadius="8" ClipToBounds="True" Margin="0,0,10,0"
-                            Background="{DynamicResource CardAltBrush}"
-                            BorderBrush="{DynamicResource BrandGoldBrush}" BorderThickness="1">
-                        <Image Source="{DynamicResource BrandLogo}" Stretch="Uniform" />
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"
+                            IsHitTestVisible="False">
+                    <Border Width="24" Height="24" CornerRadius="6" ClipToBounds="True">
+                        <Image Source="{DynamicResource BrandLogo}" Stretch="UniformToFill" />
                     </Border>
-                    <TextBlock Text="HiveShock" FontSize="18" FontWeight="SemiBold"
-                               Foreground="{DynamicResource BrandGoldBrush}"
-                               VerticalAlignment="Center" />
-                    <TextBlock Text="Lo que pasa en tu live se queda en el live"
-                               Foreground="{DynamicResource MutedBrush}" Margin="12,2,0,0"
-                               FontSize="12" VerticalAlignment="Center" />
+                    <TextBlock Text="HiveShock" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextBrush}" />
                 </StackPanel>
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
-                            HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="12">
-                    <TextBlock Text="{Binding ActiveProfileText}" FontSize="12" FontWeight="SemiBold"
-                               VerticalAlignment="Center" Foreground="{DynamicResource MutedBrush}"
-                               ToolTip.Tip="Los regalos, comandos y metas que ves pertenecen a este perfil. Las macros de teclas son de todos." />
-                    <Button Classes="secondary" Margin="0" Padding="12,7" VerticalAlignment="Center"
+
+                <!-- Perfil activo: siempre visible para saber a qué juego pertenece lo que editas. -->
+                <Button Grid.Column="2" Classes="ghost" Margin="14,0,0,0" Padding="10,4" MinHeight="28"
+                        HorizontalAlignment="Left" VerticalAlignment="Center"
+                        Command="{Binding NavStudioCommand}"
+                        ToolTip.Tip="Perfil activo. Los regalos, comandos y metas que ves pertenecen a este perfil; las macros de teclas son de todos. Pulsa para cambiarlo en Inicio.">
+                    <StackPanel Classes="btnContent">
+                        <ctl:Icon Data="{StaticResource Icon.Gamepad}" Foreground="{DynamicResource GoldTextBrush}" />
+                        <TextBlock Text="{Binding ActiveProfileName}" FontSize="12" MaxWidth="260"
+                                   TextTrimming="CharacterEllipsis" Foreground="{DynamicResource MutedBrush}" />
+                    </StackPanel>
+                </Button>
+
+                <StackPanel x:Name="TitleBarActions" Grid.Column="3" Classes="bar" Spacing="4" Margin="0,0,12,0">
+                    <Button Classes="ghost" Padding="10,4" MinHeight="28"
                             IsVisible="{Binding UpdateBadgeVisible}"
                             Command="{Binding NavUpdatesCommand}"
                             ToolTip.Tip="Hay una versión nueva de HiveShock. Pulsa para verla e instalarla.">
-                        <TextBlock Text="{Binding UpdateBadgeText}" FontWeight="SemiBold" FontSize="12"
-                                   Foreground="{DynamicResource BrandGoldBrush}" />
+                        <StackPanel Classes="btnContent">
+                            <ctl:Icon Data="{StaticResource Icon.Download}" Foreground="{DynamicResource GoldTextBrush}" />
+                            <TextBlock Text="{Binding UpdateBadgeText}" FontSize="12"
+                                       Foreground="{DynamicResource GoldTextBrush}" />
+                        </StackPanel>
                     </Button>
-                    <Button Classes="secondary" Classes.danger="{Binding ViewerEffectsPaused}"
-                            Margin="0" Padding="12,7" VerticalAlignment="Center"
+
+                    <Button Classes="ghost pauseBtn" Classes.paused="{Binding ViewerEffectsPaused}"
+                            Padding="10,4" MinHeight="28"
                             Command="{Binding ToggleViewerEffectsPauseCommand}"
                             ToolTip.Tip="Pausa de emergencia: los espectadores dejan de activar efectos en el juego. Se reanuda sola al reabrir HiveShock.">
-                        <TextBlock Text="{Binding PauseButtonText}" FontWeight="SemiBold" FontSize="12" />
+                        <StackPanel Classes="btnContent">
+                            <Panel>
+                                <ctl:Icon Data="{StaticResource Icon.Pause}" IsVisible="{Binding !ViewerEffectsPaused}" />
+                                <ctl:Icon Data="{StaticResource Icon.Play}" IsVisible="{Binding ViewerEffectsPaused}" />
+                            </Panel>
+                            <TextBlock Text="{Binding PauseShortText}" FontSize="12" />
+                        </StackPanel>
                     </Button>
-                    <ComboBox Width="150"
-                              ItemsSource="{Binding ThemeOptions}"
-                              SelectedItem="{Binding SelectedTheme}">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate x:DataType="vm:ThemeOption">
-                                <TextBlock Text="{Binding Label}" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    <Border CornerRadius="10" Padding="12,7" MinWidth="120"
+
+                    <Border Width="1" Height="18" Margin="4,0" Background="{DynamicResource BorderBrush}" />
+
+                    <Button Classes="icon" ToolTip.Tip="Tema de la aplicación">
+                        <ctl:Icon Data="{StaticResource Icon.Palette}" />
+                        <Button.Flyout>
+                            <Flyout Placement="BottomEdgeAlignedRight">
+                                <StackPanel Width="220" Spacing="8" Margin="4">
+                                    <TextBlock Classes="overline" Text="TEMA" />
+                                    <ComboBox HorizontalAlignment="Stretch"
+                                              ItemsSource="{Binding ThemeOptions}"
+                                              SelectedItem="{Binding SelectedTheme}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ThemeOption">
+                                                <TextBlock Text="{Binding Label}" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+
+                    <ToggleButton Classes="icon" IsChecked="{Binding ActivityPanelOpen}"
+                                  ToolTip.Tip="Actividad del directo (lo que está pasando)">
+                        <ctl:Icon Data="{StaticResource Icon.PanelRight}" />
+                    </ToggleButton>
+
+                    <!-- Estado de la sesión (con la barra lateral abierta ya se ve en su tarjeta). -->
+                    <Border CornerRadius="999" Padding="10,4" Margin="6,0,0,0" VerticalAlignment="Center"
+                            IsVisible="{Binding NavCollapsed}"
                             Background="{DynamicResource CardAltBrush}"
-                            Classes.connecting="{Binding IsToneConnecting}"
-                            Classes.ok="{Binding IsToneOk}"
-                            Classes.live="{Binding IsToneLive}">
-                        <Border.Styles>
-                            <Style Selector="Border.connecting">
-                                <Setter Property="Background" Value="{DynamicResource BrandGoldBrush}" />
-                            </Style>
-                            <Style Selector="Border.ok">
-                                <Setter Property="Background" Value="{DynamicResource StatusOkBrush}" />
-                            </Style>
-                            <Style Selector="Border.live">
-                                <Setter Property="Background" Value="{DynamicResource LiveBrush}" />
-                            </Style>
-                        </Border.Styles>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-                            <Ellipse Width="10" Height="10" VerticalAlignment="Center"
-                                     IsVisible="{Binding StatusDotVisible}"
-                                     Classes.on="{Binding StatusOn}"
-                                     Classes.live="{Binding IsToneLive}"
-                                     Classes.pulse="{Binding IsToneLive}">
-                                <Ellipse.Styles>
-                                    <Style Selector="Ellipse.on">
-                                        <Setter Property="Fill" Value="{DynamicResource StatusOnForegroundBrush}" />
-                                    </Style>
-                                    <Style Selector="Ellipse.on.live">
-                                        <Setter Property="Fill" Value="{DynamicResource LiveOnForegroundBrush}" />
-                                    </Style>
-                                    <Style Selector="Ellipse.pulse">
-                                        <Style.Animations>
-                                            <Animation Duration="0:0:1.2" IterationCount="Infinite"
-                                                       PlaybackDirection="Alternate">
-                                                <KeyFrame Cue="0%">
-                                                    <Setter Property="Opacity" Value="1" />
-                                                </KeyFrame>
-                                                <KeyFrame Cue="100%">
-                                                    <Setter Property="Opacity" Value="0.55" />
-                                                </KeyFrame>
-                                            </Animation>
-                                        </Style.Animations>
-                                    </Style>
-                                </Ellipse.Styles>
-                            </Ellipse>
-                            <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold" FontSize="12"
-                                       VerticalAlignment="Center"
-                                       Foreground="{DynamicResource TextBrush}"
-                                       Classes.on="{Binding StatusOn}"
-                                       Classes.live="{Binding IsToneLive}">
-                                <TextBlock.Styles>
-                                    <Style Selector="TextBlock.on">
-                                        <Setter Property="Foreground" Value="{DynamicResource StatusOnForegroundBrush}" />
-                                    </Style>
-                                    <Style Selector="TextBlock.on.live">
-                                        <Setter Property="Foreground" Value="{DynamicResource LiveOnForegroundBrush}" />
-                                    </Style>
-                                </TextBlock.Styles>
-                            </TextBlock>
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal" Spacing="7">
+                            <Ellipse Classes="statusDot"
+                                     Classes.connecting="{Binding IsToneConnecting}"
+                                     Classes.ok="{Binding IsToneOk}"
+                                     Classes.live="{Binding IsToneLive}" />
+                            <TextBlock Text="{Binding StatusText}" FontSize="12" FontWeight="SemiBold"
+                                       VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource TextBrush}" />
                         </StackPanel>
                     </Border>
                 </StackPanel>
-            </DockPanel>
-        </Border>
+            </Grid>
+        </Panel>
 
-        <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
-            <Border Width="{Binding SidebarWidth}"
-                    MinWidth="{Binding SidebarWidth}"
-                    MaxWidth="{Binding SidebarWidth}"
-                    ClipToBounds="True"
-                    Background="{DynamicResource CardBrush}"
+        <!-- ============================================================ Cuerpo -->
+        <DockPanel Grid.Row="1">
+            <!-- Barra lateral -->
+            <Border DockPanel.Dock="Left"
+                    Width="{Binding SidebarWidth}"
+                    Background="{DynamicResource SidebarBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="0,0,1,0">
-                <!--
-                    Sin bloque de marca aquí a propósito: el header ya muestra logo +
-                    "HiveShock" + tagline arriba de todo, repetirlo en el sidebar solo
-                    empujaba la navegación hacia abajo sin aportar nada nuevo.
-                -->
-                <DockPanel Margin="0,12,0,8">
+                    BorderThickness="0,0,1,0"
+                    ClipToBounds="True">
+                <Border.Transitions>
+                    <Transitions>
+                        <DoubleTransition Property="Width" Duration="0:0:0.16" Easing="CubicEaseOut" />
+                    </Transitions>
+                </Border.Transitions>
+                <DockPanel Margin="0,8,0,10">
+                    <!-- Sesión: estado + conectar, siempre a mano desde cualquier página. -->
+                    <Border DockPanel.Dock="Bottom" Margin="8,8,8,0" Padding="10" CornerRadius="8"
+                            Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                            IsVisible="{Binding NavExpanded}">
+                        <StackPanel Spacing="8">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Ellipse Classes="statusDot"
+                                         Classes.connecting="{Binding IsToneConnecting}"
+                                         Classes.ok="{Binding IsToneOk}"
+                                         Classes.live="{Binding IsToneLive}" />
+                                <TextBlock Text="{Binding StatusText}" FontSize="12" FontWeight="SemiBold"
+                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <Button Classes="connect" Margin="0" Padding="12,8" FontSize="13"
+                                    Classes.connecting="{Binding Studio.IsToneConnecting}"
+                                    Classes.live="{Binding Studio.IsToneLive}"
+                                    Classes.ok="{Binding Studio.IsToneOk}"
+                                    Content="{Binding Studio.ConnectLabel}"
+                                    Command="{Binding Studio.ConnectCommand}"
+                                    IsEnabled="{Binding Studio.CanConnect}" />
+                        </StackPanel>
+                    </Border>
+                    <Button DockPanel.Dock="Bottom" Classes="connect" Margin="10,8,10,0" Padding="0" Height="40"
+                            IsVisible="{Binding NavCollapsed}"
+                            Classes.connecting="{Binding Studio.IsToneConnecting}"
+                            Classes.live="{Binding Studio.IsToneLive}"
+                            Classes.ok="{Binding Studio.IsToneOk}"
+                            Command="{Binding Studio.ConnectCommand}"
+                            IsEnabled="{Binding Studio.CanConnect}"
+                            ToolTip.Tip="{Binding Studio.ConnectLabel}">
+                        <ctl:Icon Data="{StaticResource Icon.Power}" />
+                    </Button>
+
+                    <!-- Secundarias -->
                     <StackPanel DockPanel.Dock="Bottom">
-                        <TextBlock Classes="navGroup" Text="INFO" IsVisible="{Binding NavExpanded}" />
                         <Button Classes="nav" Classes.active="{Binding IsHelpNav}"
-                                Classes.compact="{Binding NavCollapsed}"
                                 Command="{Binding NavHelpCommand}" ToolTip.Tip="Ayuda">
-                            <Panel>
-                                <TextBlock Text="?" HorizontalAlignment="Center"
-                                           IsVisible="{Binding NavCollapsed}" />
-                                <TextBlock Text="Ayuda" IsVisible="{Binding NavExpanded}" />
-                            </Panel>
+                            <DockPanel>
+                                <Border Classes="navIndicator" />
+                                <ctl:Icon Data="{StaticResource Icon.Help}" Width="42" />
+                                <TextBlock Text="Ayuda" VerticalAlignment="Center" IsVisible="{Binding NavExpanded}" />
+                            </DockPanel>
                         </Button>
                         <Button Classes="nav" Classes.active="{Binding IsUpdatesNav}"
-                                Classes.compact="{Binding NavCollapsed}"
                                 Command="{Binding NavUpdatesCommand}" ToolTip.Tip="Actualizaciones">
-                            <Panel>
-                                <TextBlock Text="Up" HorizontalAlignment="Center"
-                                           IsVisible="{Binding NavCollapsed}" />
-                                <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding NavExpanded}">
-                                    <TextBlock Text="Actualizaciones" />
-                                    <TextBlock Text="●" FontSize="10" VerticalAlignment="Center"
-                                               Foreground="{DynamicResource BrandGoldBrush}"
-                                               IsVisible="{Binding UpdateBadgeVisible}" />
-                                </StackPanel>
-                            </Panel>
+                            <DockPanel>
+                                <Border Classes="navIndicator" />
+                                <Panel Width="42">
+                                    <ctl:Icon Data="{StaticResource Icon.Download}" />
+                                    <Ellipse Width="7" Height="7" Fill="{DynamicResource BrandGoldBrush}"
+                                             HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,10,0"
+                                             IsVisible="{Binding UpdateBadgeVisible}" />
+                                </Panel>
+                                <TextBlock Text="Actualizaciones" VerticalAlignment="Center" IsVisible="{Binding NavExpanded}" />
+                            </DockPanel>
                         </Button>
                         <Button Classes="nav" Classes.active="{Binding IsAboutNav}"
-                                Classes.compact="{Binding NavCollapsed}"
                                 Command="{Binding NavAboutCommand}" ToolTip.Tip="Acerca de">
-                            <Panel>
-                                <TextBlock Text="i" HorizontalAlignment="Center"
-                                           IsVisible="{Binding NavCollapsed}" />
-                                <TextBlock Text="Acerca de" IsVisible="{Binding NavExpanded}" />
-                            </Panel>
+                            <DockPanel>
+                                <Border Classes="navIndicator" />
+                                <ctl:Icon Data="{StaticResource Icon.Info}" Width="42" />
+                                <TextBlock Text="Acerca de" VerticalAlignment="Center" IsVisible="{Binding NavExpanded}" />
+                            </DockPanel>
                         </Button>
                     </StackPanel>
+
+                    <!-- Principales -->
                     <StackPanel>
+                        <TextBlock Classes="navGroup" Text="DIRECTO" IsVisible="{Binding NavExpanded}" />
+                        <Border Height="14" IsVisible="{Binding NavCollapsed}" />
                         <Button Classes="nav" Classes.active="{Binding IsStudioNav}"
-                                Classes.compact="{Binding NavCollapsed}"
                                 Command="{Binding NavStudioCommand}" ToolTip.Tip="Inicio">
-                            <Panel>
-                                <TextBlock Text="In" HorizontalAlignment="Center"
-                                           IsVisible="{Binding NavCollapsed}" />
-                                <TextBlock Text="Inicio" IsVisible="{Binding NavExpanded}" />
-                            </Panel>
+                            <DockPanel>
+                                <Border Classes="navIndicator" />
+                                <ctl:Icon Data="{StaticResource Icon.Home}" Width="42" />
+                                <TextBlock Text="Inicio" VerticalAlignment="Center" IsVisible="{Binding NavExpanded}" />
+                            </DockPanel>
                         </Button>
                         <Button Classes="nav" Classes.active="{Binding IsTikTokNav}"
-                                Classes.compact="{Binding NavCollapsed}"
                                 Command="{Binding NavTikTokCommand}" ToolTip.Tip="TikTok">
-                            <Panel>
-                                <TextBlock Text="Tk" HorizontalAlignment="Center"
-                                           IsVisible="{Binding NavCollapsed}" />
-                                <TextBlock Text="TikTok" IsVisible="{Binding NavExpanded}" />
-                            </Panel>
+                            <DockPanel>
+                                <Border Classes="navIndicator" />
+                                <ctl:Icon Data="{StaticResource Icon.TikTok}" Width="42" />
+                                <TextBlock Text="TikTok" VerticalAlignment="Center" IsVisible="{Binding NavExpanded}" />
+                            </DockPanel>
                         </Button>
                         <Button Classes="nav" Classes.active="{Binding IsTwitchNav}"
-                                Classes.compact="{Binding NavCollapsed}"
                                 Command="{Binding NavTwitchCommand}" ToolTip.Tip="Twitch">
-                            <Panel>
-                                <TextBlock Text="Tw" HorizontalAlignment="Center"
-                                           IsVisible="{Binding NavCollapsed}" />
-                                <TextBlock Text="Twitch" IsVisible="{Binding NavExpanded}" />
-                            </Panel>
+                            <DockPanel>
+                                <Border Classes="navIndicator" />
+                                <ctl:Icon Data="{StaticResource Icon.Twitch}" Width="42" />
+                                <TextBlock Text="Twitch" VerticalAlignment="Center" IsVisible="{Binding NavExpanded}" />
+                            </DockPanel>
                         </Button>
+
+                        <TextBlock Classes="navGroup" Text="HERRAMIENTAS" IsVisible="{Binding NavExpanded}" />
+                        <Border Height="1" Margin="14,10" Background="{DynamicResource BorderBrush}"
+                                IsVisible="{Binding NavCollapsed}" />
                         <Button Classes="nav" Classes.active="{Binding IsModerationNav}"
-                                Classes.compact="{Binding NavCollapsed}"
                                 Command="{Binding NavModerationCommand}" ToolTip.Tip="Moderación">
-                            <Panel>
-                                <TextBlock Text="Md" HorizontalAlignment="Center"
-                                           IsVisible="{Binding NavCollapsed}" />
-                                <TextBlock Text="Moderación" IsVisible="{Binding NavExpanded}" />
-                            </Panel>
+                            <DockPanel>
+                                <Border Classes="navIndicator" />
+                                <ctl:Icon Data="{StaticResource Icon.Shield}" Width="42" />
+                                <TextBlock Text="Moderación" VerticalAlignment="Center" IsVisible="{Binding NavExpanded}" />
+                            </DockPanel>
                         </Button>
                         <Button Classes="nav" Classes.active="{Binding IsKeyMacrosNav}"
-                                Classes.compact="{Binding NavCollapsed}"
                                 Command="{Binding NavKeyMacrosCommand}" ToolTip.Tip="Teclas">
-                            <Panel>
-                                <TextBlock Text="Tc" HorizontalAlignment="Center"
-                                           IsVisible="{Binding NavCollapsed}" />
-                                <TextBlock Text="Teclas" IsVisible="{Binding NavExpanded}" />
-                            </Panel>
+                            <DockPanel>
+                                <Border Classes="navIndicator" />
+                                <ctl:Icon Data="{StaticResource Icon.Keyboard}" Width="42" />
+                                <TextBlock Text="Teclas" VerticalAlignment="Center" IsVisible="{Binding NavExpanded}" />
+                            </DockPanel>
                         </Button>
                     </StackPanel>
                 </DockPanel>
             </Border>
 
-            <Grid Grid.Column="1" RowDefinitions="*,Auto">
-                <ContentControl Content="{Binding CurrentPage}" Margin="14,10,14,8"
-                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-                <Border Grid.Row="0" ZIndex="50" VerticalAlignment="Top" Margin="14,10,14,0" Padding="14,10"
+            <!-- Panel de actividad (derecha). Se abre solo al conectar; ancho ajustable desde su borde. -->
+            <Border DockPanel.Dock="Right" Width="{Binding ActivityPanelWidth}"
+                    IsVisible="{Binding ActivityPanelOpen}"
+                    Background="{DynamicResource SidebarBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0,0,0">
+                <Panel>
+                    <DockPanel>
+                        <Border DockPanel.Dock="Top" Classes="paneHeader" Padding="14,6,8,6" MinHeight="44">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="2">
+                                    <Button Classes="icon" Command="{Binding ClearActivityCommand}" ToolTip.Tip="Limpiar">
+                                        <ctl:Icon Data="{StaticResource Icon.Trash}" Size="16" />
+                                    </Button>
+                                    <Button Classes="icon" Command="{Binding ToggleActivityPanelCommand}" ToolTip.Tip="Cerrar panel">
+                                        <ctl:Icon Data="{StaticResource Icon.Close}" Size="16" />
+                                    </Button>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <ctl:Icon Data="{StaticResource Icon.Activity}" Size="16"
+                                              Foreground="{DynamicResource GoldTextBrush}" />
+                                    <TextBlock Classes="h2" FontSize="13" Text="Qué está pasando" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Expander DockPanel.Dock="Bottom" Header="Registro técnico" Margin="8"
+                                  IsExpanded="{Binding DetailLogOpen}">
+                            <TextBox Classes="mono" Height="200" FontSize="11"
+                                     Text="{Binding DetailLogText, Mode=OneWay}" IsReadOnly="True"
+                                     AcceptsReturn="True" TextWrapping="Wrap"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     BorderThickness="0" Background="{DynamicResource BgBrush}" />
+                        </Expander>
+                        <TextBox Text="{Binding ActivityText, Mode=OneWay}" IsReadOnly="True"
+                                 TextWrapping="Wrap" AcceptsReturn="True" Margin="8,8,8,0"
+                                 VerticalContentAlignment="Top" FontSize="12"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 BorderThickness="0" Background="Transparent" />
+                    </DockPanel>
+                    <!-- Asa de redimensionado (borde izquierdo). -->
+                    <Border Width="6" HorizontalAlignment="Left" Background="Transparent" Cursor="SizeWestEast"
+                            PointerPressed="ActivityResizeHandle_PointerPressed"
+                            PointerMoved="ActivityResizeHandle_PointerMoved"
+                            PointerReleased="ActivityResizeHandle_PointerReleased" />
+                </Panel>
+            </Border>
+
+            <!-- Contenido de la página -->
+            <Grid RowDefinitions="*,Auto">
+                <TransitioningContentControl Content="{Binding CurrentPage}" Margin="24,18,24,16">
+                    <TransitioningContentControl.PageTransition>
+                        <CrossFade Duration="0:0:0.12" />
+                    </TransitioningContentControl.PageTransition>
+                </TransitioningContentControl>
+
+                <Border Grid.Row="0" ZIndex="50" VerticalAlignment="Top" Margin="24,12,24,0" Padding="14,10"
                         CornerRadius="8" Background="{DynamicResource DangerBrush}"
                         IsVisible="{Binding SystemFx.IsCounting}">
                     <DockPanel>
                         <Button DockPanel.Dock="Right" Content="Cancelar" Margin="12,0,0,0" VerticalAlignment="Center"
                                 Command="{Binding SystemFx.CancelRestartCommand}" />
+                        <ctl:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Warning}" Foreground="White"
+                                  Margin="0,0,10,0" VerticalAlignment="Center" />
                         <TextBlock Text="{Binding SystemFx.BannerText}" TextWrapping="Wrap" FontWeight="SemiBold"
                                    Foreground="White" VerticalAlignment="Center" />
                     </DockPanel>
                 </Border>
-                <!--
-                    Recogido por defecto (solo el encabezado, ~40px) en vez de reservar
-                    espacio fijo en toda página: antes eso restaba espacio incluso en
-                    Ayuda/Acerca, donde la actividad del live no pinta nada. Se auto-abre
-                    al conectar (ver MainViewModel.ToggleConnectionAsync). Expandido, el
-                    alto lo maneja el usuario arrastrando el separador de arriba (guardado
-                    en ActivityPanelHeight/UiPreferences) y el contenido interno scrollea
-                    si no entra, en vez de cortarse.
-                -->
-                <Border Grid.Row="1"
-                        Background="{DynamicResource CardBrush}"
-                        BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="0,1,0,0" Padding="14,8">
-                    <Expander IsExpanded="{Binding ActivityPanelOpen}"
-                              HorizontalAlignment="Stretch"
-                              HorizontalContentAlignment="Stretch">
-                        <Expander.Header>
-                            <DockPanel LastChildFill="True">
-                                <Button DockPanel.Dock="Right" Classes="secondary" Content="Limpiar"
-                                        Command="{Binding ClearActivityCommand}" Margin="8,0,0,0"
-                                        VerticalAlignment="Center" />
-                                <TextBlock Text="Qué está pasando" VerticalAlignment="Center" />
-                            </DockPanel>
-                        </Expander.Header>
-                        <DockPanel LastChildFill="True" Margin="0,8,0,0">
-                            <Border DockPanel.Dock="Top" Height="6" Margin="0,0,0,8" CornerRadius="3"
-                                    Background="{DynamicResource BorderBrush}" Cursor="SizeNorthSouth"
-                                    ToolTip.Tip="Arrastrá para cambiar el alto"
-                                    PointerPressed="ActivityResizeHandle_PointerPressed"
-                                    PointerMoved="ActivityResizeHandle_PointerMoved"
-                                    PointerReleased="ActivityResizeHandle_PointerReleased" />
-                            <ScrollViewer Height="{Binding ActivityPanelHeight}"
-                                          VerticalScrollBarVisibility="Auto">
-                                <StackPanel>
-                                    <TextBox Text="{Binding ActivityText, Mode=OneWay}" IsReadOnly="True"
-                                             TextWrapping="Wrap" AcceptsReturn="True"
-                                             MinHeight="70"
-                                             HorizontalAlignment="Stretch"
-                                             ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                             BorderThickness="0" Background="{DynamicResource BgBrush}" />
-                                    <Expander Header="Más detalle" IsExpanded="{Binding DetailLogOpen}"
-                                              Margin="0,8,0,0"
-                                              HorizontalAlignment="Stretch"
-                                              HorizontalContentAlignment="Stretch">
-                                        <TextBox MinHeight="70" Classes="mono"
-                                                 Text="{Binding DetailLogText, Mode=OneWay}" IsReadOnly="True"
-                                                 FontSize="11"
-                                                 AcceptsReturn="True" TextWrapping="Wrap"
-                                                 HorizontalAlignment="Stretch"
-                                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                                 BorderThickness="0" Background="{DynamicResource BgBrush}"
-                                                 Margin="0,8,0,0" />
-                                    </Expander>
-                                </StackPanel>
-                            </ScrollViewer>
-                        </DockPanel>
-                    </Expander>
+
+                <!-- Barra de estado: la última actividad sin abrir el panel. -->
+                <Border Grid.Row="1" Height="28" Padding="24,0"
+                        Background="{DynamicResource SidebarBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
+                        IsVisible="{Binding !ActivityPanelOpen}">
+                    <Button Classes="ghost" Padding="0" MinHeight="0" HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left" Background="Transparent"
+                            Command="{Binding ToggleActivityPanelCommand}"
+                            ToolTip.Tip="Abrir el panel de actividad">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ctl:Icon Data="{StaticResource Icon.Activity}" Size="14"
+                                      Foreground="{DynamicResource FaintBrush}" />
+                            <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                       Text="{Binding LastActivityLine}" />
+                        </StackPanel>
+                    </Button>
                 </Border>
             </Grid>
-        </Grid>
+        </DockPanel>
     </Grid>
 </Window>

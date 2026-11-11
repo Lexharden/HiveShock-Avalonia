@@ -5,107 +5,492 @@
              xmlns:conv="using:HiveShock.Avalonia.Converters"
              x:Class="HiveShock.Avalonia.Views.Pages.TikTokPage"
              x:DataType="vm:TikTokViewModel">
-    <Grid RowDefinitions="Auto,Auto,*">
-        <DockPanel Margin="0,0,0,4">
-            <TextBlock Classes="pageTitle" Text="TikTok" Margin="0" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding Studio.TikTokPortStatus}"
-                       FontSize="12" FontWeight="SemiBold"
-                       VerticalAlignment="Center" HorizontalAlignment="Right"
-                       Foreground="{DynamicResource MutedBrush}"
-                       Classes.tone-live="{Binding Studio.TikTokLive}"
-                       Classes.tone-connecting="{Binding Studio.TikTokConnecting}"
-                       Classes.tone-error="{Binding Studio.TikTokError}" />
+    <!--
+        Cabecera de una sola línea (título + estado + cuenta) y pestañas compactas: casi todo el alto queda
+        para el contenido. Las listas con editor (Regalos, Metas, Chat) son maestro/detalle.
+    -->
+    <DockPanel>
+        <!-- ============================== Cabecera -->
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+            <!-- Cuenta -->
+            <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="10">
+                <ToggleSwitch IsChecked="{Binding Studio.TikTokEnabled}" IsEnabled="{Binding Studio.CanEditSetup}"
+                              OnContent="Activo en este directo" OffContent="Desactivado"
+                              ToolTip.Tip="Si está desactivado, HiveShock no se conecta al live de TikTok." />
+                <TextBox Width="200" Text="{Binding Studio.Channel}" IsEnabled="{Binding Studio.CanEditSetup}"
+                         PlaceholderText="tu usuario, sin @">
+                    <TextBox.InnerLeftContent>
+                        <TextBlock Text="@" Margin="10,0,0,0" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource FaintBrush}" />
+                    </TextBox.InnerLeftContent>
+                </TextBox>
+                <Button Classes="secondary" Margin="0" Content="Guardar"
+                        Command="{Binding Studio.SaveChannelCommand}" IsEnabled="{Binding Studio.CanEditSetup}" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <Border Width="34" Height="34" CornerRadius="8" Background="{DynamicResource CardAltBrush}">
+                    <ctl:Icon Data="{StaticResource Icon.TikTok}" Size="18" Foreground="{DynamicResource TextBrush}" />
+                </Border>
+                <StackPanel VerticalAlignment="Center" Spacing="1">
+                    <TextBlock Classes="h1" FontSize="18" Text="TikTok" />
+                    <TextBlock Text="{Binding Studio.TikTokPortStatus}" FontSize="12"
+                               Foreground="{DynamicResource MutedBrush}"
+                               Classes.tone-live="{Binding Studio.TikTokLive}"
+                               Classes.tone-connecting="{Binding Studio.TikTokConnecting}"
+                               Classes.tone-error="{Binding Studio.TikTokError}" />
+                </StackPanel>
+            </StackPanel>
         </DockPanel>
 
-        <Expander Grid.Row="1" Classes="account" Header="Usuario de TikTok"
-                  IsExpanded="{Binding AccountOpen}"
-                  HorizontalAlignment="Stretch"
-                  HorizontalContentAlignment="Stretch">
-            <Border Classes="card" Margin="0,8,0,4">
-                <StackPanel>
-                    <CheckBox Content="Usar en este directo" IsChecked="{Binding Studio.TikTokEnabled}"
-                              IsEnabled="{Binding Studio.CanEditSetup}" Margin="0,0,0,10" />
-                    <TextBlock Classes="fieldLabel" Text="Usuario" />
-                    <DockPanel>
-                        <Button DockPanel.Dock="Right" Classes="secondary" Content="Guardar"
-                                Command="{Binding Studio.SaveChannelCommand}" Margin="8,0,0,0"
-                                IsEnabled="{Binding Studio.CanEditSetup}" />
-                        <TextBox Text="{Binding Studio.Channel}" IsEnabled="{Binding Studio.CanEditSetup}"
-                                 PlaceholderText="tu usuario, sin @" />
-                    </DockPanel>
-                </StackPanel>
-            </Border>
-        </Expander>
-
-        <TabControl Grid.Row="2">
-            <TabItem Header="Regalos">
-                <ContentControl Content="{Binding Gifts}" Margin="0,8,0,0" />
-            </TabItem>
-            <TabItem Header="Catálogo">
-                <ContentControl Content="{Binding Catalog}" Margin="0,8,0,0" />
-            </TabItem>
-            <TabItem Header="Metas">
-                <Grid RowDefinitions="Auto,*,Auto" Margin="0,8,0,0">
-                    <StackPanel>
-                        <TextBlock Classes="sectionTitle" Text="ENTRE TODOS" />
-                        <WrapPanel>
-                            <Button Classes="secondary" Content="Añadir" Command="{Binding Goals.AddCommand}" />
-                            <Button Classes="secondary" Content="Quitar" Command="{Binding Goals.RemoveCommand}" />
-                            <Button Classes="secondary" Content="Poner a 0" Command="{Binding Goals.ResetSelectedCommand}" />
-                            <Button Classes="secondary" Content="Simular +1" Command="{Binding Goals.SimulateCommand}" />
-                            <ctl:SaveStatusChip DataContext="{Binding Goals.SaveStatus}" Margin="8,0,0,8" />
-                        </WrapPanel>
+        <TabControl>
+            <!-- ============================== Regalos -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Classes="tabHeader">
+                        <ctl:Icon Data="{StaticResource Icon.Gift}" />
+                        <TextBlock Text="Regalos" />
                     </StackPanel>
-                    <ListBox Grid.Row="1" ItemsSource="{Binding Goals.Rows}"
-                             SelectedItem="{Binding Goals.Selected}"
-                             MinHeight="96" Margin="0,8,0,0"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="vm:GoalRowViewModel">
-                                <StackPanel Margin="0,4">
+                </TabItem.Header>
+                <ContentControl Content="{Binding Gifts}" />
+            </TabItem>
+
+            <!-- ============================== Catálogo -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Classes="tabHeader">
+                        <ctl:Icon Data="{StaticResource Icon.Book}" />
+                        <TextBlock Text="Catálogo" />
+                    </StackPanel>
+                </TabItem.Header>
+                <ContentControl Content="{Binding Catalog}" Margin="0,12,0,0" />
+            </TabItem>
+
+            <!-- ============================== Chat -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Classes="tabHeader">
+                        <ctl:Icon Data="{StaticResource Icon.Chat}" />
+                        <TextBlock Text="Comandos de chat" />
+                    </StackPanel>
+                </TabItem.Header>
+                <DockPanel Margin="0,12,0,0">
+                    <!-- Ajustes generales del chat en una franja. -->
+                    <Border DockPanel.Dock="Top" Classes="section" Padding="14,10" Margin="0,0,0,12">
+                        <WrapPanel ItemSpacing="20" LineSpacing="8" VerticalAlignment="Center">
+                            <ToggleSwitch IsChecked="{Binding Events.ChatEnabled}"
+                                          OnContent="Comandos activados" OffContent="Comandos desactivados" />
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <TextBlock Classes="fieldLabel" Margin="0" Text="Prefijo" VerticalAlignment="Center" />
+                                <TextBox Text="{Binding Events.ChatPrefix}" Width="56" HorizontalContentAlignment="Center" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"
+                                        ToolTip.Tip="Segundos que cada espectador espera entre dos comandos.">
+                                <TextBlock Classes="fieldLabel" Margin="0" Text="Espera por espectador" VerticalAlignment="Center" />
+                                <TextBox Text="{Binding Events.ChatCooldownText}" Width="56" HorizontalContentAlignment="Center" />
+                                <TextBlock Classes="caption" Text="s" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"
+                                        ToolTip.Tip="Segundos mínimos entre dos comandos de cualquier espectador.">
+                                <TextBlock Classes="fieldLabel" Margin="0" Text="Espera entre todos" VerticalAlignment="Center" />
+                                <TextBox Text="{Binding Events.ChatGlobalGapText}" Width="56" HorizontalContentAlignment="Center" />
+                                <TextBlock Classes="caption" Text="s" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </WrapPanel>
+                    </Border>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="300" MinWidth="240" MaxWidth="520" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" MinWidth="380" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Classes="panel">
+                            <DockPanel>
+                                <Border DockPanel.Dock="Top" Classes="paneHeader">
                                     <DockPanel>
-                                        <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold"
-                                                   VerticalAlignment="Center" Margin="8,0,0,0"
-                                                   Text="{Binding ProgressText}" />
-                                        <TextBox Text="{Binding Label}" PlaceholderText="nombre de la meta" />
+                                        <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="2">
+                                            <Button Classes="icon" Command="{Binding Events.AddCommandCommand}" ToolTip.Tip="Añadir comando">
+                                                <ctl:Icon Data="{StaticResource Icon.Plus}" />
+                                            </Button>
+                                            <Button Classes="icon" Command="{Binding Events.RemoveCommandCommand}" ToolTip.Tip="Quitar el comando seleccionado">
+                                                <ctl:Icon Data="{StaticResource Icon.Trash}" />
+                                            </Button>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                            <TextBlock Classes="h2" Text="Comandos" />
+                                            <Border Classes="pill">
+                                                <TextBlock Text="{Binding Events.ChatCommands.Count}" />
+                                            </Border>
+                                        </StackPanel>
                                     </DockPanel>
-                                    <DockPanel Margin="0,6,0,0">
-                                        <TextBlock Classes="fieldLabel" Text="Hace falta" Width="90"
-                                                   VerticalAlignment="Center" />
-                                        <TextBox Text="{Binding NeedText}" Width="64"
-                                                 HorizontalAlignment="Left" />
-                                    </DockPanel>
-                                    <TextBlock Classes="fieldLabel" Text="Regalos que cuentan (nombres o IDs, coma)"
-                                               Margin="0,8,0,4" />
+                                </Border>
+                                <Border DockPanel.Dock="Bottom" Classes="paneFooter">
                                     <DockPanel>
-                                        <Button DockPanel.Dock="Right" Classes="secondary" Content="Del catálogo"
-                                                Margin="8,0,0,0"
-                                                Command="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).Goals.AddGiftFromCatalogCommand}"
-                                                CommandParameter="{Binding}" />
-                                        <TextBox Text="{Binding GiftsText}" />
+                                        <Button DockPanel.Dock="Right" Classes="primary" Margin="8,0,0,0" Command="{Binding Events.SaveCommand}">
+                                            <StackPanel Classes="btnContent">
+                                                <ctl:Icon Data="{StaticResource Icon.Save}" />
+                                                <TextBlock Text="Guardar" />
+                                            </StackPanel>
+                                        </Button>
+                                        <ctl:SaveStatusChip DataContext="{Binding Events.SaveStatus}" />
                                     </DockPanel>
-                                    <ComboBox Margin="0,8,0,0"
-                                              ItemsSource="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).Goals.EffectsWithNone}"
-                                              SelectedValue="{Binding Effect}"
-                                              SelectedValueBinding="{Binding Id}"
-                                              DisplayMemberBinding="{Binding Display}" />
-                                    <ctl:StepListEditor DataContext="{Binding Steps}"
-                                        IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
-                                    <CheckBox Content="También dispara el efecto del regalo"
-                                              IsChecked="{Binding AlsoInstant}" Margin="0,8,0,0" />
-                                    <CheckBox Content="Se puede volver a llenar en este directo"
-                                              IsChecked="{Binding Repeat}" />
+                                </Border>
+                                <Panel>
+                                    <ListBox Classes="plain" ItemsSource="{Binding Events.ChatCommands}"
+                                             SelectedItem="{Binding Events.SelectedCommand}"
+                                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ChatCommandRowViewModel">
+                                                <DockPanel>
+                                                    <Border DockPanel.Dock="Right" Classes="pill gold" Margin="8,0,0,0"
+                                                            IsVisible="{Binding HasExtraSteps}">
+                                                        <TextBlock Text="{Binding StepSummary}" />
+                                                    </Border>
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock FontWeight="SemiBold" TextTrimming="CharacterEllipsis">
+                                                            <Run Text="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).Events.ChatPrefix}"
+                                                                 Foreground="{DynamicResource FaintBrush}" />
+                                                            <Run Text="{Binding Word}" />
+                                                        </TextBlock>
+                                                        <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis">
+                                                            <TextBlock.Text>
+                                                                <MultiBinding Converter="{StaticResource EffectDisplay}">
+                                                                    <Binding Path="Effect" />
+                                                                    <Binding Path="$parent[UserControl].((vm:TikTokViewModel)DataContext).Events.EffectsWithNone" />
+                                                                </MultiBinding>
+                                                            </TextBlock.Text>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <StackPanel Classes="empty" IsVisible="{Binding !Events.ChatCommands.Count}">
+                                        <ctl:Icon Data="{StaticResource Icon.Chat}" />
+                                        <TextBlock Classes="h2" Text="Sin comandos" />
+                                        <TextBlock Classes="caption" Text="Crea uno con + (por ejemplo «saltar») y elige qué hace en el juego." />
+                                    </StackPanel>
+                                </Panel>
+                            </DockPanel>
+                        </Border>
+
+                        <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+
+                        <Border Grid.Column="2" Classes="panel">
+                            <Panel>
+                                <StackPanel Classes="empty" IsVisible="{Binding Events.SelectedCommand, Converter={x:Static ObjectConverters.IsNull}}">
+                                    <ctl:Icon Data="{StaticResource Icon.Chat}" />
+                                    <TextBlock Classes="h2" Text="Elige un comando" />
+                                    <TextBlock Classes="caption" Text="Selecciona un comando de la lista para editarlo." />
                                 </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                    <Button Grid.Row="2" Classes="primary" Content="Guardar" Command="{Binding Goals.SaveCommand}"
-                            HorizontalAlignment="Left" MinWidth="140" Margin="0,8,0,0" />
+                                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                              IsVisible="{Binding Events.SelectedCommand, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                    <StackPanel Margin="20,18,20,24" MaxWidth="720" DataContext="{Binding Events.SelectedCommand}"
+                                                x:DataType="vm:ChatCommandRowViewModel">
+                                        <Grid ColumnDefinitions="*,16,*">
+                                            <StackPanel Grid.Column="0" Classes="field">
+                                                <TextBlock Classes="fieldLabel" Text="Palabra que escribe el espectador" />
+                                                <TextBox Text="{Binding Word}" PlaceholderText="p. ej. saltar" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" Classes="field">
+                                                <TextBlock Classes="fieldLabel" Text="Efecto" />
+                                                <ComboBox HorizontalAlignment="Stretch"
+                                                          ItemsSource="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).Events.EffectsWithNone}"
+                                                          SelectedValue="{Binding Effect}"
+                                                          SelectedValueBinding="{Binding Id}"
+                                                          DisplayMemberBinding="{Binding Display}" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <ctl:StepListEditor DataContext="{Binding Steps}" Margin="0,6,0,0" />
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Panel>
+                        </Border>
+                    </Grid>
+                </DockPanel>
+            </TabItem>
+
+            <!-- ============================== Eventos -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Classes="tabHeader">
+                        <ctl:Icon Data="{StaticResource Icon.Bolt}" />
+                        <TextBlock Text="Eventos" />
+                    </StackPanel>
+                </TabItem.Header>
+                <DockPanel Margin="0,12,0,0">
+                    <Border DockPanel.Dock="Bottom" Classes="paneFooter" Padding="0,10,0,0" BorderThickness="0">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Classes="primary" Margin="8,0,0,0" Command="{Binding Events.SaveCommand}">
+                                <StackPanel Classes="btnContent">
+                                    <ctl:Icon Data="{StaticResource Icon.Save}" />
+                                    <TextBlock Text="Guardar" />
+                                </StackPanel>
+                            </Button>
+                            <ctl:SaveStatusChip DataContext="{Binding Events.SaveStatus}" />
+                        </DockPanel>
+                    </Border>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <Grid ColumnDefinitions="*,12,*,12,*">
+                            <!-- Seguidores -->
+                            <Border Grid.Column="0" Classes="section" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,14">
+                                        <Border Width="32" Height="32" CornerRadius="8" Background="{DynamicResource AccentSubtleBrush}">
+                                            <ctl:Icon Data="{StaticResource Icon.UserPlus}" Size="17" Foreground="{DynamicResource AccentTextBrush}" />
+                                        </Border>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Classes="h2" Text="Nuevo seguidor" />
+                                            <TextBlock Classes="caption" Text="Cuando alguien te sigue" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <StackPanel Classes="field">
+                                        <TextBlock Classes="fieldLabel" Text="Efecto" />
+                                        <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding Events.EffectsWithNone}"
+                                                  SelectedValue="{Binding Events.FollowEffect}"
+                                                  SelectedValueBinding="{Binding Id}"
+                                                  DisplayMemberBinding="{Binding Display}" />
+                                    </StackPanel>
+                                    <CheckBox Content="Solo la primera vez que sigue" Margin="0,0,0,4"
+                                              ToolTip.Tip="Evita el spam de seguir y dejar de seguir."
+                                              IsChecked="{Binding Events.FollowOncePerUser}" />
+                                    <Button Classes="ghost" Padding="8,4" MinHeight="28" Margin="0,0,0,10" HorizontalAlignment="Left"
+                                            Content="Olvidar seguidores" Command="{Binding Events.ClearFollowHistoryCommand}" />
+                                    <ctl:StepListEditor DataContext="{Binding Events.FollowSteps}" />
+                                </StackPanel>
+                            </Border>
+                            <!-- Likes -->
+                            <Border Grid.Column="2" Classes="section" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,14">
+                                        <Border Width="32" Height="32" CornerRadius="8" Background="{DynamicResource DangerSubtleBrush}">
+                                            <ctl:Icon Data="{StaticResource Icon.Heart}" Size="17" Foreground="{DynamicResource DangerBrush}" />
+                                        </Border>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Classes="h2" Text="Likes" />
+                                            <TextBlock Classes="caption" Text="Cada cierto número de likes" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <Grid ColumnDefinitions="Auto,12,*">
+                                        <StackPanel Grid.Column="0" Classes="field">
+                                            <TextBlock Classes="fieldLabel" Text="Cada" />
+                                            <TextBox Text="{Binding Events.LikesEveryText}" Width="80" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Classes="field">
+                                            <TextBlock Classes="fieldLabel" Text="Efecto" />
+                                            <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding Events.EffectsWithNone}"
+                                                      SelectedValue="{Binding Events.LikesEffect}"
+                                                      SelectedValueBinding="{Binding Id}"
+                                                      DisplayMemberBinding="{Binding Display}" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <ctl:StepListEditor DataContext="{Binding Events.LikesSteps}" />
+                                </StackPanel>
+                            </Border>
+                            <!-- Compartir -->
+                            <Border Grid.Column="4" Classes="section" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,14">
+                                        <Border Width="32" Height="32" CornerRadius="8" Background="{DynamicResource OkSubtleBrush}">
+                                            <ctl:Icon Data="{StaticResource Icon.Share}" Size="17" Foreground="{DynamicResource StatusOkBrush}" />
+                                        </Border>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Classes="h2" Text="Compartir" />
+                                            <TextBlock Classes="caption" Text="Cuando alguien comparte el live" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <StackPanel Classes="field">
+                                        <TextBlock Classes="fieldLabel" Text="Efecto" />
+                                        <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding Events.EffectsWithNone}"
+                                                  SelectedValue="{Binding Events.ShareEffect}"
+                                                  SelectedValueBinding="{Binding Id}"
+                                                  DisplayMemberBinding="{Binding Display}" />
+                                    </StackPanel>
+                                    <ctl:StepListEditor DataContext="{Binding Events.ShareSteps}" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </ScrollViewer>
+                </DockPanel>
+            </TabItem>
+
+            <!-- ============================== Metas -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Classes="tabHeader">
+                        <ctl:Icon Data="{StaticResource Icon.Target}" />
+                        <TextBlock Text="Metas" />
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="300" MinWidth="240" MaxWidth="520" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" MinWidth="380" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Classes="panel">
+                        <DockPanel>
+                            <Border DockPanel.Dock="Top" Classes="paneHeader">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="2">
+                                        <Button Classes="icon" Command="{Binding Goals.AddCommand}" ToolTip.Tip="Añadir meta">
+                                            <ctl:Icon Data="{StaticResource Icon.Plus}" />
+                                        </Button>
+                                        <Button Classes="icon" Command="{Binding Goals.RemoveCommand}" ToolTip.Tip="Quitar la meta seleccionada">
+                                            <ctl:Icon Data="{StaticResource Icon.Trash}" />
+                                        </Button>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <TextBlock Classes="h2" Text="Metas entre todos" />
+                                        <Border Classes="pill">
+                                            <TextBlock Text="{Binding Goals.Rows.Count}" />
+                                        </Border>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border DockPanel.Dock="Bottom" Classes="paneFooter">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Classes="primary" Margin="8,0,0,0" Command="{Binding Goals.SaveCommand}">
+                                        <StackPanel Classes="btnContent">
+                                            <ctl:Icon Data="{StaticResource Icon.Save}" />
+                                            <TextBlock Text="Guardar" />
+                                        </StackPanel>
+                                    </Button>
+                                    <ctl:SaveStatusChip DataContext="{Binding Goals.SaveStatus}" />
+                                </DockPanel>
+                            </Border>
+                            <Panel>
+                                <ListBox Classes="plain" ItemsSource="{Binding Goals.Rows}" SelectedItem="{Binding Goals.Selected}"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:GoalRowViewModel">
+                                            <DockPanel>
+                                                <Border DockPanel.Dock="Right" Classes="pill" Classes.ok="{Binding Closed}" Margin="8,0,0,0">
+                                                    <TextBlock Text="{Binding ProgressText}" />
+                                                </Border>
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis">
+                                                        <TextBlock.Text>
+                                                            <MultiBinding Converter="{StaticResource EffectDisplay}">
+                                                                <Binding Path="Effect" />
+                                                                <Binding Path="$parent[UserControl].((vm:TikTokViewModel)DataContext).Goals.EffectsWithNone" />
+                                                            </MultiBinding>
+                                                        </TextBlock.Text>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <StackPanel Classes="empty" IsVisible="{Binding !Goals.Rows.Count}">
+                                    <ctl:Icon Data="{StaticResource Icon.Target}" />
+                                    <TextBlock Classes="h2" Text="Sin metas" />
+                                    <TextBlock Classes="caption" Text="Una meta junta regalos de todos los espectadores y lanza un efecto al llenarse." />
+                                </StackPanel>
+                            </Panel>
+                        </DockPanel>
+                    </Border>
+
+                    <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+
+                    <Border Grid.Column="2" Classes="panel">
+                        <Panel>
+                            <StackPanel Classes="empty" IsVisible="{Binding Goals.Selected, Converter={x:Static ObjectConverters.IsNull}}">
+                                <ctl:Icon Data="{StaticResource Icon.Target}" />
+                                <TextBlock Classes="h2" Text="Elige una meta" />
+                                <TextBlock Classes="caption" Text="Selecciona una meta de la lista para editarla." />
+                            </StackPanel>
+                            <DockPanel IsVisible="{Binding Goals.Selected, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                <Border DockPanel.Dock="Top" Classes="paneHeader" Padding="16,10">
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Classes="bar">
+                                            <Button Classes="secondary" Margin="0" Command="{Binding Goals.ResetSelectedCommand}"
+                                                    ToolTip.Tip="Vuelve a poner el progreso de esta meta a 0.">
+                                                <StackPanel Classes="btnContent">
+                                                    <ctl:Icon Data="{StaticResource Icon.Refresh}" />
+                                                    <TextBlock Text="Poner a 0" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Classes="primary" Margin="0" Command="{Binding Goals.SimulateCommand}"
+                                                    ToolTip.Tip="Suma un regalo a la meta, como si llegara uno de verdad.">
+                                                <StackPanel Classes="btnContent">
+                                                    <ctl:Icon Data="{StaticResource Icon.Plus}" />
+                                                    <TextBlock Text="Simular +1" />
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                                            <TextBlock Classes="h2" FontSize="16" Text="{Binding Goals.Selected.Label}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Classes="caption">
+                                                <Run Text="Progreso: " />
+                                                <Run Text="{Binding Goals.Selected.ProgressText}" FontWeight="SemiBold" />
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <StackPanel Margin="20,18,20,24" MaxWidth="720" DataContext="{Binding Goals.Selected}"
+                                                x:DataType="vm:GoalRowViewModel">
+                                        <Grid ColumnDefinitions="*,16,Auto">
+                                            <StackPanel Grid.Column="0" Classes="field">
+                                                <TextBlock Classes="fieldLabel" Text="Nombre de la meta" />
+                                                <TextBox Text="{Binding Label}" PlaceholderText="p. ej. Lluvia de rosas" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" Classes="field">
+                                                <TextBlock Classes="fieldLabel" Text="Regalos necesarios" />
+                                                <TextBox Text="{Binding NeedText}" Width="120" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <StackPanel Classes="field">
+                                            <TextBlock Classes="fieldLabel" Text="Regalos que cuentan (nombres o IDs, separados por coma)" />
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Classes="secondary" Margin="8,0,0,0"
+                                                        Command="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).Goals.AddGiftFromCatalogCommand}"
+                                                        CommandParameter="{Binding}">
+                                                    <StackPanel Classes="btnContent">
+                                                        <ctl:Icon Data="{StaticResource Icon.Book}" />
+                                                        <TextBlock Text="Del catálogo" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <TextBox Text="{Binding GiftsText}" />
+                                            </DockPanel>
+                                        </StackPanel>
+                                        <StackPanel Classes="field">
+                                            <TextBlock Classes="fieldLabel" Text="Efecto al llenarse" />
+                                            <ComboBox HorizontalAlignment="Stretch"
+                                                      ItemsSource="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).Goals.EffectsWithNone}"
+                                                      SelectedValue="{Binding Effect}"
+                                                      SelectedValueBinding="{Binding Id}"
+                                                      DisplayMemberBinding="{Binding Display}" />
+                                        </StackPanel>
+                                        <ctl:StepListEditor DataContext="{Binding Steps}" Margin="0,0,0,14" />
+                                        <Border Classes="divider" Margin="0,0,0,12" />
+                                        <StackPanel Spacing="6">
+                                            <CheckBox Content="Cada regalo también dispara su propio efecto" IsChecked="{Binding AlsoInstant}" />
+                                            <CheckBox Content="Se puede volver a llenar en este directo" IsChecked="{Binding Repeat}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Panel>
+                    </Border>
                 </Grid>
             </TabItem>
-            <TabItem Header="Perfil">
-                <ScrollViewer Margin="0,8,0,0" VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
+
+            <!-- ============================== Perfil (técnico) -->
+            <TabItem ToolTip.Tip="Valores técnicos del perfil (profile.json y effects.json). Solo si sabes lo que haces.">
+                <TabItem.Header>
+                    <StackPanel Classes="tabHeader">
+                        <ctl:Icon Data="{StaticResource Icon.Code}" />
+                        <TextBlock Text="Perfil técnico" />
+                    </StackPanel>
+                </TabItem.Header>
+                <ScrollViewer Margin="0,12,0,0" VerticalScrollBarVisibility="Auto">
+                    <StackPanel MaxWidth="1100" HorizontalAlignment="Stretch">
                         <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,0,0,8"
                                    Text="profile.json y effects.json del perfil activo. Detén el bridge para poder guardar." />
 
@@ -291,112 +676,17 @@
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
-            <TabItem Header="Chat">
-                <Grid RowDefinitions="Auto,*,Auto,*" Margin="0,8,0,0">
-                    <StackPanel>
-                        <ctl:SaveStatusChip DataContext="{Binding Events.SaveStatus}" HorizontalAlignment="Left" Margin="0,0,0,8" />
-                        <TextBlock Classes="sectionTitle" Text="PALABRAS DEL CHAT" />
-                        <CheckBox Content="Activar" IsChecked="{Binding Events.ChatEnabled}" />
-                        <WrapPanel Margin="0,8,0,0">
-                            <DockPanel Margin="0,0,16,8" Width="280">
-                                <TextBlock Classes="fieldLabel" Text="Prefijo" Width="90" VerticalAlignment="Center" Margin="0" />
-                                <TextBox Text="{Binding Events.ChatPrefix}" Width="64" HorizontalAlignment="Left" />
-                            </DockPanel>
-                            <DockPanel Margin="0,0,16,8" Width="320">
-                                <TextBlock Classes="fieldLabel" Text="Espera viewer (s)" Width="130"
-                                           VerticalAlignment="Center" Margin="0" />
-                                <TextBox Text="{Binding Events.ChatCooldownText}" Width="64" HorizontalAlignment="Left" />
-                            </DockPanel>
-                            <DockPanel Margin="0,0,0,8" Width="320">
-                                <TextBlock Classes="fieldLabel" Text="Espera todos (s)" Width="130"
-                                           VerticalAlignment="Center" Margin="0" />
-                                <TextBox Text="{Binding Events.ChatGlobalGapText}" Width="64" HorizontalAlignment="Left" />
-                            </DockPanel>
-                        </WrapPanel>
-                        <WrapPanel>
-                            <Button Classes="secondary" Content="Añadir" Command="{Binding Events.AddCommandCommand}" />
-                            <Button Classes="secondary" Content="Quitar" Command="{Binding Events.RemoveCommandCommand}" />
-                        </WrapPanel>
+
+            <!-- ============================== Debug -->
+            <TabItem IsVisible="{Binding IsDebugBuild}">
+                <TabItem.Header>
+                    <StackPanel Classes="tabHeader">
+                        <ctl:Icon Data="{StaticResource Icon.Bug}" />
+                        <TextBlock Text="Debug" />
                     </StackPanel>
-                    <ListBox Grid.Row="1" ItemsSource="{Binding Events.ChatCommands}"
-                             SelectedItem="{Binding Events.SelectedCommand}"
-                             MinHeight="96" Margin="0,8,0,0"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="vm:ChatCommandRowViewModel">
-                                <StackPanel>
-                                    <DockPanel>
-                                    <ComboBox DockPanel.Dock="Right" MinWidth="240" MaxWidth="420" Margin="8,0,0,0"
-                                              HorizontalAlignment="Right"
-                                              ItemsSource="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).Events.EffectsWithNone}"
-                                              SelectedValue="{Binding Effect}"
-                                              SelectedValueBinding="{Binding Id}"
-                                              DisplayMemberBinding="{Binding Display}" />
-                                    <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0"
-                                           Foreground="{DynamicResource BrandGoldBrush}" FontSize="12"
-                                           Text="{Binding StepSummary}" />
-                                    <TextBox Text="{Binding Word}" PlaceholderText="palabra" />
-                                    </DockPanel>
-                                    <ctl:StepListEditor DataContext="{Binding Steps}"
-                                         IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                    <GridSplitter Grid.Row="2" Height="8" HorizontalAlignment="Stretch"
-                                  ResizeDirection="Rows" />
-                    <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" MinHeight="120">
-                        <StackPanel>
-                            <Grid ColumnDefinitions="*,*" Margin="0,8,0,12">
-                                <Border Classes="card" Margin="0,0,8,0">
-                                    <StackPanel>
-                                        <TextBlock Classes="sectionTitle" Text="NUEVOS SEGUIDORES" />
-                                        <ComboBox ItemsSource="{Binding Events.EffectsWithNone}"
-                                                  SelectedValue="{Binding Events.FollowEffect}"
-                                                  SelectedValueBinding="{Binding Id}"
-                                                  DisplayMemberBinding="{Binding Display}" />
-                                        <ctl:StepListEditor DataContext="{Binding Events.FollowSteps}" />
-                                        <CheckBox Content="Solo la primera vez que sigue (evita el spam de seguir y dejar de seguir)"
-                                                  IsChecked="{Binding Events.FollowOncePerUser}" Margin="0,8,0,0" />
-                                        <Button Classes="secondary" Content="Olvidar seguidores"
-                                                Command="{Binding Events.ClearFollowHistoryCommand}" HorizontalAlignment="Left" />
-                                    </StackPanel>
-                                </Border>
-                                <Border Classes="card" Grid.Column="1" Margin="8,0,0,0">
-                                    <StackPanel>
-                                        <TextBlock Classes="sectionTitle" Text="LIKES" />
-                                        <DockPanel Margin="0,0,0,8">
-                                            <TextBlock Classes="fieldLabel" Text="Cada" Width="48" VerticalAlignment="Center" Margin="0" />
-                                            <TextBox Text="{Binding Events.LikesEveryText}" Width="80" HorizontalAlignment="Left" />
-                                        </DockPanel>
-                                        <ComboBox ItemsSource="{Binding Events.EffectsWithNone}"
-                                                  SelectedValue="{Binding Events.LikesEffect}"
-                                                  SelectedValueBinding="{Binding Id}"
-                                                  DisplayMemberBinding="{Binding Display}" />
-                                        <ctl:StepListEditor DataContext="{Binding Events.LikesSteps}" />
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
-                            <Border Classes="card" Margin="0,0,0,12">
-                                <StackPanel>
-                                    <TextBlock Classes="sectionTitle" Text="COMPARTIR" />
-                                    <ComboBox ItemsSource="{Binding Events.EffectsWithNone}"
-                                              SelectedValue="{Binding Events.ShareEffect}"
-                                              SelectedValueBinding="{Binding Id}"
-                                              DisplayMemberBinding="{Binding Display}"
-                                              HorizontalAlignment="Left" MinWidth="280" />
-                                    <ctl:StepListEditor DataContext="{Binding Events.ShareSteps}" />
-                                </StackPanel>
-                            </Border>
-                            <Button Classes="primary" Content="Guardar" Command="{Binding Events.SaveCommand}"
-                                    HorizontalAlignment="Left" MinWidth="140" />
-                        </StackPanel>
-                    </ScrollViewer>
-                </Grid>
-            </TabItem>
-            <TabItem Header="Debug" IsVisible="{Binding IsDebugBuild}">
-                <ContentControl Content="{Binding Diagnostics}" Margin="0,8,0,0" />
+                </TabItem.Header>
+                <ContentControl Content="{Binding Diagnostics}" Margin="0,12,0,0" />
             </TabItem>
         </TabControl>
-    </Grid>
+    </DockPanel>
 </UserControl>

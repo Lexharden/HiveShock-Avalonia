@@ -3,48 +3,47 @@
              xmlns:vm="using:HiveShock.Avalonia.ViewModels"
              x:Class="HiveShock.Avalonia.Views.Controls.SaveStatusChip"
              x:DataType="vm:SaveStatusViewModel">
+    <!--
+        Estado de guardado compacto: [✓ Auto]  ● Guardado
+        Cabe en el pie de una lista estrecha; el mensaje completo va en el tooltip.
+    -->
     <UserControl.Styles>
-        <Style Selector="Border.saveChip">
-            <Setter Property="CornerRadius" Value="999" />
-            <Setter Property="Padding" Value="12,5" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Background" Value="{DynamicResource CardAltBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Style Selector="Ellipse.saveDot">
+            <Setter Property="Width" Value="7" />
+            <Setter Property="Height" Value="7" />
+            <Setter Property="Fill" Value="{DynamicResource FaintBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <Style Selector="Border.saveChip TextBlock">
+        <Style Selector="Ellipse.saveDot.ok">
+            <Setter Property="Fill" Value="{DynamicResource StatusOkBrush}" />
+        </Style>
+        <Style Selector="Ellipse.saveDot.err">
+            <Setter Property="Fill" Value="{DynamicResource DangerBrush}" />
+        </Style>
+        <Style Selector="Ellipse.saveDot.pending">
+            <Setter Property="Fill" Value="{DynamicResource BrandGoldBrush}" />
+        </Style>
+        <Style Selector="TextBlock.saveText">
             <Setter Property="FontSize" Value="12" />
-            <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
-        <Style Selector="Border.saveChip.ok">
-            <Setter Property="Background" Value="#262EA85F" />
-            <Setter Property="BorderBrush" Value="#2EA85F" />
-        </Style>
-        <Style Selector="Border.saveChip.ok TextBlock">
-            <Setter Property="Foreground" Value="#2EA85F" />
-        </Style>
-        <Style Selector="Border.saveChip.err">
-            <Setter Property="Background" Value="#26E05A5A" />
-            <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
-        </Style>
-        <Style Selector="Border.saveChip.err TextBlock">
+        <Style Selector="TextBlock.saveText.err">
             <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
         </Style>
-        <Style Selector="Border.saveChip.pending">
-            <Setter Property="BorderBrush" Value="{DynamicResource BrandGoldBrush}" />
-        </Style>
-        <Style Selector="Border.saveChip.pending TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource BrandGoldBrush}" />
-        </Style>
     </UserControl.Styles>
-    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-        <CheckBox Content="Guardado automático" IsChecked="{Binding AutoSaveEnabled}"
-                  IsVisible="{Binding SupportsAutoSave}" VerticalAlignment="Center" />
-        <Border Classes="saveChip" Classes.ok="{Binding IsSaved}" Classes.err="{Binding IsFailed}"
-                Classes.pending="{Binding IsPending}" IsVisible="{Binding IsVisible}"
-                VerticalAlignment="Center" MaxWidth="420">
-            <TextBlock Text="{Binding Message}" TextTrimming="CharacterEllipsis"
-                       ToolTip.Tip="{Binding Message}" />
-        </Border>
-    </StackPanel>
+    <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+        <CheckBox Grid.Column="0" Content="Auto" MinWidth="0" Margin="0,0,12,0"
+                  IsChecked="{Binding AutoSaveEnabled}" IsVisible="{Binding SupportsAutoSave}"
+                  VerticalAlignment="Center"
+                  ToolTip.Tip="Guardado automático: los cambios se guardan solos al poco de hacerlos." />
+        <Grid Grid.Column="1" ColumnDefinitions="Auto,*" IsVisible="{Binding IsVisible}"
+              VerticalAlignment="Center" Background="Transparent" ToolTip.Tip="{Binding Message}">
+            <Ellipse Classes="saveDot" Margin="0,0,6,0" Classes.ok="{Binding IsSaved}" Classes.err="{Binding IsFailed}"
+                     Classes.pending="{Binding IsPending}" />
+            <TextBlock Grid.Column="1" Classes="saveText" Classes.err="{Binding IsFailed}" Text="{Binding Message}"
+                       MaxWidth="360" />
+        </Grid>
+    </Grid>
 </UserControl>

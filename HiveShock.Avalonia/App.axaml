@@ -9,13 +9,29 @@
     </Application.DataTemplates>
 
     <Application.Resources>
-        <conv:InvertBoolConverter x:Key="InvertBool" />
-        <conv:NullToBoolConverter x:Key="NullToBool" />
-        <conv:GiftImageConverter x:Key="GiftImage" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="/Themes/Icons.axaml" />
+                <ResourceInclude Source="/Themes/Templates.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <conv:InvertBoolConverter x:Key="InvertBool" />
+            <conv:NullToBoolConverter x:Key="NullToBool" />
+            <conv:GiftImageConverter x:Key="GiftImage" />
+            <conv:EffectDisplayConverter x:Key="EffectDisplay" />
+        </ResourceDictionary>
     </Application.Resources>
 
     <Application.Styles>
-        <FluentTheme />
+        <!--
+            Los controles de Fluent (CheckBox, ToggleSwitch, Slider, foco, selección de texto…) toman el acento
+            de marca en vez del color de acento de Windows, para que la app se vea igual en todos los equipos.
+        -->
+        <FluentTheme>
+            <FluentTheme.Palettes>
+                <ColorPaletteResources x:Key="Light" Accent="#075BAA" RegionColor="#F3F5F9" ErrorText="#C03E3E" />
+                <ColorPaletteResources x:Key="Dark" Accent="#1A6FD1" RegionColor="#0B0E14" ErrorText="#E05656" />
+            </FluentTheme.Palettes>
+        </FluentTheme>
         <StyleInclude Source="/Themes/Controls.axaml" />
     </Application.Styles>
 </Application>
