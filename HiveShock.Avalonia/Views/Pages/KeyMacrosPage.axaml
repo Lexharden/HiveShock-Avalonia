@@ -48,7 +48,7 @@
                                             <ctl:Icon Data="{StaticResource Icon.Copy}" />
                                         </Button>
                                         <Button Classes="icon" Command="{Binding RemoveMacroCommand}" IsEnabled="{Binding HasSelection}"
-                                                ToolTip.Tip="Quitar la macro seleccionada">
+                                                ToolTip.Tip="Eliminar la macro seleccionada (Supr)">
                                             <ctl:Icon Data="{StaticResource Icon.Trash}" />
                                         </Button>
                                     </StackPanel>
@@ -60,7 +60,29 @@
                             </Border>
                             <Panel>
                                 <ListBox Classes="plain" ItemsSource="{Binding Macros}" SelectedItem="{Binding SelectedMacro}"
-                                         IsVisible="{Binding HasMacros}">
+                                         IsVisible="{Binding HasMacros}"
+                                         ctl:ListGestures.DeleteCommand="{Binding RemoveMacroCommand}"
+                                         ctl:ListGestures.Reorder="True">
+                                        <ListBox.ContextFlyout>
+                                            <MenuFlyout>
+                                                <MenuItem Header="Probar macro" Command="{Binding TestMacroCommand}">
+                                                    <MenuItem.Icon>
+                                                        <ctl:Icon Data="{StaticResource Icon.Play}" Size="16" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                                <MenuItem Header="Duplicar" Command="{Binding DuplicateMacroCommand}">
+                                                    <MenuItem.Icon>
+                                                        <ctl:Icon Data="{StaticResource Icon.Copy}" Size="16" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                                <Separator />
+                                                <MenuItem Header="Eliminar" Command="{Binding RemoveMacroCommand}">
+                                                    <MenuItem.Icon>
+                                                        <ctl:Icon Data="{StaticResource Icon.Trash}" Size="16" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                            </MenuFlyout>
+                                        </ListBox.ContextFlyout>
                                     <ListBox.ItemTemplate>
                                         <DataTemplate x:DataType="vm:KeyMacroRow">
                                             <StackPanel Spacing="2">
@@ -183,12 +205,18 @@
                                             </DockPanel>
                                             <Border Classes="panel" Background="{DynamicResource CardAltBrush}"
                                                     DataContext="{Binding SelectedMacro}" x:DataType="vm:KeyMacroRow">
-                                                <ItemsControl ItemsSource="{Binding Steps}">
+                                                <ItemsControl ItemsSource="{Binding Steps}" ctl:ListGestures.ReorderFromHandle="True">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate x:DataType="vm:KeyStepRow">
                                                             <Border Padding="10,8" BorderThickness="0,0,0,1"
                                                                     BorderBrush="{DynamicResource BorderBrush}">
                                                                 <DockPanel>
+                                                                    <Border DockPanel.Dock="Left" Classes="dragHandle"
+                                                                            ctl:ListGestures.IsDragHandle="True"
+                                                                            ToolTip.Tip="Arrastra para cambiar el orden">
+                                                                        <ctl:Icon Data="{StaticResource Icon.Grip}" Size="16" StrokeThickness="3.2"
+                                                                                  Foreground="{DynamicResource FaintBrush}" />
+                                                                    </Border>
                                                                     <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="0" Margin="8,0,0,0">
                                                                         <Button Classes="icon" Width="28" Height="28" ToolTip.Tip="Subir"
                                                                                 CommandParameter="{Binding}"

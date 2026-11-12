@@ -20,17 +20,22 @@
         </StackPanel>
     </DataTemplate>
 
-    <!-- Un efecto adicional: [efecto ▾] [⏱ espera s] [🗑], y debajo sus parámetros. -->
+    <!-- Un efecto adicional: [⠿] [efecto ▾] [⏱ espera s] [🗑], y debajo sus parámetros. El asa reordena arrastrando. -->
     <DataTemplate x:Key="StepRowTemplate" x:DataType="vm:GiftStepRowViewModel">
         <Border Classes="inset" Padding="10" Margin="0,0,0,6">
             <StackPanel Spacing="10">
-                <Grid ColumnDefinitions="*,Auto,Auto">
-                    <ComboBox Grid.Column="0" HorizontalAlignment="Stretch"
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <Border Grid.Column="0" Classes="dragHandle" ctl:ListGestures.IsDragHandle="True"
+                            ToolTip.Tip="Arrastra para cambiar el orden">
+                        <ctl:Icon Data="{StaticResource Icon.Grip}" Size="16" StrokeThickness="3.2"
+                                  Foreground="{DynamicResource FaintBrush}" />
+                    </Border>
+                    <ComboBox Grid.Column="1" HorizontalAlignment="Stretch"
                               ItemsSource="{Binding EffectChoices}"
                               SelectedValue="{Binding Effect}"
                               SelectedValueBinding="{Binding Id}"
                               DisplayMemberBinding="{Binding Display}" />
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Margin="10,0,6,0"
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="10,0,6,0"
                                 VerticalAlignment="Center"
                                 ToolTip.Tip="Segundos desde el efecto anterior (0 = enseguida, hasta 30).">
                         <ctl:Icon Data="{StaticResource Icon.Clock}" Size="16" Foreground="{DynamicResource MutedBrush}"
@@ -39,7 +44,7 @@
                                  HorizontalContentAlignment="Center" />
                         <TextBlock Text="s" Classes="caption" VerticalAlignment="Center" />
                     </StackPanel>
-                    <Button Grid.Column="2" Classes="icon" Command="{Binding RemoveCommand}"
+                    <Button Grid.Column="3" Classes="icon" Command="{Binding RemoveCommand}"
                             ToolTip.Tip="Quitar este efecto">
                         <ctl:Icon Data="{StaticResource Icon.Trash}" Size="16" />
                     </Button>

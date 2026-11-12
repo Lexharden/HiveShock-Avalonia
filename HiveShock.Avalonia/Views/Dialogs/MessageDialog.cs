@@ -7,7 +7,9 @@ namespace HiveShock.Avalonia.Views.Dialogs;
 
 public sealed class MessageDialog : Window
 {
-    public MessageDialog(string title, string message, bool confirm, string kind)
+    /// <param name="okText">Texto del botón principal; por defecto «Sí» (confirmar) o «Aceptar».</param>
+    /// <param name="cancelText">Texto del botón de cancelar; por defecto «No».</param>
+    public MessageDialog(string title, string message, bool confirm, string kind, string? okText = null, string? cancelText = null)
     {
         Title = title;
         Width = 460;
@@ -34,14 +36,14 @@ public sealed class MessageDialog : Window
 
         if (confirm)
         {
-            var cancel = new Button { Content = "No", Classes = { "secondary" }, IsCancel = true };
+            var cancel = new Button { Content = cancelText ?? "No", Classes = { "secondary" }, IsCancel = true };
             cancel.Click += (_, _) => Close(false);
             buttons.Children.Add(cancel);
         }
 
         var ok = new Button
         {
-            Content = confirm ? "Sí" : "Aceptar",
+            Content = okText ?? (confirm ? "Sí" : "Aceptar"),
             Classes = { kind == "danger" || kind == "warn" ? "danger" : "primary" },
             IsDefault = true,
             MinWidth = 88,
@@ -50,5 +52,12 @@ public sealed class MessageDialog : Window
         buttons.Children.Add(ok);
         root.Children.Add(buttons);
         Content = root;
+
+        // El teclado va al diálogo: Intro acepta y Esc cancela aunque se haya abierto con un atajo (p. ej. Supr).
+        Opened += (_, _) =>
+        {
+            Activate();
+            ok.Focus();
+        };
     }
 }

@@ -68,6 +68,22 @@ public sealed class DialogService
     public Task<bool> ConfirmAsync(string title, string message) =>
         ShowMessageAsync(title, message, confirm: true, kind: "warn");
 
+    /// <summary>
+    /// «¿Eliminar el regalo «Rose»?» con botones Cancelar / Eliminar. La usan Supr y los botones de papelera,
+    /// así borrar pregunta igual se haga como se haga.
+    /// </summary>
+    /// <param name="what">Qué es, con artículo: «el regalo», «la meta», «el comando».</param>
+    /// <param name="name">Su nombre, tal como se ve en la lista.</param>
+    /// <param name="consequence">Una frase opcional con lo que deja de pasar.</param>
+    public async Task<bool> ConfirmDeleteAsync(string what, string name, string? consequence = null)
+    {
+        var label = string.IsNullOrWhiteSpace(name) ? what : $"{what} «{name.Trim()}»";
+        var message = $"¿Eliminar {label}?" +
+                      (string.IsNullOrWhiteSpace(consequence) ? "" : Environment.NewLine + Environment.NewLine + consequence);
+        var dlg = new MessageDialog("Eliminar", message, confirm: true, kind: "danger", okText: "Eliminar", cancelText: "Cancelar");
+        return await ShowAsync(dlg);
+    }
+
     public async Task<bool> ConfirmTypedAsync(string title, string prompt, string expected)
     {
         var dlg = new ConfirmTextDialog(title, prompt, expected);

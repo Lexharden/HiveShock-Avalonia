@@ -218,6 +218,18 @@ public static class ActivityCopy
             return "Juego activo actualizado.";
         }
 
+        // Al añadir desde el catálogo (doble clic) la lista de regalos no está a la vista: se confirma abajo.
+        if (m.StartsWith("Añadido a regalos: ", StringComparison.Ordinal))
+        {
+            var added = $"{NameBeforeParen(m["Añadido a regalos: ".Length..])} añadido a tus regalos.";
+            return m.EndsWith("(pulsa Guardar)", StringComparison.Ordinal) ? added + " Pulsa Guardar." : added;
+        }
+
+        if (m.StartsWith("Ya estaba en regalos: ", StringComparison.Ordinal))
+        {
+            return $"{m["Ya estaba en regalos: ".Length..].Trim()} ya estaba en tus regalos.";
+        }
+
         if (m.StartsWith("Sin mapeo:", StringComparison.Ordinal))
         {
             return "Llegó un regalo que aún no tiene efecto. Revisa Regalos o búscalo en Catálogo.";

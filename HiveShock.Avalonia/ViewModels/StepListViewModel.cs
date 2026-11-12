@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HiveShock.Configuration;
@@ -20,6 +21,28 @@ public sealed partial class StepListViewModel : ViewModelBase
     {
         _effects = effects;
         _choices = choices;
+        // Reordenar arrastrando mueve la fila; el paso guardado tiene que moverse igual.
+        Rows.CollectionChanged += (_, e) =>
+        {
+            if (e.Action == NotifyCollectionChangedAction.Move)
+            {
+                MoveModel(Model, e.OldStartingIndex, e.NewStartingIndex);
+                Changed();
+            }
+        };
+    }
+
+    /// <summary>Mueve un elemento de una lista paralela a la de filas (mismo orden).</summary>
+    internal static void MoveModel<T>(IList<T> model, int from, int to)
+    {
+        if (from < 0 || from >= model.Count || to < 0 || to >= model.Count || from == to)
+        {
+            return;
+        }
+
+        var item = model[from];
+        model.RemoveAt(from);
+        model.Insert(to, item);
     }
 
     /// <summary>Los pasos tal como se guardarán (los que se editan en <see cref="Rows"/>).</summary>

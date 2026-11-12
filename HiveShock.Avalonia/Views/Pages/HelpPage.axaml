@@ -213,6 +213,10 @@
                                 <TextBlock Text="Ctrl+S · Ctrl+Shift+P" />
                                 <TextBlock Text="Guardar todo lo pendiente y pausa de emergencia." />
                             </StackPanel>
+                            <StackPanel Classes="term">
+                                <TextBlock Text="En las listas" />
+                                <TextBlock Text="Supr elimina (pregunta antes). Arrastra un elemento, o usa Alt+↑/↓, para cambiar el orden; en los efectos en cadena y los pasos de macro se arrastra desde el asa ⠿. Clic derecho para más acciones. En el catálogo, doble clic para usar un regalo." />
+                            </StackPanel>
                             <StackPanel Classes="term" Margin="0">
                                 <TextBlock Text="La X de la ventana" />
                                 <TextBlock Text="Deja HiveShock en la bandeja del sistema con el directo funcionando. Vuelves con su icono; para cerrar del todo, «Salir de HiveShock» en su menú. Se cambia en Preferencias." />

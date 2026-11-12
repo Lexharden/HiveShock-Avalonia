@@ -172,15 +172,17 @@ public sealed partial class GoalsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void Remove()
+    private async Task RemoveAsync()
     {
-        if (Selected == null)
+        if (Selected is not { } row ||
+            !await _shell.Dialogs.ConfirmDeleteAsync("la meta", row.Label, "Se pierde su progreso.").ConfigureAwait(true))
         {
             return;
         }
 
-        Rows.Remove(Selected);
-        Selected = Rows.FirstOrDefault();
+        var index = Rows.IndexOf(row);
+        Rows.Remove(row);
+        Selected = GiftsViewModel.NeighbourAfterRemove(Rows, index);
     }
 
     [RelayCommand]

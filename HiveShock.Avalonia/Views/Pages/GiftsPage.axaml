@@ -53,7 +53,7 @@
                                             </MenuItem.Icon>
                                         </MenuItem>
                                         <Separator />
-                                        <MenuItem Header="Quitar el regalo seleccionado" Command="{Binding DeleteGiftCommand}">
+                                        <MenuItem Header="Eliminar el regalo seleccionado" Command="{Binding DeleteGiftCommand}">
                                             <MenuItem.Icon>
                                                 <ctl:Icon Data="{StaticResource Icon.Trash}" Size="16" />
                                             </MenuItem.Icon>
@@ -83,9 +83,47 @@
                     </DockPanel>
                 </Border>
 
+                <!-- Buscador: filtra sin tocar el orden ni lo guardado. -->
+                <Border DockPanel.Dock="Top" Padding="10,8,10,6" IsVisible="{Binding !!Rows.Count}">
+                    <TextBox Classes="search" Text="{Binding Filter}" PlaceholderText="Buscar regalo o efecto…">
+                        <TextBox.KeyBindings>
+                            <KeyBinding Gesture="Escape" Command="{Binding ClearFilterCommand}" />
+                        </TextBox.KeyBindings>
+                        <TextBox.InnerRightContent>
+                            <Button Classes="icon" Padding="6" Margin="0,0,2,0" IsVisible="{Binding IsFiltering}"
+                                    Command="{Binding ClearFilterCommand}" ToolTip.Tip="Borrar búsqueda (Esc)">
+                                <ctl:Icon Data="{StaticResource Icon.Close}" Size="14" />
+                            </Button>
+                        </TextBox.InnerRightContent>
+                    </TextBox>
+                </Border>
+
                 <Panel>
+                    <!-- Supr elimina (pregunta antes), arrastrar o Alt+↑/↓ cambia el orden, clic derecho = menú. -->
                     <ListBox Classes="plain" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ctl:ListGestures.DeleteCommand="{Binding DeleteGiftCommand}"
+                             ctl:ListGestures.Reorder="True">
+                        <ListBox.Styles>
+                            <Style Selector="ListBoxItem" x:DataType="vm:GiftRowViewModel">
+                                <Setter Property="IsVisible" Value="{Binding IsShown}" />
+                            </Style>
+                        </ListBox.Styles>
+                        <ListBox.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuItem Header="Probar en el juego" Command="{Binding TestCommand}">
+                                    <MenuItem.Icon>
+                                        <ctl:Icon Data="{StaticResource Icon.Play}" Size="16" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <Separator />
+                                <MenuItem Header="Eliminar" Command="{Binding DeleteGiftCommand}">
+                                    <MenuItem.Icon>
+                                        <ctl:Icon Data="{StaticResource Icon.Trash}" Size="16" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                            </MenuFlyout>
+                        </ListBox.ContextFlyout>
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:GiftRowViewModel">
                                 <DockPanel>
@@ -118,6 +156,11 @@
                         <ctl:Icon Data="{StaticResource Icon.Gift}" />
                         <TextBlock Classes="h2" Text="Todavía no hay regalos" />
                         <TextBlock Classes="caption" Text="Añade uno del catálogo con el botón + y elige qué hace en el juego." />
+                    </StackPanel>
+                    <StackPanel Classes="empty" IsVisible="{Binding NoMatches}">
+                        <ctl:Icon Data="{StaticResource Icon.Search}" />
+                        <TextBlock Classes="h2" Text="Ningún regalo coincide" />
+                        <TextBlock Classes="caption" Text="Prueba con otra palabra o borra la búsqueda." />
                     </StackPanel>
                 </Panel>
             </DockPanel>
@@ -213,7 +256,8 @@
                                     </StackPanel>
                                 </DockPanel>
                                 <ItemsControl ItemsSource="{Binding Selected.ExtraSteps}"
-                                              ItemTemplate="{StaticResource StepRowTemplate}" />
+                                              ItemTemplate="{StaticResource StepRowTemplate}"
+                                              ctl:ListGestures.ReorderFromHandle="True" />
                             </StackPanel>
 
                             <!-- Cuándo -->

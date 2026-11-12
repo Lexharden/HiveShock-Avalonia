@@ -139,7 +139,10 @@ public sealed class AutoSaver
 
         list.CollectionChanged += (_, e) =>
         {
-            if (e.NewItems != null)
+            // Un «Move» (reordenar) también trae el elemento en NewItems, pero ya estaba suscrito:
+            // suscribirlo otra vez multiplicaría los avisos de cambio con cada arrastre.
+            if (e.Action is NotifyCollectionChangedAction.Add or NotifyCollectionChangedAction.Replace &&
+                e.NewItems != null)
             {
                 foreach (T item in e.NewItems)
                 {

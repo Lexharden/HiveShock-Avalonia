@@ -114,7 +114,7 @@
                                             <Button Classes="icon" Command="{Binding Events.AddCommandCommand}" ToolTip.Tip="Añadir comando">
                                                 <ctl:Icon Data="{StaticResource Icon.Plus}" />
                                             </Button>
-                                            <Button Classes="icon" Command="{Binding Events.RemoveCommandCommand}" ToolTip.Tip="Quitar el comando seleccionado">
+                                            <Button Classes="icon" Command="{Binding Events.RemoveCommandCommand}" ToolTip.Tip="Eliminar el comando seleccionado (Supr)">
                                                 <ctl:Icon Data="{StaticResource Icon.Trash}" />
                                             </Button>
                                         </StackPanel>
@@ -140,7 +140,18 @@
                                 <Panel>
                                     <ListBox Classes="plain" ItemsSource="{Binding Events.ChatCommands}"
                                              SelectedItem="{Binding Events.SelectedCommand}"
-                                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                             ctl:ListGestures.DeleteCommand="{Binding Events.RemoveCommandCommand}"
+                                             ctl:ListGestures.Reorder="True">
+                                            <ListBox.ContextFlyout>
+                                                <MenuFlyout>
+                                                    <MenuItem Header="Eliminar" Command="{Binding Events.RemoveCommandCommand}">
+                                                        <MenuItem.Icon>
+                                                            <ctl:Icon Data="{StaticResource Icon.Trash}" Size="16" />
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
+                                                </MenuFlyout>
+                                            </ListBox.ContextFlyout>
                                         <ListBox.ItemTemplate>
                                             <DataTemplate x:DataType="vm:ChatCommandRowViewModel">
                                                 <DockPanel>
@@ -339,7 +350,7 @@
                                         <Button Classes="icon" Command="{Binding Goals.AddCommand}" ToolTip.Tip="Añadir meta">
                                             <ctl:Icon Data="{StaticResource Icon.Plus}" />
                                         </Button>
-                                        <Button Classes="icon" Command="{Binding Goals.RemoveCommand}" ToolTip.Tip="Quitar la meta seleccionada">
+                                        <Button Classes="icon" Command="{Binding Goals.RemoveCommand}" ToolTip.Tip="Eliminar la meta seleccionada (Supr)">
                                             <ctl:Icon Data="{StaticResource Icon.Trash}" />
                                         </Button>
                                     </StackPanel>
@@ -364,7 +375,29 @@
                             </Border>
                             <Panel>
                                 <ListBox Classes="plain" ItemsSource="{Binding Goals.Rows}" SelectedItem="{Binding Goals.Selected}"
-                                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         ctl:ListGestures.DeleteCommand="{Binding Goals.RemoveCommand}"
+                                         ctl:ListGestures.Reorder="True">
+                                        <ListBox.ContextFlyout>
+                                            <MenuFlyout>
+                                                <MenuItem Header="Sumar 1 de prueba" Command="{Binding Goals.SimulateCommand}">
+                                                    <MenuItem.Icon>
+                                                        <ctl:Icon Data="{StaticResource Icon.Plus}" Size="16" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                                <MenuItem Header="Poner a cero" Command="{Binding Goals.ResetSelectedCommand}">
+                                                    <MenuItem.Icon>
+                                                        <ctl:Icon Data="{StaticResource Icon.Refresh}" Size="16" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                                <Separator />
+                                                <MenuItem Header="Eliminar" Command="{Binding Goals.RemoveCommand}">
+                                                    <MenuItem.Icon>
+                                                        <ctl:Icon Data="{StaticResource Icon.Trash}" Size="16" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                            </MenuFlyout>
+                                        </ListBox.ContextFlyout>
                                     <ListBox.ItemTemplate>
                                         <DataTemplate x:DataType="vm:GoalRowViewModel">
                                             <DockPanel>

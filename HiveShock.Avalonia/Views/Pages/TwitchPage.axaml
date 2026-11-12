@@ -89,7 +89,7 @@
                                             <Button Classes="icon" Command="{Binding Events.AddTwitchCommandCommand}" ToolTip.Tip="Añadir comando">
                                                 <ctl:Icon Data="{StaticResource Icon.Plus}" />
                                             </Button>
-                                            <Button Classes="icon" Command="{Binding Events.RemoveTwitchCommandCommand}" ToolTip.Tip="Quitar el comando seleccionado">
+                                            <Button Classes="icon" Command="{Binding Events.RemoveTwitchCommandCommand}" ToolTip.Tip="Eliminar el comando seleccionado (Supr)">
                                                 <ctl:Icon Data="{StaticResource Icon.Trash}" />
                                             </Button>
                                         </StackPanel>
@@ -115,7 +115,18 @@
                                 <Panel>
                                     <ListBox Classes="plain" ItemsSource="{Binding Events.TwitchChatCommands}"
                                              SelectedItem="{Binding Events.SelectedTwitchCommand}"
-                                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                             ctl:ListGestures.DeleteCommand="{Binding Events.RemoveTwitchCommandCommand}"
+                                             ctl:ListGestures.Reorder="True">
+                                            <ListBox.ContextFlyout>
+                                                <MenuFlyout>
+                                                    <MenuItem Header="Eliminar" Command="{Binding Events.RemoveTwitchCommandCommand}">
+                                                        <MenuItem.Icon>
+                                                            <ctl:Icon Data="{StaticResource Icon.Trash}" Size="16" />
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
+                                                </MenuFlyout>
+                                            </ListBox.ContextFlyout>
                                         <ListBox.ItemTemplate>
                                             <DataTemplate x:DataType="vm:ChatCommandRowViewModel">
                                                 <DockPanel>
@@ -209,7 +220,7 @@
                                         <Button Classes="icon" Command="{Binding Events.AddBitsRuleCommand}" ToolTip.Tip="Añadir regla de bits">
                                             <ctl:Icon Data="{StaticResource Icon.Plus}" />
                                         </Button>
-                                        <Button Classes="icon" Command="{Binding Events.RemoveBitsRuleCommand}" ToolTip.Tip="Quitar la regla seleccionada">
+                                        <Button Classes="icon" Command="{Binding Events.RemoveBitsRuleCommand}" ToolTip.Tip="Eliminar la regla seleccionada (Supr)">
                                             <ctl:Icon Data="{StaticResource Icon.Trash}" />
                                         </Button>
                                     </StackPanel>
@@ -235,7 +246,17 @@
                             <Panel>
                                 <ListBox Classes="plain" ItemsSource="{Binding Events.TwitchBits}"
                                          SelectedItem="{Binding Events.SelectedBitsRule}"
-                                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         ctl:ListGestures.DeleteCommand="{Binding Events.RemoveBitsRuleCommand}">
+                                        <ListBox.ContextFlyout>
+                                            <MenuFlyout>
+                                                <MenuItem Header="Eliminar" Command="{Binding Events.RemoveBitsRuleCommand}">
+                                                    <MenuItem.Icon>
+                                                        <ctl:Icon Data="{StaticResource Icon.Trash}" Size="16" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                            </MenuFlyout>
+                                        </ListBox.ContextFlyout>
                                     <ListBox.ItemTemplate>
                                         <DataTemplate x:DataType="vm:BitsRowViewModel">
                                             <DockPanel>

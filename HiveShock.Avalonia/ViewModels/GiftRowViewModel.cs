@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -33,6 +34,16 @@ public sealed partial class GiftRowViewModel : ViewModelBase
         {
             ExtraSteps.Add(NewStepRow(step));
         }
+
+        // Reordenar arrastrando mueve la fila; el paso guardado tiene que moverse igual.
+        ExtraSteps.CollectionChanged += (_, e) =>
+        {
+            if (e.Action == NotifyCollectionChangedAction.Move)
+            {
+                StepListViewModel.MoveModel(Model.MoreSteps, e.OldStartingIndex, e.NewStartingIndex);
+                StepsChanged();
+            }
+        };
     }
 
     public EditableGift Model { get; }
@@ -118,6 +129,9 @@ public sealed partial class GiftRowViewModel : ViewModelBase
     [ObservableProperty] private int? _diamonds;
     [ObservableProperty] private string _image = "";
     [ObservableProperty] private string _also = "";
+
+    /// <summary>Si pasa el filtro del buscador de la lista (no se guarda).</summary>
+    [ObservableProperty] private bool _isShown = true;
 
     public Bitmap? Thumb => GiftImageLoader.Load(Model.ResolvedImagePath);
 

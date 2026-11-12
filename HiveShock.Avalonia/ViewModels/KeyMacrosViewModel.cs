@@ -258,15 +258,17 @@ public sealed partial class KeyMacrosViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void RemoveMacro()
+    private async Task RemoveMacroAsync()
     {
-        if (SelectedMacro is null)
+        if (SelectedMacro is not { } macro ||
+            !await _shell.Dialogs.ConfirmDeleteAsync("la macro", macro.Label,
+                "Los regalos, comandos o eventos que la usaban se quedan sin efecto.").ConfigureAwait(true))
         {
             return;
         }
 
-        var index = Macros.IndexOf(SelectedMacro);
-        Macros.Remove(SelectedMacro);
+        var index = Macros.IndexOf(macro);
+        Macros.Remove(macro);
         SelectedMacro = Macros.Count == 0 ? null : Macros[Math.Min(index, Macros.Count - 1)];
         OnPropertyChanged(nameof(HasMacros));
     }

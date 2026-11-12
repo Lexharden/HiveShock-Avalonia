@@ -20,6 +20,7 @@
                            Text="Opcional. Salen en orden, tras el principal." />
             </StackPanel>
         </DockPanel>
-        <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource StepRowTemplate}" />
+        <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource StepRowTemplate}"
+                      ctl:ListGestures.ReorderFromHandle="True" />
     </StackPanel>
 </UserControl>

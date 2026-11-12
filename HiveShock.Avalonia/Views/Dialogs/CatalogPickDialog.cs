@@ -64,6 +64,15 @@ public sealed class CatalogPickDialog : Window
                 Confirm(list);
             }
         };
+        // Doble clic en un regalo = elegirlo, sin pasar por el botón.
+        list.DoubleTapped += (_, e) =>
+        {
+            if (list.SelectedItem != null)
+            {
+                Confirm(list);
+                e.Handled = true;
+            }
+        };
 
         var title = new TextBlock
         {
@@ -74,7 +83,7 @@ public sealed class CatalogPickDialog : Window
         };
 
         var count = new TextBlock { FontSize = 12, Opacity = 0.75, Margin = new Thickness(2, 6, 0, 8) };
-        var search = new TextBox { PlaceholderText = "Buscar por nombre o ID…", Classes = { "search" }, Padding = new Thickness(34, 0, 10, 0) };
+        var search = new TextBox { PlaceholderText = "Buscar por nombre o ID…", Classes = { "search" } };
         void Filter()
         {
             var query = search.Text;

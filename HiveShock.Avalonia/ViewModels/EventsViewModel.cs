@@ -293,14 +293,14 @@ public sealed partial class EventsViewModel : ViewModelBase
     private void AddCommand() => AddTo(ChatCommands, cmd => SelectedCommand = cmd);
 
     [RelayCommand]
-    private void RemoveCommand() => RemoveFrom(ChatCommands, SelectedCommand, v => SelectedCommand = v);
+    private Task RemoveCommandAsync() => RemoveFromAsync(ChatCommands, SelectedCommand, v => SelectedCommand = v);
 
     [RelayCommand]
     private void AddTwitchCommand() => AddTo(TwitchChatCommands, cmd => SelectedTwitchCommand = cmd);
 
     [RelayCommand]
-    private void RemoveTwitchCommand() =>
-        RemoveFrom(TwitchChatCommands, SelectedTwitchCommand, v => SelectedTwitchCommand = v);
+    private Task RemoveTwitchCommandAsync() =>
+        RemoveFromAsync(TwitchChatCommands, SelectedTwitchCommand, v => SelectedTwitchCommand = v);
 
     [RelayCommand]
     private void AddBitsRule()
@@ -316,15 +316,17 @@ public sealed partial class EventsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void RemoveBitsRule()
+    private async Task RemoveBitsRuleAsync()
     {
-        if (SelectedBitsRule == null)
+        if (SelectedBitsRule is not { } row ||
+            !await _shell.Dialogs.ConfirmDeleteAsync("la regla", $"desde {row.MinText} bits").ConfigureAwait(true))
         {
             return;
         }
 
-        TwitchBits.Remove(SelectedBitsRule);
-        SelectedBitsRule = TwitchBits.FirstOrDefault();
+        var index = TwitchBits.IndexOf(row);
+        TwitchBits.Remove(row);
+        SelectedBitsRule = GiftsViewModel.NeighbourAfterRemove(TwitchBits, index);
     }
 
     private static int ParseWaitSec(string text, int fallback)
@@ -351,18 +353,20 @@ public sealed partial class EventsViewModel : ViewModelBase
         select(row);
     }
 
-    private static void RemoveFrom(
+    private async Task RemoveFromAsync(
         ObservableCollection<ChatCommandRowViewModel> list,
         ChatCommandRowViewModel? selected,
         Action<ChatCommandRowViewModel?> assign)
     {
-        if (selected == null)
+        if (selected == null ||
+            !await _shell.Dialogs.ConfirmDeleteAsync("el comando", selected.Word).ConfigureAwait(true))
         {
             return;
         }
 
+        var index = list.IndexOf(selected);
         list.Remove(selected);
-        assign(list.FirstOrDefault());
+        assign(GiftsViewModel.NeighbourAfterRemove(list, index));
     }
 
     [RelayCommand]
