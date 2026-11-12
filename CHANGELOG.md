@@ -4,6 +4,10 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [3.0.0-beta.2] - 2026-11-11
+
+> **Segunda beta de la nueva interfaz:** listas mucho más rápidas de manejar (Supr, deshacer, arrastrar, Ctrl+N/F) y textos más claros. Solo se ofrece a quien tenga activadas las versiones beta en Actualizaciones.
+
 ### Novedades
 * **Ventana «Novedades»:** al abrir una versión nueva se enseña una vez qué ha cambiado (todas las versiones desde la última que abriste, también si actualizaste a mano). En una instalación nueva no sale: para eso está el tutorial. Se puede volver a ver desde Ayuda y Acerca de.
 * En **Actualizaciones**, las notas de cada versión se ven con formato y con «Ver notas completas».

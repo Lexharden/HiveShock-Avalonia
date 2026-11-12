@@ -5,7 +5,7 @@
           .\scripts\Bump-Version.ps1 patch
   -->
   <PropertyGroup Condition="'$(MSBuildProjectName)' != 'TikTokLive'">
-    <Version>3.0.0-beta.1</Version>
+    <Version>3.0.0-beta.2</Version>
     <InformationalVersion>$(Version)</InformationalVersion>
   </PropertyGroup>
 </Project>
