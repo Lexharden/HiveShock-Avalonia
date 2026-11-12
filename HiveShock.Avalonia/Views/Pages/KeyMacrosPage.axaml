@@ -10,7 +10,7 @@
             <StackPanel Spacing="2">
                 <TextBlock Classes="h1" Text="Teclas" />
                 <TextBlock Classes="caption"
-                           Text="Pulsa teclas en la ventana del juego cuando pasa algo en el live. Cada macro aparece como un efecto más en Regalos, Chat y Eventos." />
+                           Text="Pulsa teclas en la ventana del juego cuando pasa algo en el directo. Cada macro aparece como un efecto más en Regalos, Chat y Eventos." />
             </StackPanel>
         </DockPanel>
 
@@ -129,7 +129,7 @@
                                                     <TextBox Text="{Binding Label}" PlaceholderText="Saltar" />
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="2" Classes="field">
-                                                    <TextBlock Classes="fieldLabel" Text="Id (lo que se elige al asignarla)" />
+                                                    <TextBlock Classes="fieldLabel" Text="ID (lo que se elige al asignarla)" />
                                                     <TextBox Classes="mono" Text="{Binding Id}" PlaceholderText="saltar" />
                                                 </StackPanel>
                                             </UniformGrid>

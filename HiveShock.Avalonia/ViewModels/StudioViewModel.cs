@@ -175,8 +175,8 @@ public sealed partial class StudioViewModel : ViewModelBase
 
     public string ModeHint => SelectedMode switch
     {
-        BridgeRunMode.Capture => "Anota regalos de TikTok. No toca la partida.",
-        BridgeRunMode.Sdk => "Sin canales. Efectos desde HiveShock.",
+        BridgeRunMode.Capture => "Recibe los regalos de TikTok y los añade al catálogo. No envía efectos al juego.",
+        BridgeRunMode.Sdk => "Sin TikTok ni Twitch: solo pruebas desde HiveShock.",
         _ => "Los canales activos mandan efectos al juego.",
     };
 
@@ -213,7 +213,7 @@ public sealed partial class StudioViewModel : ViewModelBase
     {
         "connecting" => "Conectando… un momento.",
         "live" => string.IsNullOrWhiteSpace(_shell.Runtime.Ports.StatusSummary())
-            ? "En vivo: lo que pasa en el chat llega al juego."
+            ? "En vivo: lo que pasa en tu directo llega al juego."
             : _shell.Runtime.Ports.StatusSummary() + ".",
         "ok" => $"{_shell.StatusText}.",
         _ => GameStatus,
@@ -392,7 +392,7 @@ public sealed partial class StudioViewModel : ViewModelBase
             ConnectLabel = SelectedMode switch
             {
                 BridgeRunMode.Capture => "Anotar regalos",
-                BridgeRunMode.Sdk => "Probar sin live",
+                BridgeRunMode.Sdk => "Probar sin conexión",
                 _ => "Conectar",
             };
         }
@@ -440,7 +440,7 @@ public sealed partial class StudioViewModel : ViewModelBase
             LivePortStatus.Connecting => string.IsNullOrWhiteSpace(message) ? "Conectando…" : message,
             LivePortStatus.Live => "En vivo",
             LivePortStatus.Error => string.IsNullOrWhiteSpace(message) ? "Error" : message,
-            LivePortStatus.Ended => "Live cerrado",
+            LivePortStatus.Ended => "Directo terminado",
             _ => "Listo",
         };
     }
@@ -817,7 +817,7 @@ public sealed partial class StudioViewModel : ViewModelBase
 
         if (!await _shell.Dialogs.ConfirmAsync(
                 "Borrar perfil",
-                $"¿Quitar «{profile.DisplayName}»? Sus comandos y regalos dejarán de estar disponibles. " +
+                $"¿Borrar el perfil «{profile.DisplayName}»? Sus comandos y regalos dejarán de estar disponibles. " +
                 "Las macros de teclas no se tocan (son de todos los perfiles)."))
         {
             return;
@@ -870,7 +870,7 @@ public sealed partial class StudioViewModel : ViewModelBase
         {
             _shell.Runtime.SwitchProfile(card.Id);
             _shell.OnProfileChanged();
-            BridgeLog.Info($"Perfil UI: {_shell.Runtime.Profile.DisplayName}");
+            BridgeLog.Info($"Perfil activo: {_shell.Runtime.Profile.DisplayName}");
         }
         catch (Exception ex)
         {
@@ -911,7 +911,7 @@ public sealed partial class StudioViewModel : ViewModelBase
         try
         {
             await _shell.Runtime.RescueAsync().ConfigureAwait(true);
-            BridgeLog.Info("Comando rescue enviado al juego.");
+            BridgeLog.Info("Rescate enviado al juego.");
         }
         catch (Exception ex)
         {
@@ -943,7 +943,7 @@ public sealed partial class StudioViewModel : ViewModelBase
             _shell.Runtime.ResetDeathCounter();
             PersistDeath();
             RefreshCounter();
-            BridgeLog.Info("Comando delete_save enviado al juego.");
+            BridgeLog.Info("Orden de borrar la partida enviada al juego.");
         }
         catch (Exception ex)
         {
@@ -1045,7 +1045,7 @@ public sealed partial class StudioViewModel : ViewModelBase
         {
             if (!_shell.Runtime.Options.TikTokReady)
             {
-                _shell.Dialogs.Warn("TikTok", "Anotar regalos necesita este canal: marca Usar en este directo y guarda tu usuario (sin @).");
+                _shell.Dialogs.Warn("TikTok", "Anotar regalos necesita este canal: activa «Activo en este directo» en TikTok y guarda tu usuario (sin @).");
                 return false;
             }
         }

@@ -141,8 +141,8 @@ public sealed partial class TutorialViewModel : ViewModelBase
             Target: "studio.games", Enter: Page("studio", s => s.GoStudio()), SelectTab: "studio.tab.live"),
 
         new("La sesión",
-            "«En vivo» manda los efectos al juego. «Anotar» solo apunta los regalos que llegan y «Sin live» sirve para probar. " +
-            "«Solo simular» registra todo sin tocar tu partida: ideal para ensayar.",
+            "«En vivo» manda los efectos al juego. «Anotar» solo apunta los regalos que llegan y «Sin conexión» sirve para probar. " +
+            "Con «Modo ensayo» todo funciona igual, pero no se envía ningún efecto al juego: ideal para practicar.",
             Target: "studio.session", Enter: Page("studio", s => s.GoStudio()), SelectTab: "studio.tab.live"),
 
         new("Overlays para OBS",
@@ -204,7 +204,7 @@ public sealed partial class TutorialViewModel : ViewModelBase
             Target: "keys.list", Enter: Page("teclas", s => s.GoKeyMacros())),
 
         new("Pausa de emergencia",
-            "Si algo se descontrola en directo, pulsa aquí (o Ctrl+Mayús+P): los espectadores dejan de activar efectos " +
+            "Si algo se descontrola en directo, pulsa aquí (o Ctrl+Shift+P): los espectadores dejan de activar efectos " +
             "al instante. Se reanuda con el mismo botón.",
             Target: "titlebar.pause", Enter: Page("studio", s => s.GoStudio())),
 

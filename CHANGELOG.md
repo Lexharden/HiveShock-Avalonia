@@ -4,6 +4,12 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+### Textos más claros
+* **«Solo simular» pasa a ser «Modo ensayo: no enviar efectos al juego»**, con una línea que explica qué hace. «Simular +1» de Metas pasa a «Sumar 1 de prueba».
+* Modos de sesión explicados de nuevo: «Anotar» añade los regalos al catálogo sin enviar efectos y «Sin live» pasa a «Sin conexión».
+* Toda la app dice «directo» (antes se mezclaba con «live»), «seguidores» y «compartidos», «ID», «Shift» y «Poner a cero». La pestaña «Debug» pasa a «Diagnóstico» y las actualizaciones hablan de versiones «beta».
+* Fuera palabras técnicas (bridge, rescue, Singleton, SHA-256) y corregidos textos que nombraban botones con otro nombre.
+
 ## [3.0.0-beta.1] - 2026-11-11
 
 > **Beta de la nueva interfaz.** Solo se ofrece a quien tenga activadas las versiones beta en Actualizaciones. Perfiles, regalos y ajustes se conservan tal cual.

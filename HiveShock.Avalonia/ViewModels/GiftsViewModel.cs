@@ -217,7 +217,9 @@ public sealed partial class GiftsViewModel : ViewModelBase
         Rows.Add(row);
         Selected = row;
         _shell.Overlays.RefreshGifts(Models);
-        BridgeLog.Info($"Añadido a regalos: {gift.Gift} (pulsa Guardar)");
+        BridgeLog.Info(SaveStatus.AutoSaveEnabled
+            ? $"Añadido a regalos: {gift.Gift}"
+            : $"Añadido a regalos: {gift.Gift} (pulsa Guardar)");
     }
 
     /// <summary>

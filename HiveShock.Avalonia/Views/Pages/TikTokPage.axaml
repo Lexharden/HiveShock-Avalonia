@@ -16,7 +16,7 @@
             <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="10" ctl:Tour.Key="tiktok.account">
                 <ToggleSwitch IsChecked="{Binding Studio.TikTokEnabled}" IsEnabled="{Binding Studio.CanEditSetup}"
                               OnContent="Activo en este directo" OffContent="Desactivado"
-                              ToolTip.Tip="Si está desactivado, HiveShock no se conecta al live de TikTok." />
+                              ToolTip.Tip="Si está desactivado, HiveShock no se conecta al directo de TikTok." />
                 <TextBox Width="200" Text="{Binding Studio.Channel}" IsEnabled="{Binding Studio.CanEditSetup}"
                          PlaceholderText="tu usuario, sin @">
                     <TextBox.InnerLeftContent>
@@ -298,7 +298,7 @@
                                         </Border>
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Classes="h2" Text="Compartir" />
-                                            <TextBlock Classes="caption" Text="Cuando alguien comparte el live" />
+                                            <TextBlock Classes="caption" Text="Cuando alguien comparte el directo" />
                                         </StackPanel>
                                     </StackPanel>
                                     <StackPanel Classes="field">
@@ -409,17 +409,17 @@
                                     <DockPanel>
                                         <StackPanel DockPanel.Dock="Right" Classes="bar">
                                             <Button Classes="secondary" Margin="0" Command="{Binding Goals.ResetSelectedCommand}"
-                                                    ToolTip.Tip="Vuelve a poner el progreso de esta meta a 0.">
+                                                    ToolTip.Tip="Vuelve a poner el progreso de esta meta a cero.">
                                                 <StackPanel Classes="btnContent">
                                                     <ctl:Icon Data="{StaticResource Icon.Refresh}" />
-                                                    <TextBlock Text="Poner a 0" />
+                                                    <TextBlock Text="Poner a cero" />
                                                 </StackPanel>
                                             </Button>
                                             <Button Classes="primary" Margin="0" Command="{Binding Goals.SimulateCommand}"
                                                     ToolTip.Tip="Suma un regalo a la meta, como si llegara uno de verdad.">
                                                 <StackPanel Classes="btnContent">
                                                     <ctl:Icon Data="{StaticResource Icon.Plus}" />
-                                                    <TextBlock Text="Simular +1" />
+                                                    <TextBlock Text="Sumar 1 de prueba" />
                                                 </StackPanel>
                                             </Button>
                                         </StackPanel>
@@ -492,14 +492,14 @@
                 <ScrollViewer Margin="0,12,0,0" VerticalScrollBarVisibility="Auto">
                     <StackPanel MaxWidth="1100" HorizontalAlignment="Stretch">
                         <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,0,0,8"
-                                   Text="profile.json y effects.json del perfil activo. Detén el bridge para poder guardar." />
+                                   Text="profile.json y effects.json del perfil activo. Desconecta para poder guardar." />
 
                         <Border Margin="0,0,0,12" Padding="12,10" CornerRadius="10"
                                 Background="{DynamicResource CardAltBrush}"
                                 BorderBrush="{DynamicResource BrandGoldBrush}" BorderThickness="1">
                             <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextBrush}">
                                 <Run FontWeight="Bold" Foreground="{DynamicResource BrandGoldBrush}" Text="Atención: " />
-                                <Run Text="estos son los valores técnicos que conectan HiveShock con el juego (puertos, ids de efecto, qué cuenta como enemigo, etc.). Cambiarlos sin saber para qué sirven puede hacer que el puente deje de funcionar con este juego. Cada sección empieza bloqueada: marcá &quot;Desbloquear para editar&quot; antes de tocar algo." />
+                                <Run Text="estos son los valores técnicos que conectan HiveShock con el juego (puertos, IDs de efecto, qué cuenta como enemigo, etc.). Cambiarlos sin saber para qué sirven puede hacer que el puente deje de funcionar con este juego. Cada sección empieza bloqueada: marca &quot;Desbloquear para editar&quot; antes de tocar algo." />
                             </TextBlock>
                         </Border>
 
@@ -565,7 +565,7 @@
                                         <DataTemplate x:DataType="vm:LabelRow">
                                             <DockPanel>
                                                 <TextBox DockPanel.Dock="Left" Width="200" Margin="0,0,8,0"
-                                                         Text="{Binding Key}" PlaceholderText="id del efecto"
+                                                         Text="{Binding Key}" PlaceholderText="ID del efecto"
                                                          IsEnabled="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).ProfileEditor.CanEditProfile}" />
                                                 <TextBox Text="{Binding Value}" PlaceholderText="nombre para mostrar"
                                                          IsEnabled="{Binding $parent[UserControl].((vm:TikTokViewModel)DataContext).ProfileEditor.CanEditProfile}" />
@@ -616,7 +616,7 @@
                                                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10"
                                                                     VerticalAlignment="Center">
                                                             <CheckBox Content="Enemigo" IsChecked="{Binding IsEnemy}" />
-                                                            <CheckBox Content="Singleton" IsChecked="{Binding IsSingleton}" />
+                                                            <CheckBox Content="Solo uno a la vez" IsChecked="{Binding IsSingleton}" />
                                                         </StackPanel>
                                                         <TextBox Text="{Binding Id}" />
                                                     </DockPanel>
@@ -682,7 +682,7 @@
                 <TabItem.Header>
                     <StackPanel Classes="tabHeader">
                         <ctl:Icon Data="{StaticResource Icon.Bug}" />
-                        <TextBlock Text="Debug" />
+                        <TextBlock Text="Diagnóstico" />
                     </StackPanel>
                 </TabItem.Header>
                 <ContentControl Content="{Binding Diagnostics}" Margin="0,12,0,0" />

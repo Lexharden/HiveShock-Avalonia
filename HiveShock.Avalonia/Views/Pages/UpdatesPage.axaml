@@ -54,7 +54,7 @@
                     <CheckBox IsChecked="{Binding CheckOnStart}"
                               Content="Buscar al abrir y cada pocas horas" />
                     <CheckBox IsChecked="{Binding IncludePrereleases}"
-                              Content="Incluir versiones de prueba (alpha, beta, rc)" />
+                              Content="Recibir versiones beta (antes que nadie, pueden tener fallos)" />
                     <TextBlock Classes="caption"
                                Text="No se descarga nada por su cuenta. Al instalar, la versión se verifica y, si no arranca bien, se restaura la anterior." />
                 </StackPanel>
@@ -88,7 +88,7 @@
                                                         <TextBlock Text="{Binding Badge}" />
                                                     </Border>
                                                     <Border Classes="pill" IsVisible="{Binding IsPrerelease}">
-                                                        <TextBlock Text="pre-release" />
+                                                        <TextBlock Text="beta" />
                                                     </Border>
                                                     <TextBlock Text="{Binding DateText}" Classes="caption" VerticalAlignment="Center" />
                                                 </StackPanel>

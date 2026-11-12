@@ -37,7 +37,7 @@
                                     HorizontalContentAlignment="Center" Margin="0,0,0,10"
                                     Content="{Binding PauseLabel}" Command="{Binding TogglePauseCommand}" />
                             <TextBlock Classes="caption"
-                                       Text="Con la pausa, regalos, follows, likes, shares, bits y comandos de chat dejan de activar efectos y metas, y lo que ya esperaba turno se descarta. Los avisos siguen igual. La pausa no se guarda: al abrir HiveShock siempre empieza reanudada." />
+                                       Text="Con la pausa, regalos, seguidores, likes, compartidos, bits y comandos de chat dejan de activar efectos y metas, y lo que ya esperaba turno se descarta. Los avisos siguen igual. La pausa no se guarda: al abrir HiveShock siempre empieza reanudada." />
                         </StackPanel>
                     </Border>
 
@@ -54,7 +54,7 @@
                             </StackPanel>
                             <TextBlock Text="{Binding SystemFx.StatusText}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,8" />
                             <TextBlock Classes="caption" Margin="0,0,0,12"
-                                       Text="Puedes asignarlo a un regalo, comando, bits o meta. Empieza desarmado en cada sesión y, al dispararse, hay una cuenta atrás que puedes cancelar. Solo se ejecuta una vez por sesión y nunca con «Solo simular» ni con la pausa." />
+                                       Text="Puedes asignarlo a un regalo, comando, bits o meta. Empieza desarmado en cada sesión y, al dispararse, hay una cuenta atrás que puedes cancelar. Solo se ejecuta una vez por sesión y nunca en modo ensayo ni con la pausa." />
                             <UniformGrid Columns="2" Margin="0,0,0,12">
                                 <Button Classes="secondary" Classes.danger="{Binding SystemFx.Armed}" Margin="0,0,4,0"
                                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
@@ -94,7 +94,7 @@
                                     <Border Classes="pill"><TextBlock Text="{Binding Recent.Count}" /></Border>
                                 </StackPanel>
                                 <TextBlock Classes="caption" FontSize="11"
-                                           Text="Se reconocen por su id, aunque cambien de @usuario." />
+                                           Text="Se reconocen por su ID, aunque cambien de @usuario." />
                             </StackPanel>
                         </Border>
                         <Panel>
@@ -130,7 +130,7 @@
                             <StackPanel Classes="empty" IsVisible="{Binding !HasRecent}">
                                 <ctl:Icon Data="{StaticResource Icon.Activity}" />
                                 <TextBlock Classes="h2" Text="Nadie todavía" />
-                                <TextBlock Classes="caption" Text="Cuando haya actividad en el live aparecerá aquí quién disparó cada efecto." />
+                                <TextBlock Classes="caption" Text="Cuando haya actividad en el directo aparecerá aquí quién disparó cada efecto." />
                             </StackPanel>
                         </Panel>
                     </DockPanel>

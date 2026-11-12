@@ -68,7 +68,7 @@
                 </Button>
                 <StackPanel Spacing="2">
                     <TextBlock Classes="h1" Text="Ayuda" />
-                    <TextBlock Classes="caption" Text="HiveShock lleva lo que pasa en el live al juego. Cada canal se configura por separado." />
+                    <TextBlock Classes="caption" Text="HiveShock lleva lo que pasa en tu directo al juego. Cada canal se configura por separado." />
                 </StackPanel>
             </DockPanel>
 
@@ -82,7 +82,7 @@
                             </StackPanel>
                             <DockPanel Classes="step">
                                 <Border Classes="stepNum"><TextBlock Text="1" /></Border>
-                                <TextBlock Text="Abre el juego, entra en una partida y deja el puente o el mod encendido." />
+                                <TextBlock Text="Abre el juego (con su mod, si lo necesita) y carga una partida." />
                             </DockPanel>
                             <DockPanel Classes="step">
                                 <Border Classes="stepNum"><TextBlock Text="2" /></Border>
@@ -115,11 +115,15 @@
                             </StackPanel>
                             <StackPanel Classes="term">
                                 <TextBlock Text="Anotar regalos" />
-                                <TextBlock Text="Solo TikTok: guarda los nombres de los regalos que llegan, sin tocar el juego." />
+                                <TextBlock Text="Solo TikTok: añade al catálogo los regalos que llegan, sin enviar efectos al juego." />
+                            </StackPanel>
+                            <StackPanel Classes="term">
+                                <TextBlock Text="Sin conexión" />
+                                <TextBlock Text="No se conecta a TikTok ni Twitch: para probar efectos con los botones «Probar»." />
                             </StackPanel>
                             <StackPanel Classes="term" Margin="0">
-                                <TextBlock Text="Probar sin live" />
-                                <TextBlock Text="Sin canales: para probar efectos con el puerto de pruebas." />
+                                <TextBlock Text="Modo ensayo" />
+                                <TextBlock Text="En cualquier modo: todo funciona igual, pero no se envía ningún efecto al juego ni se pulsan teclas." />
                             </StackPanel>
                         </StackPanel>
                     </Border>
@@ -134,7 +138,7 @@
                                 <TextBlock Classes="body" Text="• ¿Perfil correcto y partida cargada?" />
                                 <TextBlock Classes="body" Text="• ¿El canal está en vivo y HiveShock conectado?" />
                                 <TextBlock Classes="body" Text="• ¿Ese evento tiene un efecto guardado en su canal?" />
-                                <TextBlock Classes="body" Text="• Metas: varios espectadores suman el mismo regalo (no hace falta combo de uno). Se ven en TikTok → Metas." />
+                                <TextBlock Classes="body" Text="• Metas: los regalos de todos los espectadores cuentan juntos; no hace falta que uno solo haga combo. Se ven en TikTok → Metas." />
                                 <TextBlock Classes="body" Text="• Abre el panel de actividad (icono arriba a la derecha) para ver qué está llegando." />
                             </StackPanel>
                         </StackPanel>
@@ -191,7 +195,7 @@
                                 <TextBlock Classes="h2" Text="Tus datos" />
                             </StackPanel>
                             <TextBlock Classes="body" LineHeight="20"
-                                       Text="El contador de muertes, el tema y los overlays se guardan solos cada vez que cambian, en tu carpeta de usuario y con una copia junto al programa. Se conservan aunque actualices HiveShock o lo descomprimas en otra carpeta." />
+                                       Text="Tus perfiles, regalos, comandos y metas se conservan al actualizar HiveShock. El contador de muertes, el tema y los overlays se guardan solos en tu carpeta de usuario (con una copia junto al programa), así que siguen ahí aunque descomprimas HiveShock en otra carpeta." />
                         </StackPanel>
                     </Border>
 
@@ -206,7 +210,7 @@
                                 <TextBlock Text="Ir a cada página, abrir la Ayuda y plegar el menú." />
                             </StackPanel>
                             <StackPanel Classes="term">
-                                <TextBlock Text="Ctrl+S · Ctrl+Mayús+P" />
+                                <TextBlock Text="Ctrl+S · Ctrl+Shift+P" />
                                 <TextBlock Text="Guardar todo lo pendiente y pausa de emergencia." />
                             </StackPanel>
                             <StackPanel Classes="term" Margin="0">

@@ -140,7 +140,7 @@
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="8">
                                 <StackPanel Classes="wideOnly" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center"
-                                            ToolTip.Tip="Cuántos regalos seguidos simular al probar.">
+                                            ToolTip.Tip="Cuántos regalos seguidos se envían al probar.">
                                     <TextBlock Text="×" Classes="caption" FontSize="14" VerticalAlignment="Center" />
                                     <TextBox Text="{Binding TestComboText}" Width="52" HorizontalContentAlignment="Center" />
                                 </StackPanel>

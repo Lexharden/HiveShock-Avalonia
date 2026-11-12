@@ -145,13 +145,13 @@ public sealed partial class KeyMacrosViewModel : ViewModelBase
         var models = Macros.Select(m => m.ToModel()).ToList();
         if (models.Any(m => m.Id.Length == 0))
         {
-            throw new InvalidOperationException("Hay una macro sin id.");
+            throw new InvalidOperationException("Hay una macro sin ID.");
         }
 
         var duplicate = models.GroupBy(m => m.Id, StringComparer.OrdinalIgnoreCase).FirstOrDefault(g => g.Count() > 1);
         if (duplicate != null)
         {
-            throw new InvalidOperationException($"Dos macros usan el id «{duplicate.Key}».");
+            throw new InvalidOperationException($"Dos macros usan el ID «{duplicate.Key}».");
         }
 
         var target = CurrentTarget();
@@ -208,7 +208,7 @@ public sealed partial class KeyMacrosViewModel : ViewModelBase
         var id = SelectedMacro.Id.Trim();
         if (id.Length > 0 && Macros.Count(m => string.Equals(m.Id.Trim(), id, StringComparison.OrdinalIgnoreCase)) > 1)
         {
-            errors.Insert(0, $"Otra macro ya usa el id «{id}».");
+            errors.Insert(0, $"Otra macro ya usa el ID «{id}».");
         }
 
         if (id.Length > 0 && _shell.Runtime.HotkeyProblems.TryGetValue(id, out var hotkeyProblem))

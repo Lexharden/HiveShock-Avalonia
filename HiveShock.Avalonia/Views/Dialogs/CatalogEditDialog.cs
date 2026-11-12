@@ -42,7 +42,7 @@ public sealed class CatalogEditDialog : Window
         root.Children.Add(diamondsBox);
         root.Children.Add(new TextBlock
         {
-            Text = "Con el nombre basta para reconocerlo en el live. El ID solo hace falta si dos regalos se llaman igual.",
+            Text = "Con el nombre basta para reconocerlo en el directo. El ID solo hace falta si dos regalos se llaman igual.",
             FontSize = 12,
             Opacity = 0.75,
             TextWrapping = TextWrapping.Wrap,

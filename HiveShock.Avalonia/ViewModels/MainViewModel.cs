@@ -100,7 +100,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Runtime.Guard.PausedChanged += OnViewerPauseChanged;
         BridgeLog.Logged += OnLogged;
         BridgeLog.Init();
-        BridgeLog.Info($"UI lista · perfil {Runtime.Profile.DisplayName}");
+        BridgeLog.Info($"HiveShock listo · perfil {Runtime.Profile.DisplayName}");
         RefreshStatus();
     }
 

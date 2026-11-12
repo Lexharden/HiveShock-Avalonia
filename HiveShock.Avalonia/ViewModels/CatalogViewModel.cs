@@ -60,7 +60,7 @@ public sealed partial class CatalogViewModel : ViewModelBase
 
         var seen = _all.Count(g => !g.IsReferenceOnly);
         Summary = query.Length == 0
-            ? $"{_all.Count} regalos · {seen} vistos en tus lives"
+            ? $"{_all.Count} regalos · {seen} vistos en tus directos"
             : $"{Rows.Count} de {_all.Count} regalos";
     }
 

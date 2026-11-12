@@ -92,7 +92,7 @@
                         <TextBlock Classes="caption" FontSize="13" Foreground="{DynamicResource GoldTextBrush}"
                                    Text="Lo que pasa en tu live se queda en el live" />
                         <TextBlock Classes="body" Foreground="{DynamicResource MutedBrush}" MaxWidth="640" HorizontalAlignment="Left"
-                                   Text="HiveShock conecta tu live con el juego: chat, regalos y el resto de eventos se convierten en efectos dentro de la partida. Cada juego es un perfil con sus propios efectos." />
+                                   Text="HiveShock conecta tu directo con el juego: chat, regalos y el resto de eventos se convierten en efectos dentro de la partida. Cada juego es un perfil con sus propios efectos." />
                     </StackPanel>
                 </DockPanel>
             </Border>
@@ -206,7 +206,7 @@
                 </DockPanel>
             </Border>
 
-            <TextBlock Classes="caption" Text="Windows y macOS · live → efectos en el juego." Margin="0,0,0,8" />
+            <TextBlock Classes="caption" Text="Windows, macOS y Linux · directo → efectos en el juego." Margin="0,0,0,8" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

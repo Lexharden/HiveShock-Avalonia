@@ -64,7 +64,7 @@
                                     </StackPanel>
                                     <StackPanel VerticalAlignment="Center" Spacing="2">
                                         <TextBlock Classes="h2" Text="Juego" />
-                                        <TextBlock Classes="caption" FontSize="11" Text="El perfil activo define los efectos de esta partida." />
+                                        <TextBlock Classes="caption" FontSize="11" Text="El juego marcado define qué efectos puedes usar." />
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
@@ -124,14 +124,16 @@
                                                      IsEnabled="{Binding CanEditSetup}" />
                                         <RadioButton Classes="chip seg" Content="Anotar" IsChecked="{Binding IsModeCapture}" GroupName="Mode"
                                                      IsEnabled="{Binding CanEditSetup}"
-                                                     ToolTip.Tip="Anotar regalos: apunta los regalos que llegan sin mandar nada al juego." />
-                                        <RadioButton Classes="chip seg" Content="Sin live" IsChecked="{Binding IsModeSdk}" GroupName="Mode"
+                                                     ToolTip.Tip="Anotar regalos: recibe los regalos de TikTok y los añade al catálogo. No envía efectos al juego." />
+                                        <RadioButton Classes="chip seg" Content="Sin conexión" IsChecked="{Binding IsModeSdk}" GroupName="Mode"
                                                      IsEnabled="{Binding CanEditSetup}"
-                                                     ToolTip.Tip="Probar sin live: usa el puerto de pruebas, sin conectarse a TikTok ni Twitch." />
+                                                     ToolTip.Tip="Sin conexión: no se conecta a TikTok ni Twitch. Sirve para probar efectos con los botones «Probar»." />
                                     </UniformGrid>
                                     <TextBlock Classes="caption" Margin="0,0,0,12" Text="{Binding ModeHint}" />
-                                    <CheckBox Content="Solo simular (la partida no cambia)"
-                                              IsChecked="{Binding Simulate}" IsEnabled="{Binding CanEditSetup}" Margin="0,0,0,14" />
+                                    <CheckBox Content="Modo ensayo: no enviar efectos al juego"
+                                              IsChecked="{Binding Simulate}" IsEnabled="{Binding CanEditSetup}" Margin="0,0,0,2" />
+                                    <TextBlock Classes="caption" TextWrapping="Wrap" Margin="28,0,0,14"
+                                               Text="Todo funciona igual y lo ves en Actividad, pero no se manda nada al juego ni se pulsan teclas." />
                                     <Button Classes="connect"
                                             Classes.connecting="{Binding IsToneConnecting}"
                                             Classes.live="{Binding IsToneLive}"
@@ -228,7 +230,7 @@
                                                 <Border Classes="pill ok"><TextBlock Text="RECOMENDADO" FontSize="9" /></Border>
                                             </StackPanel>
                                             <TextBlock Classes="caption"
-                                                       Text="Copia una dirección y pégala en OBS como «Navegador»: fondo transparente y sin ventanas sueltas." />
+                                                       Text="Copia una dirección y añádela en OBS como «Fuente de navegador»: fondo transparente y sin ventanas sueltas." />
                                         </StackPanel>
                                     </DockPanel>
                                     <StackPanel IsVisible="{Binding WebOverlayEnabled}" Spacing="8">

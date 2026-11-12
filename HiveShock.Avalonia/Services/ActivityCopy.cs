@@ -57,12 +57,12 @@ public static class ActivityCopy
 
         if (m.StartsWith("Share ", StringComparison.Ordinal))
         {
-            return FormatArrowLine(m["Share ".Length..], "compartió el live");
+            return FormatArrowLine(m["Share ".Length..], "compartió el directo");
         }
 
         if (m.StartsWith("Chat saturado", StringComparison.Ordinal))
         {
-            return "El chat mandó muchos comandos a la vez. Se omiten unos.";
+            return "El chat mandó muchos comandos a la vez. Se ignoraron algunos.";
         }
 
         if (m.StartsWith("Chat ", StringComparison.Ordinal) &&
@@ -96,12 +96,12 @@ public static class ActivityCopy
 
         if (m.StartsWith("Capturado ", StringComparison.Ordinal))
         {
-            return "Anotamos un regalo nuevo del live.";
+            return "Regalo nuevo anotado en el catálogo.";
         }
 
         if (m.StartsWith("TikTok conectando", StringComparison.Ordinal))
         {
-            return "TikTok: conectando al live…";
+            return "TikTok: conectando al directo…";
         }
 
         if (m.StartsWith("TikTok conectado", StringComparison.Ordinal))
@@ -122,7 +122,7 @@ public static class ActivityCopy
 
         if (m.StartsWith("TikTok live terminado", StringComparison.Ordinal))
         {
-            return "TikTok: el live se cerró.";
+            return "TikTok: el directo terminó.";
         }
 
         if (m.StartsWith("Twitch conectando", StringComparison.Ordinal))
@@ -140,7 +140,7 @@ public static class ActivityCopy
 
         if (m.StartsWith("Twitch bits:", StringComparison.Ordinal))
         {
-            return "Twitch: bits no autorizado. Sal y entra otra vez.";
+            return "Twitch: falta permiso para los bits. Sal y vuelve a entrar con tu cuenta.";
         }
 
         if (m.StartsWith("Twitch desconectado", StringComparison.Ordinal) ||
@@ -155,12 +155,12 @@ public static class ActivityCopy
         if (m.StartsWith("Pruebas escuchando", StringComparison.Ordinal) ||
             m.StartsWith("Modo pruebas:", StringComparison.Ordinal))
         {
-            return "Modo pruebas listo.";
+            return "Sin conexión: listo para probar efectos.";
         }
 
         if (m.StartsWith("Captura de regalos", StringComparison.Ordinal))
         {
-            return "Anotando regalos del live…";
+            return "Anotando los regalos del directo…";
         }
 
         if (m.StartsWith("Inicio mode=", StringComparison.Ordinal))

@@ -196,8 +196,8 @@ public sealed partial class UpdatesViewModel : ViewModelBase
 
             if (!_service.DownloadVerified)
             {
-                var go = await _shell.Dialogs.ConfirmAsync("Sin suma de verificación",
-                    "Este release no publica una suma SHA-256, así que solo se pudo comprobar que el archivo está completo. ¿Instalar de todos modos?")
+                var go = await _shell.Dialogs.ConfirmAsync("Sin código de verificación",
+                    "Esta versión no trae código de verificación, así que solo se comprobó que la descarga está completa. ¿Instalar igualmente?")
                     .ConfigureAwait(true);
                 if (!go)
                 {
@@ -245,7 +245,7 @@ public sealed partial class UpdatesViewModel : ViewModelBase
                 ($"La versión {s.Downloaded.Version} está lista para instalar", "Ya está descargada y verificada."),
             UpdateState.Applying => ("Instalando…", "HiveShock se cerrará y se volverá a abrir."),
             UpdateState.Failed => ("No se pudo completar", s.Error),
-            _ when latest is not null => ($"Hay una versión nueva: {latest.Version}", latest.Prerelease ? "Es una versión de prueba (pre-release)." : ""),
+            _ when latest is not null => ($"Hay una versión nueva: {latest.Version}", latest.Prerelease ? "Es una versión beta: puede tener fallos." : ""),
             UpdateState.UpToDate => ("Estás al día", s.LastChecked is { } t ? $"Última comprobación: {t:g}" : ""),
             _ => ("Aún no se ha comprobado", "Pulsa «Buscar actualizaciones»."),
         };

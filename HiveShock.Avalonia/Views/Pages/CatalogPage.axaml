@@ -48,10 +48,10 @@
                     </StackPanel>
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBox Classes="search" MaxWidth="340" HorizontalAlignment="Stretch" Text="{Binding SearchText}"
-                                 PlaceholderText="Buscar por nombre o id…" Padding="34,0,10,0" />
+                                 PlaceholderText="Buscar por nombre o ID…" Padding="34,0,10,0" />
                         <CheckBox Grid.Column="1" Margin="12,0,0,0" Content="Todos los de TikTok"
                                   IsChecked="{Binding ShowAllTikTokGifts}" VerticalAlignment="Center"
-                                  ToolTip.Tip="Marcado: todos los regalos de TikTok. Sin marcar: solo los que han llegado en tus lives." />
+                                  ToolTip.Tip="Marcado: todos los regalos de TikTok. Sin marcar: solo los que han llegado en tus directos." />
                     </Grid>
                 </DockPanel>
             </Border>
@@ -97,7 +97,7 @@
                 <StackPanel Classes="empty" IsVisible="{Binding !Rows.Count}">
                     <ctl:Icon Data="{StaticResource Icon.Search}" />
                     <TextBlock Classes="h2" Text="No hay regalos que mostrar" />
-                    <TextBlock Classes="caption" Text="Cambia la búsqueda o activa «Todos los regalos de TikTok»." />
+                    <TextBlock Classes="caption" Text="Cambia la búsqueda o marca «Todos los de TikTok»." />
                 </StackPanel>
             </Panel>
         </DockPanel>

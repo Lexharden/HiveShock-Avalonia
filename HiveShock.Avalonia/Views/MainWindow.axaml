@@ -114,7 +114,7 @@
                     <Button ctl:Tour.Key="titlebar.pause" Classes="ghost pauseBtn" Classes.paused="{Binding ViewerEffectsPaused}"
                             Padding="10,4" MinHeight="28"
                             Command="{Binding ToggleViewerEffectsPauseCommand}"
-                            ToolTip.Tip="Pausa de emergencia (Ctrl+Mayús+P): los espectadores dejan de activar efectos en el juego. Se reanuda sola al reabrir HiveShock.">
+                            ToolTip.Tip="Pausa de emergencia (Ctrl+Shift+P): los espectadores dejan de activar efectos en el juego. Se reanuda sola al reabrir HiveShock.">
                         <StackPanel Classes="btnContent">
                             <Panel>
                                 <ctl:Icon Data="{StaticResource Icon.Pause}" IsVisible="{Binding !ViewerEffectsPaused}" />

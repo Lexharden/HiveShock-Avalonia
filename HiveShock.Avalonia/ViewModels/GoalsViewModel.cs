@@ -235,7 +235,7 @@ public sealed partial class GoalsViewModel : ViewModelBase
 
             if (string.IsNullOrWhiteSpace(id))
             {
-                _shell.Dialogs.Warn("Metas", "Guarda la meta antes de simular.");
+                _shell.Dialogs.Warn("Metas", "Guarda la meta antes de probarla.");
                 return;
             }
 
