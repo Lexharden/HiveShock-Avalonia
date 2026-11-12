@@ -61,6 +61,9 @@ public sealed partial class GiftsViewModel : ViewModelBase
 
     public ObservableCollection<GiftRowViewModel> Rows { get; } = [];
 
+    /// <summary>Selección múltiple de la lista (Ctrl/Mayús+clic). <see cref="Selected"/> es el que se edita.</summary>
+    public ObservableCollection<GiftRowViewModel> SelectedRows { get; } = [];
+
     /// <summary>Texto del buscador de la lista: filtra por nombre, otros nombres o efecto.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsFiltering), nameof(NoMatches))]
@@ -108,6 +111,8 @@ public sealed partial class GiftsViewModel : ViewModelBase
 
     public void Load()
     {
+        // Lo que se ofrecía deshacer eran filas de antes de recargar: ya no valen.
+        _shell.Undo.Dismiss();
         try
         {
             using var _ = AutoSaver.Suppress();
@@ -208,6 +213,18 @@ public sealed partial class GiftsViewModel : ViewModelBase
 
         return _shell.EffectChoices.FirstOrDefault()?.Id ?? "";
     }
+
+    /// <summary>Un regalo del catálogo soltado en la lista o en la pestaña Regalos (arrastrar y soltar).</summary>
+    [RelayCommand(CanExecute = nameof(IsCatalogGift))]
+    private void DropFromCatalog(object? payload)
+    {
+        if (payload is CatalogGift gift)
+        {
+            AddFromCatalog(gift);
+        }
+    }
+
+    private static bool IsCatalogGift(object? payload) => payload is CatalogGift;
 
     public void AddFromCatalog(CatalogGift picked)
     {
@@ -332,23 +349,9 @@ public sealed partial class GiftsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task DeleteGiftAsync()
-    {
-        if (Selected is not { } row ||
-            !await _shell.Dialogs.ConfirmDeleteAsync("el regalo", row.Name, "Dejará de lanzar efectos en el juego.")
-                .ConfigureAwait(true))
-        {
-            return;
-        }
-
-        var index = Rows.IndexOf(row);
-        Rows.Remove(row);
-        Selected = NeighbourAfterRemove(Rows, index);
-    }
-
-    /// <summary>Tras borrar, queda seleccionado el que ocupa su sitio (o el anterior si era el último).</summary>
-    internal static T? NeighbourAfterRemove<T>(IList<T> list, int removedIndex) where T : class =>
-        list.Count == 0 ? null : list[Math.Clamp(removedIndex, 0, list.Count - 1)];
+    private void DeleteGift() =>
+        _shell.Undo.RemoveWithUndo(Rows, UndoBarViewModel.Targets(SelectedRows, Selected),
+            r => $"Regalo «{r.Name}» eliminado", n => $"{n} regalos eliminados", r => Selected = r);
 
     [RelayCommand]
     private void Reload()

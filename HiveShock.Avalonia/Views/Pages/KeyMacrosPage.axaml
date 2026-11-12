@@ -40,11 +40,11 @@
                             <Border DockPanel.Dock="Top" Classes="paneHeader">
                                 <DockPanel>
                                     <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="2">
-                                        <Button Classes="icon" Command="{Binding AddMacroCommand}" ToolTip.Tip="Nueva macro">
+                                        <Button Classes="icon" ctl:Hotkey.Gesture="Ctrl+N" Command="{Binding AddMacroCommand}" ToolTip.Tip="Nueva macro (Ctrl+N)">
                                             <ctl:Icon Data="{StaticResource Icon.Plus}" />
                                         </Button>
                                         <Button Classes="icon" Command="{Binding DuplicateMacroCommand}" IsEnabled="{Binding HasSelection}"
-                                                ToolTip.Tip="Duplicar la macro seleccionada">
+                                                ctl:Hotkey.Gesture="Ctrl+D" ToolTip.Tip="Duplicar la macro seleccionada (Ctrl+D)">
                                             <ctl:Icon Data="{StaticResource Icon.Copy}" />
                                         </Button>
                                         <Button Classes="icon" Command="{Binding RemoveMacroCommand}" IsEnabled="{Binding HasSelection}"
@@ -60,6 +60,7 @@
                             </Border>
                             <Panel>
                                 <ListBox Classes="plain" ItemsSource="{Binding Macros}" SelectedItem="{Binding SelectedMacro}"
+                                         SelectedItems="{Binding SelectedMacros}" SelectionMode="Multiple"
                                          IsVisible="{Binding HasMacros}"
                                          ctl:ListGestures.DeleteCommand="{Binding RemoveMacroCommand}"
                                          ctl:ListGestures.Reorder="True">

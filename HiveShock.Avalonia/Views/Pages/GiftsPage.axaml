@@ -21,7 +21,7 @@
                 <Border DockPanel.Dock="Top" Classes="paneHeader">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="2">
-                            <Button Classes="icon" ToolTip.Tip="Añadir un regalo">
+                            <Button Classes="icon" ctl:Hotkey.Gesture="Ctrl+N" ToolTip.Tip="Añadir un regalo (Ctrl+N)">
                                 <ctl:Icon Data="{StaticResource Icon.Plus}" />
                                 <Button.Flyout>
                                     <MenuFlyout Placement="BottomEdgeAlignedRight">
@@ -85,7 +85,7 @@
 
                 <!-- Buscador: filtra sin tocar el orden ni lo guardado. -->
                 <Border DockPanel.Dock="Top" Padding="10,8,10,6" IsVisible="{Binding !!Rows.Count}">
-                    <TextBox Classes="search" Text="{Binding Filter}" PlaceholderText="Buscar regalo o efecto…">
+                    <TextBox Classes="search" ctl:Hotkey.Gesture="Ctrl+F" Text="{Binding Filter}" PlaceholderText="Buscar regalo o efecto (Ctrl+F)">
                         <TextBox.KeyBindings>
                             <KeyBinding Gesture="Escape" Command="{Binding ClearFilterCommand}" />
                         </TextBox.KeyBindings>
@@ -98,9 +98,11 @@
                     </TextBox>
                 </Border>
 
-                <Panel>
+                <!-- Soltar aquí un regalo arrastrado desde el catálogo lo añade (también con la lista vacía). -->
+                <Panel Background="Transparent" ctl:ListGestures.DropCommand="{Binding DropFromCatalogCommand}">
                     <!-- Supr elimina (pregunta antes), arrastrar o Alt+↑/↓ cambia el orden, clic derecho = menú. -->
                     <ListBox Classes="plain" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}"
+                             SelectedItems="{Binding SelectedRows}" SelectionMode="Multiple"
                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                              ctl:ListGestures.DeleteCommand="{Binding DeleteGiftCommand}"
                              ctl:ListGestures.Reorder="True">

@@ -86,7 +86,7 @@
                                 <Border DockPanel.Dock="Top" Classes="paneHeader">
                                     <DockPanel>
                                         <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="2">
-                                            <Button Classes="icon" Command="{Binding Events.AddTwitchCommandCommand}" ToolTip.Tip="Añadir comando">
+                                            <Button Classes="icon" ctl:Hotkey.Gesture="Ctrl+N" Command="{Binding Events.AddTwitchCommandCommand}" ToolTip.Tip="Añadir comando (Ctrl+N)">
                                                 <ctl:Icon Data="{StaticResource Icon.Plus}" />
                                             </Button>
                                             <Button Classes="icon" Command="{Binding Events.RemoveTwitchCommandCommand}" ToolTip.Tip="Eliminar el comando seleccionado (Supr)">
@@ -115,6 +115,7 @@
                                 <Panel>
                                     <ListBox Classes="plain" ItemsSource="{Binding Events.TwitchChatCommands}"
                                              SelectedItem="{Binding Events.SelectedTwitchCommand}"
+                                             SelectedItems="{Binding Events.SelectedTwitchCommands}" SelectionMode="Multiple"
                                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                                              ctl:ListGestures.DeleteCommand="{Binding Events.RemoveTwitchCommandCommand}"
                                              ctl:ListGestures.Reorder="True">
@@ -217,7 +218,7 @@
                             <Border DockPanel.Dock="Top" Classes="paneHeader">
                                 <DockPanel>
                                     <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="2">
-                                        <Button Classes="icon" Command="{Binding Events.AddBitsRuleCommand}" ToolTip.Tip="Añadir regla de bits">
+                                        <Button Classes="icon" ctl:Hotkey.Gesture="Ctrl+N" Command="{Binding Events.AddBitsRuleCommand}" ToolTip.Tip="Añadir regla de bits (Ctrl+N)">
                                             <ctl:Icon Data="{StaticResource Icon.Plus}" />
                                         </Button>
                                         <Button Classes="icon" Command="{Binding Events.RemoveBitsRuleCommand}" ToolTip.Tip="Eliminar la regla seleccionada (Supr)">
@@ -246,6 +247,7 @@
                             <Panel>
                                 <ListBox Classes="plain" ItemsSource="{Binding Events.TwitchBits}"
                                          SelectedItem="{Binding Events.SelectedBitsRule}"
+                                         SelectedItems="{Binding Events.SelectedBitsRules}" SelectionMode="Multiple"
                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
                                          ctl:ListGestures.DeleteCommand="{Binding Events.RemoveBitsRuleCommand}">
                                         <ListBox.ContextFlyout>

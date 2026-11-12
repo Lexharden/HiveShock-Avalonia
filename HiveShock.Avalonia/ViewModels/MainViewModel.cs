@@ -116,6 +116,9 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     /// <summary>Tutorial guiado (primera vez y desde Ayuda/Preferencias).</summary>
     public TutorialViewModel Tutorial { get; }
 
+    /// <summary>Aviso «… eliminado · Deshacer» tras borrar en cualquier lista.</summary>
+    public UndoBarViewModel Undo { get; } = new();
+
     /// <summary>Ya empezó el cierre real (ShutdownAsync): la X o un Close() ya no deben esconder la ventana.</summary>
     public bool IsShuttingDown => _closing;
     public GiftsViewModel Gifts { get; }

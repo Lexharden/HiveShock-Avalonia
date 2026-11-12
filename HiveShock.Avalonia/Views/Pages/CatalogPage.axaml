@@ -48,7 +48,7 @@
                     </StackPanel>
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBox Classes="search" MaxWidth="340" HorizontalAlignment="Stretch" Text="{Binding SearchText}"
-                                 PlaceholderText="Buscar por nombre o ID…" />
+                                 ctl:Hotkey.Gesture="Ctrl+F" PlaceholderText="Buscar por nombre o ID (Ctrl+F)" />
                         <CheckBox Grid.Column="1" Margin="12,0,0,0" Content="Todos los de TikTok"
                                   IsChecked="{Binding ShowAllTikTokGifts}" VerticalAlignment="Center"
                                   ToolTip.Tip="Marcado: todos los regalos de TikTok. Sin marcar: solo los que han llegado en tus directos." />
@@ -74,7 +74,8 @@
             <Panel>
                 <!-- Doble clic o Intro: lo mismo que «Usar en este juego». -->
                 <ListBox Classes="plain" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}"
-                         ctl:ListGestures.ActivateCommand="{Binding AddToGiftsCommand}">
+                         ctl:ListGestures.ActivateCommand="{Binding AddToGiftsCommand}"
+                         ctl:ListGestures.DragOut="True">
                     <ListBox.ContextFlyout>
                         <MenuFlyout>
                             <MenuItem Header="Usar en este juego" Command="{Binding AddToGiftsCommand}">

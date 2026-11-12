@@ -55,6 +55,8 @@
     <StreamGeometry x:Key="Icon.Copy">M 8.5 8.5 L 19.5 8.5 L 19.5 19.5 L 8.5 19.5 Z M 15.5 8.5 L 15.5 4.5 L 4.5 4.5 L 4.5 15.5 L 8.5 15.5</StreamGeometry>
     <StreamGeometry x:Key="Icon.Upload">M 12 15.5 L 12 4 M 7 9 L 12 4 L 17 9 M 4.5 20 L 19.5 20</StreamGeometry>
     <StreamGeometry x:Key="Icon.More">M 5.5 12 L 5.51 12 M 12 12 L 12.01 12 M 18.5 12 L 18.51 12</StreamGeometry>
+    <!-- Deshacer: flecha curva hacia la izquierda. -->
+    <StreamGeometry x:Key="Icon.Undo">M 9 14 L 4 9 L 9 4 M 4 9 L 14.5 9 A 5.5 5.5 0 0 1 14.5 20 L 11 20</StreamGeometry>
     <!-- Asa de arrastre: dos columnas de tres puntos. -->
     <StreamGeometry x:Key="Icon.Grip">M 9 6 L 9.01 6 M 15 6 L 15.01 6 M 9 12 L 9.01 12 M 15 12 L 15.01 12 M 9 18 L 9.01 18 M 15 18 L 15.01 18</StreamGeometry>
     <StreamGeometry x:Key="Icon.ChevronDown">M 6 9 L 12 15 L 18 9</StreamGeometry>

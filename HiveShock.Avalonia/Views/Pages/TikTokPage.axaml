@@ -45,7 +45,9 @@
 
         <TabControl>
             <!-- ============================== Regalos -->
-            <TabItem ctl:Tour.Key="tiktok.tab.gifts">
+            <!-- Arrastrar un regalo del catálogo hasta aquí abre la pestaña; soltarlo lo añade. -->
+            <TabItem ctl:Tour.Key="tiktok.tab.gifts" ctl:ListGestures.SelectOnDragHover="True"
+                     ctl:ListGestures.DropCommand="{Binding Gifts.DropFromCatalogCommand}">
                 <TabItem.Header>
                     <StackPanel Classes="tabHeader">
                         <ctl:Icon Data="{StaticResource Icon.Gift}" />
@@ -111,7 +113,7 @@
                                 <Border DockPanel.Dock="Top" Classes="paneHeader">
                                     <DockPanel>
                                         <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="2">
-                                            <Button Classes="icon" Command="{Binding Events.AddCommandCommand}" ToolTip.Tip="Añadir comando">
+                                            <Button Classes="icon" ctl:Hotkey.Gesture="Ctrl+N" Command="{Binding Events.AddCommandCommand}" ToolTip.Tip="Añadir comando (Ctrl+N)">
                                                 <ctl:Icon Data="{StaticResource Icon.Plus}" />
                                             </Button>
                                             <Button Classes="icon" Command="{Binding Events.RemoveCommandCommand}" ToolTip.Tip="Eliminar el comando seleccionado (Supr)">
@@ -140,6 +142,7 @@
                                 <Panel>
                                     <ListBox Classes="plain" ItemsSource="{Binding Events.ChatCommands}"
                                              SelectedItem="{Binding Events.SelectedCommand}"
+                                             SelectedItems="{Binding Events.SelectedChatCommands}" SelectionMode="Multiple"
                                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                                              ctl:ListGestures.DeleteCommand="{Binding Events.RemoveCommandCommand}"
                                              ctl:ListGestures.Reorder="True">
@@ -347,7 +350,7 @@
                             <Border DockPanel.Dock="Top" Classes="paneHeader">
                                 <DockPanel>
                                     <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="2">
-                                        <Button Classes="icon" Command="{Binding Goals.AddCommand}" ToolTip.Tip="Añadir meta">
+                                        <Button Classes="icon" ctl:Hotkey.Gesture="Ctrl+N" Command="{Binding Goals.AddCommand}" ToolTip.Tip="Añadir meta (Ctrl+N)">
                                             <ctl:Icon Data="{StaticResource Icon.Plus}" />
                                         </Button>
                                         <Button Classes="icon" Command="{Binding Goals.RemoveCommand}" ToolTip.Tip="Eliminar la meta seleccionada (Supr)">
@@ -375,6 +378,7 @@
                             </Border>
                             <Panel>
                                 <ListBox Classes="plain" ItemsSource="{Binding Goals.Rows}" SelectedItem="{Binding Goals.Selected}"
+                                         SelectedItems="{Binding Goals.SelectedRows}" SelectionMode="Multiple"
                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
                                          ctl:ListGestures.DeleteCommand="{Binding Goals.RemoveCommand}"
                                          ctl:ListGestures.Reorder="True">

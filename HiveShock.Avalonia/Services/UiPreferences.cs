@@ -36,6 +36,9 @@ public sealed class UiPreferences
     /// <summary>El tutorial guiado ya se vio (terminado o saltado). Se puede repetir desde Ayuda o Preferencias.</summary>
     public bool TutorialCompleted { get; set; }
 
+    /// <summary>Orden de las tarjetas de juego en Inicio (ids de perfil); los que no estén van al final.</summary>
+    public List<string> ProfileOrder { get; set; } = [];
+
     /// <summary>Guarda solo (con una pequeña espera) los cambios de regalos, metas y eventos.</summary>
     public bool AutoSaveEnabled { get; set; } = true;
 

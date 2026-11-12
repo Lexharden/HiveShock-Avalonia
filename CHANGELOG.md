@@ -5,11 +5,14 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 ## [Unreleased]
 
 ### Listas más ágiles
-* **Supr elimina** el regalo, comando, meta, regla de bits o macro seleccionado, siempre preguntando antes («Cancelar / Eliminar»). Los botones de papelera también preguntan.
+* **Supr elimina** el regalo, comando, meta, regla de bits o macro seleccionado (también la papelera) y abajo aparece **«… eliminado · Deshacer»** unos segundos (o **Ctrl+Z**): borrar es rápido en directo y nunca definitivo por un despiste.
+* **Selección múltiple** con Ctrl+clic o Mayús+clic: Supr o la papelera quitan todos a la vez (y se deshacen juntos).
+* **Ctrl+N** crea uno nuevo en la lista que tienes delante (regalos, comandos, metas, bits, macros), **Ctrl+F** va al buscador y **Ctrl+D** duplica una macro.
 * **Arrastra para ordenar** regalos, comandos de chat, metas y macros; con el teclado, **Alt+↑/↓**. Los efectos en cadena y los pasos de macro se ordenan arrastrando desde su asa ⠿. El orden se guarda solo.
 * **Clic derecho** en las listas para las acciones más usadas (probar, duplicar, eliminar…).
 * **Buscador en Regalos** por nombre, otros nombres o efecto (Esc lo borra).
-* **Catálogo:** doble clic o Intro sobre un regalo lo añade al juego, y abajo se confirma. En «Elegir del catálogo», doble clic lo elige.
+* **Catálogo:** doble clic o Intro sobre un regalo lo añade al juego, y abajo se confirma. También se puede **arrastrar hasta la pestaña Regalos** (se abre sola) y soltarlo en la lista. En «Elegir del catálogo», doble clic lo elige.
+* **Inicio:** arrastra las tarjetas de juego para ponerlas en el orden que quieras; se recuerda.
 
 ### Textos más claros
 * **«Solo simular» pasa a ser «Modo ensayo: no enviar efectos al juego»**, con una línea que explica qué hace. «Simular +1» de Metas pasa a «Sumar 1 de prueba».

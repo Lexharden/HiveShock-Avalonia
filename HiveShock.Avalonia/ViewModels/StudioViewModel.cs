@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HiveShock.Avalonia.Services;
@@ -16,6 +18,15 @@ public sealed partial class StudioViewModel : ViewModelBase
     public StudioViewModel(MainViewModel shell)
     {
         _shell = shell;
+        // Arrastrar una tarjeta de juego guarda el nuevo orden (no al rellenar la lista).
+        Profiles.CollectionChanged += (_, e) =>
+        {
+            if (!_loadingProfiles && e.Action == NotifyCollectionChangedAction.Move)
+            {
+                _shell.Prefs.ProfileOrder = Profiles.Select(p => p.Id).ToList();
+                _shell.Prefs.Save();
+            }
+        };
         _channel = shell.Runtime.Options.TikTokUniqueId;
         _tikTokEnabled = shell.Runtime.Options.TikTokEnabled;
         _twitchEnabled = shell.Runtime.Options.TwitchEnabled;
@@ -33,7 +44,10 @@ public sealed partial class StudioViewModel : ViewModelBase
             global::Avalonia.Threading.Dispatcher.UIThread.Post(RefreshPortCards);
     }
 
-    public IReadOnlyList<ProfileCardViewModel> Profiles { get; private set; } = [];
+    private bool _loadingProfiles;
+
+    /// <summary>Tarjetas de juego, en el orden que eligió el usuario arrastrándolas (se guarda en preferencias).</summary>
+    public ObservableCollection<ProfileCardViewModel> Profiles { get; } = [];
 
     /// <summary>El perfil activo es uno propio: se puede borrar.</summary>
     public bool ActiveIsCustom => _shell.Runtime.Profile.IsCustom;
@@ -221,10 +235,24 @@ public sealed partial class StudioViewModel : ViewModelBase
 
     public void RefreshProfiles()
     {
-        Profiles = _shell.Runtime.ListProfiles()
-            .Select(p => new ProfileCardViewModel(p, p.Id == _shell.Runtime.Profile.Id))
-            .ToList();
-        OnPropertyChanged(nameof(Profiles));
+        _loadingProfiles = true;
+        try
+        {
+            var order = _shell.Prefs.ProfileOrder;
+            Profiles.Clear();
+            foreach (var card in _shell.Runtime.ListProfiles()
+                         .Select((p, i) => (Card: new ProfileCardViewModel(p, p.Id == _shell.Runtime.Profile.Id), Index: i))
+                         .OrderBy(x => order.IndexOf(x.Card.Id) is var at and >= 0 ? at : order.Count + x.Index)
+                         .Select(x => x.Card))
+            {
+                Profiles.Add(card);
+            }
+        }
+        finally
+        {
+            _loadingProfiles = false;
+        }
+
         OnPropertyChanged(nameof(ActiveIsCustom));
         GameStatus = $"Listo: {_shell.Runtime.Profile.ShortDisplayName}.";
         RefreshCapabilities();

@@ -215,7 +215,7 @@
                             </StackPanel>
                             <StackPanel Classes="term">
                                 <TextBlock Text="En las listas" />
-                                <TextBlock Text="Supr elimina (pregunta antes). Arrastra un elemento, o usa Alt+↑/↓, para cambiar el orden; en los efectos en cadena y los pasos de macro se arrastra desde el asa ⠿. Clic derecho para más acciones. En el catálogo, doble clic para usar un regalo." />
+                                <TextBlock Text="Ctrl+N crea uno nuevo y Ctrl+F busca. Supr elimina lo seleccionado (Ctrl+clic o Mayús+clic para elegir varios) y abajo aparece «Deshacer» unos segundos (también Ctrl+Z). Arrastra, o usa Alt+↑/↓, para cambiar el orden; en los efectos en cadena y los pasos de macro, desde el asa ⠿. Clic derecho para más acciones. Del catálogo, doble clic o arrastra un regalo hasta la pestaña Regalos. En Inicio, arrastra las tarjetas para ordenar los juegos." />
                             </StackPanel>
                             <StackPanel Classes="term" Margin="0">
                                 <TextBlock Text="La X de la ventana" />

@@ -69,7 +69,9 @@
                                 </DockPanel>
                             </Border>
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                <ItemsControl ItemsSource="{Binding Profiles}" Margin="14,14,4,4">
+                                <!-- Arrastra una tarjeta para ordenar los juegos (se recuerda). -->
+                                <ItemsControl ItemsSource="{Binding Profiles}" Margin="14,14,4,4"
+                                              ctl:ListGestures.Reorder="True">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <WrapPanel />

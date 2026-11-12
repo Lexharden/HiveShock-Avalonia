@@ -53,8 +53,8 @@
                                   ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding FilterCategory}"
                                   ToolTip.Tip="Filtrar por categoría" />
                         <TextBox Grid.Column="1" Classes="search" MaxWidth="420" HorizontalAlignment="Stretch"
-                                 Text="{Binding FilterText}"
-                                 PlaceholderText="Buscar por regalo, usuario, ID, tipo…" />
+                                 Text="{Binding FilterText}" ctl:Hotkey.Gesture="Ctrl+F" 
+                                 PlaceholderText="Buscar por regalo, usuario, ID, tipo (Ctrl+F)" />
                     </Grid>
                 </DockPanel>
             </Border>

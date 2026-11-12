@@ -31,6 +31,9 @@ public sealed partial class GoalsViewModel : ViewModelBase
 
     public ObservableCollection<GoalRowViewModel> Rows { get; } = [];
 
+    /// <summary>Selección múltiple de la lista (Ctrl/Mayús+clic).</summary>
+    public ObservableCollection<GoalRowViewModel> SelectedRows { get; } = [];
+
     public void NotifyEffects() => OnPropertyChanged(nameof(EffectsWithNone));
 
     private StepListViewModel NewSteps(IEnumerable<EditableGiftStep> steps)
@@ -42,6 +45,8 @@ public sealed partial class GoalsViewModel : ViewModelBase
 
     public void LoadFromEditor(GiftFileEditor editor)
     {
+        // Lo que se ofrecía deshacer eran filas de antes de recargar: ya no valen.
+        _shell.Undo.Dismiss();
         using var _ = _shell.Gifts.AutoSaver.Suppress();
         Rows.Clear();
         foreach (var goal in editor.Goals)
@@ -172,18 +177,9 @@ public sealed partial class GoalsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task RemoveAsync()
-    {
-        if (Selected is not { } row ||
-            !await _shell.Dialogs.ConfirmDeleteAsync("la meta", row.Label, "Se pierde su progreso.").ConfigureAwait(true))
-        {
-            return;
-        }
-
-        var index = Rows.IndexOf(row);
-        Rows.Remove(row);
-        Selected = GiftsViewModel.NeighbourAfterRemove(Rows, index);
-    }
+    private void Remove() =>
+        _shell.Undo.RemoveWithUndo(Rows, UndoBarViewModel.Targets(SelectedRows, Selected),
+            r => $"Meta «{r.Label}» eliminada", n => $"{n} metas eliminadas", r => Selected = r);
 
     [RelayCommand]
     private void ResetSelected()

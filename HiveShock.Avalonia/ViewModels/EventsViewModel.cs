@@ -96,6 +96,11 @@ public sealed partial class EventsViewModel : ViewModelBase
     public ObservableCollection<ChatCommandRowViewModel> TwitchChatCommands { get; } = [];
     public ObservableCollection<BitsRowViewModel> TwitchBits { get; } = [];
 
+    // Selección múltiple de cada lista (Ctrl/Mayús+clic): Supr o la papelera los quitan juntos.
+    public ObservableCollection<ChatCommandRowViewModel> SelectedChatCommands { get; } = [];
+    public ObservableCollection<ChatCommandRowViewModel> SelectedTwitchCommands { get; } = [];
+    public ObservableCollection<BitsRowViewModel> SelectedBitsRules { get; } = [];
+
     public void NotifyEffects() => OnPropertyChanged(nameof(EffectsWithNone));
 
     [ObservableProperty] private string _brokenText = "";
@@ -150,6 +155,8 @@ public sealed partial class EventsViewModel : ViewModelBase
 
     public void LoadFromEditor(GiftFileEditor editor)
     {
+        // Lo que se ofrecía deshacer eran filas de antes de recargar: ya no valen.
+        _shell.Undo.Dismiss();
         using var _ = _shell.Gifts.AutoSaver.Suppress();
         LikesEveryText = editor.LikesEvery.ToString();
         LikesEffect = editor.LikesEffect;
@@ -293,14 +300,14 @@ public sealed partial class EventsViewModel : ViewModelBase
     private void AddCommand() => AddTo(ChatCommands, cmd => SelectedCommand = cmd);
 
     [RelayCommand]
-    private Task RemoveCommandAsync() => RemoveFromAsync(ChatCommands, SelectedCommand, v => SelectedCommand = v);
+    private void RemoveCommand() => RemoveFrom(ChatCommands, SelectedChatCommands, SelectedCommand, v => SelectedCommand = v);
 
     [RelayCommand]
     private void AddTwitchCommand() => AddTo(TwitchChatCommands, cmd => SelectedTwitchCommand = cmd);
 
     [RelayCommand]
-    private Task RemoveTwitchCommandAsync() =>
-        RemoveFromAsync(TwitchChatCommands, SelectedTwitchCommand, v => SelectedTwitchCommand = v);
+    private void RemoveTwitchCommand() =>
+        RemoveFrom(TwitchChatCommands, SelectedTwitchCommands, SelectedTwitchCommand, v => SelectedTwitchCommand = v);
 
     [RelayCommand]
     private void AddBitsRule()
@@ -316,18 +323,9 @@ public sealed partial class EventsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task RemoveBitsRuleAsync()
-    {
-        if (SelectedBitsRule is not { } row ||
-            !await _shell.Dialogs.ConfirmDeleteAsync("la regla", $"desde {row.MinText} bits").ConfigureAwait(true))
-        {
-            return;
-        }
-
-        var index = TwitchBits.IndexOf(row);
-        TwitchBits.Remove(row);
-        SelectedBitsRule = GiftsViewModel.NeighbourAfterRemove(TwitchBits, index);
-    }
+    private void RemoveBitsRule() =>
+        _shell.Undo.RemoveWithUndo(TwitchBits, UndoBarViewModel.Targets(SelectedBitsRules, SelectedBitsRule),
+            r => $"Regla de {r.MinText} bits eliminada", n => $"{n} reglas de bits eliminadas", r => SelectedBitsRule = r);
 
     private static int ParseWaitSec(string text, int fallback)
     {
@@ -353,21 +351,13 @@ public sealed partial class EventsViewModel : ViewModelBase
         select(row);
     }
 
-    private async Task RemoveFromAsync(
+    private void RemoveFrom(
         ObservableCollection<ChatCommandRowViewModel> list,
-        ChatCommandRowViewModel? selected,
-        Action<ChatCommandRowViewModel?> assign)
-    {
-        if (selected == null ||
-            !await _shell.Dialogs.ConfirmDeleteAsync("el comando", selected.Word).ConfigureAwait(true))
-        {
-            return;
-        }
-
-        var index = list.IndexOf(selected);
-        list.Remove(selected);
-        assign(GiftsViewModel.NeighbourAfterRemove(list, index));
-    }
+        IEnumerable<ChatCommandRowViewModel> selection,
+        ChatCommandRowViewModel? current,
+        Action<ChatCommandRowViewModel?> assign) =>
+        _shell.Undo.RemoveWithUndo(list, UndoBarViewModel.Targets(selection, current),
+            c => $"Comando «{c.Word}» eliminado", n => $"{n} comandos eliminados", assign);
 
     [RelayCommand]
     private void Save()

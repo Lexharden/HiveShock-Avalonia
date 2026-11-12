@@ -24,6 +24,8 @@
         <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveAllCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+P" Command="{Binding ToggleViewerEffectsPauseCommand}" />
         <KeyBinding Gesture="Ctrl+B" Command="{Binding ToggleNavCommand}" />
+        <!-- Deshace el último borrado de una lista (un campo de texto con el foco se queda su propio Ctrl+Z). -->
+        <KeyBinding Gesture="Ctrl+Z" Command="{Binding Undo.UndoCommand}" />
     </Window.KeyBindings>
 
     <Window.Styles>
@@ -386,6 +388,29 @@
                         <TextBlock Text="{Binding SystemFx.BannerText}" TextWrapping="Wrap" FontWeight="SemiBold"
                                    Foreground="White" VerticalAlignment="Center" />
                     </DockPanel>
+                </Border>
+
+                <!-- «Regalo «GG» eliminado · Deshacer»: unos segundos tras borrar en cualquier lista (Ctrl+Z). -->
+                <Border Grid.Row="0" ZIndex="60" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                        Margin="24,0,24,16" Padding="16,6,6,6" CornerRadius="10"
+                        Background="{DynamicResource PopupBrush}" BorderBrush="{DynamicResource StrongBorderBrush}"
+                        BorderThickness="1" BoxShadow="0 6 24 0 #40000000"
+                        DataContext="{Binding Undo}" IsVisible="{Binding IsOpen}">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <ctl:Icon Data="{StaticResource Icon.Trash}" Size="16" VerticalAlignment="Center"
+                                  Foreground="{DynamicResource MutedBrush}" />
+                        <TextBlock Text="{Binding Message}" VerticalAlignment="Center" MaxWidth="420"
+                                   TextTrimming="CharacterEllipsis" />
+                        <Button Classes="ghost" Command="{Binding UndoCommand}" ToolTip.Tip="Deshacer (Ctrl+Z)">
+                            <StackPanel Classes="btnContent">
+                                <ctl:Icon Data="{StaticResource Icon.Undo}" Size="16" />
+                                <TextBlock Text="Deshacer" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="icon" Command="{Binding DismissCommand}" ToolTip.Tip="Cerrar">
+                            <ctl:Icon Data="{StaticResource Icon.Close}" Size="14" />
+                        </Button>
+                    </StackPanel>
                 </Border>
 
                 <!-- Barra de estado: la última actividad sin abrir el panel. -->

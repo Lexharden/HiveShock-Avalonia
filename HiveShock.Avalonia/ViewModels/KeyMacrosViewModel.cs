@@ -43,6 +43,9 @@ public sealed partial class KeyMacrosViewModel : ViewModelBase
     public SaveStatusViewModel SaveStatus { get; }
 
     public ObservableCollection<KeyMacroRow> Macros { get; } = [];
+
+    /// <summary>Selección múltiple de la lista (Ctrl/Mayús+clic).</summary>
+    public ObservableCollection<KeyMacroRow> SelectedMacros { get; } = [];
     public ObservableCollection<OpenWindowChoice> OpenWindows { get; } = [];
 
     public IReadOnlyList<Choice<KeyAction>> ActionChoices => KeyStepRow.ActionChoices;
@@ -96,6 +99,8 @@ public sealed partial class KeyMacrosViewModel : ViewModelBase
     /// <summary>Carga macros y ventana del perfil activo. No cuenta como edición del usuario.</summary>
     public void Load()
     {
+        // Lo que se ofrecía deshacer eran filas de antes de recargar: ya no valen.
+        _shell.Undo.Dismiss();
         using var _ = _saver.Suppress();
         Macros.Clear();
         foreach (var macro in _shell.Runtime.LoadKeyMacros())
@@ -258,20 +263,10 @@ public sealed partial class KeyMacrosViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task RemoveMacroAsync()
-    {
-        if (SelectedMacro is not { } macro ||
-            !await _shell.Dialogs.ConfirmDeleteAsync("la macro", macro.Label,
-                "Los regalos, comandos o eventos que la usaban se quedan sin efecto.").ConfigureAwait(true))
-        {
-            return;
-        }
-
-        var index = Macros.IndexOf(macro);
-        Macros.Remove(macro);
-        SelectedMacro = Macros.Count == 0 ? null : Macros[Math.Min(index, Macros.Count - 1)];
-        OnPropertyChanged(nameof(HasMacros));
-    }
+    private void RemoveMacro() =>
+        _shell.Undo.RemoveWithUndo(Macros, UndoBarViewModel.Targets(SelectedMacros, SelectedMacro),
+            m => $"Macro «{m.Label}» eliminada", n => $"{n} macros eliminadas", m => SelectedMacro = m,
+            () => OnPropertyChanged(nameof(HasMacros)));
 
     [RelayCommand]
     private void AddStep()
