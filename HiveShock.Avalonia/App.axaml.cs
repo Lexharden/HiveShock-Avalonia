@@ -53,8 +53,10 @@ public partial class App : Application
             window.Opened += (_, _) => vm.Attach();
             WireBackgroundMode(desktop, window, vm);
 
-            // Tutorial la primera vez: un poco después de abrir, con la ventana ya maquetada.
-            window.Opened += (_, _) => DispatcherTimer.RunOnce(vm.Tutorial.StartIfFirstRun, TimeSpan.FromMilliseconds(700));
+            // Un poco después de abrir, con la ventana ya maquetada: novedades si se acaba de actualizar
+            // y luego el tutorial si nunca se vio.
+            window.Opened += (_, _) => DispatcherTimer.RunOnce(
+                () => _ = vm.ShowStartupGuidesAsync(), TimeSpan.FromMilliseconds(700));
         }
 
         base.OnFrameworkInitializationCompleted();

@@ -4,6 +4,10 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+### Novedades
+* **Ventana «Novedades»:** al abrir una versión nueva se enseña una vez qué ha cambiado (todas las versiones desde la última que abriste, también si actualizaste a mano). En una instalación nueva no sale: para eso está el tutorial. Se puede volver a ver desde Ayuda y Acerca de.
+* En **Actualizaciones**, las notas de cada versión se ven con formato y con «Ver notas completas».
+
 ### Listas más ágiles
 * **Supr elimina** el regalo, comando, meta, regla de bits o macro seleccionado (también la papelera) y abajo aparece **«… eliminado · Deshacer»** unos segundos (o **Ctrl+Z**): borrar es rápido en directo y nunca definitivo por un despiste.
 * **Selección múltiple** con Ctrl+clic o Mayús+clic: Supr o la papelera quitan todos a la vez (y se deshacen juntos).

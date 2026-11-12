@@ -88,6 +88,14 @@
                             <Border Classes="pill gold" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding VersionLabel}" />
                             </Border>
+                            <Button Classes="ghost" VerticalAlignment="Center"
+                                    Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ShowWhatsNewCommand}"
+                                    ToolTip.Tip="Qué ha cambiado en esta versión.">
+                                <StackPanel Classes="btnContent">
+                                    <ctl:Icon Data="{StaticResource Icon.Sparkle}" />
+                                    <TextBlock Text="Novedades" />
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                         <TextBlock Classes="caption" FontSize="13" Foreground="{DynamicResource GoldTextBrush}"
                                    Text="Lo que pasa en tu live se queda en el live" />

@@ -39,6 +39,12 @@
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
 
+  <!-- Las notas de cada versión van dentro del programa: la ventana «Novedades» funciona sin internet
+       y siempre coincide con la versión instalada (es el mismo texto que el release de GitHub). -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\CHANGELOG.md" Link="CHANGELOG.md" LogicalName="HiveShock.CHANGELOG.md" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.1" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />

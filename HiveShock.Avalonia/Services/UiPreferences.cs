@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using HiveShock.Avalonia.Themes;
 using HiveShock.Configuration;
 using HiveShock.Hosting;
@@ -36,6 +37,13 @@ public sealed class UiPreferences
     /// <summary>El tutorial guiado ya se vio (terminado o saltado). Se puede repetir desde Ayuda o Preferencias.</summary>
     public bool TutorialCompleted { get; set; }
 
+    /// <summary>Última versión cuyas novedades se enseñaron; al abrir una más nueva se muestran las de en medio.</summary>
+    public string LastSeenVersion { get; set; } = "";
+
+    /// <summary>No había preferencias guardadas: instalación nueva (no se guarda; se calcula al cargar).</summary>
+    [JsonIgnore]
+    public bool IsFirstRun { get; private set; }
+
     /// <summary>Orden de las tarjetas de juego en Inicio (ids de perfil); los que no estén van al final.</summary>
     public List<string> ProfileOrder { get; set; } = [];
 
@@ -72,7 +80,7 @@ public sealed class UiPreferences
 
     /// <summary>Copia válida más reciente (carpeta del usuario o junto al .exe); ver <see cref="UserDataStore"/>.</summary>
     public static UiPreferences Load() =>
-        UserDataStore.Load<UiPreferences>(FileName, LegacyFileName) ?? new UiPreferences();
+        UserDataStore.Load<UiPreferences>(FileName, LegacyFileName) ?? new UiPreferences { IsFirstRun = true };
 
     /// <summary>Guarda en las dos ubicaciones con respaldo .bak. Nunca lanza.</summary>
     public void Save() => UserDataStore.Save(FileName, this);

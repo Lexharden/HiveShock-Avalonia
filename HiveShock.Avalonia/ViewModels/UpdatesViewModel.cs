@@ -152,6 +152,16 @@ public sealed partial class UpdatesViewModel : ViewModelBase
     [RelayCommand]
     private Task InstallRowAsync(ReleaseRow? row) => row is null ? Task.CompletedTask : InstallAsync(row.Release);
 
+    /// <summary>Las notas completas de una versión de la lista, con formato, en la ventana de novedades.</summary>
+    [RelayCommand]
+    private Task ShowNotesAsync(ReleaseRow? row) =>
+        row is null
+            ? Task.CompletedTask
+            : _shell.Dialogs.ShowWhatsNewAsync(
+                [new ChangelogEntry(row.Version, null, row.Release.Notes)],
+                $"HiveShock {row.Version}",
+                row.DateText.Length > 0 ? $"Publicada el {row.DateText}." : null);
+
     [RelayCommand]
     private void SkipLatest()
     {

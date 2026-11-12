@@ -66,6 +66,14 @@
                         <TextBlock Text="Ver el tutorial" />
                     </StackPanel>
                 </Button>
+                <Button DockPanel.Dock="Right" Classes="secondary" Margin="16,0,0,0" VerticalAlignment="Center"
+                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ShowWhatsNewCommand}"
+                        ToolTip.Tip="Qué ha cambiado en esta versión.">
+                    <StackPanel Classes="btnContent">
+                        <ctl:Icon Data="{StaticResource Icon.Sparkle}" />
+                        <TextBlock Text="Novedades" />
+                    </StackPanel>
+                </Button>
                 <StackPanel Spacing="2">
                     <TextBlock Classes="h1" Text="Ayuda" />
                     <TextBlock Classes="caption" Text="HiveShock lleva lo que pasa en tu directo al juego. Cada canal se configura por separado." />

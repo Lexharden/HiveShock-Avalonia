@@ -119,6 +119,37 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     /// <summary>Aviso «… eliminado · Deshacer» tras borrar en cualquier lista.</summary>
     public UndoBarViewModel Undo { get; } = new();
 
+    /// <summary>Botón «Novedades» (Ayuda, Acerca de): las notas de la versión instalada.</summary>
+    [RelayCommand]
+    private Task ShowWhatsNewAsync()
+    {
+        var entries = WhatsNew.ForVersion(About.Version);
+        return Dialogs.ShowWhatsNewAsync(entries, $"Novedades de HiveShock {About.Version}", Subtitle(entries));
+    }
+
+    /// <summary>
+    /// Al abrir la ventana: primero las novedades si se acaba de actualizar (una sola vez);
+    /// después el tutorial si nunca se vio. Así no se pisan.
+    /// </summary>
+    public async Task ShowStartupGuidesAsync()
+    {
+        var pending = WhatsNew.TakePendingOnStartup(Prefs, About.Version);
+        if (pending.Count > 0)
+        {
+            await Dialogs.ShowWhatsNewAsync(pending, $"Novedades de HiveShock {About.Version}", Subtitle(pending));
+        }
+
+        Tutorial.StartIfFirstRun();
+    }
+
+    private static string? Subtitle(IReadOnlyList<HiveShock.Updates.ChangelogEntry> entries) =>
+        entries.Count switch
+        {
+            0 => "No hay notas para esta versión.",
+            1 => entries[0].DateText.Length > 0 ? $"Publicada el {entries[0].DateText}." : null,
+            _ => $"Lo nuevo en {entries.Count} versiones desde la última que abriste.",
+        };
+
     /// <summary>Ya empezó el cierre real (ShutdownAsync): la X o un Close() ya no deben esconder la ventana.</summary>
     public bool IsShuttingDown => _closing;
     public GiftsViewModel Gifts { get; }

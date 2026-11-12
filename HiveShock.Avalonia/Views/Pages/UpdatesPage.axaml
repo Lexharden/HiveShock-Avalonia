@@ -93,8 +93,15 @@
                                                     <TextBlock Text="{Binding DateText}" Classes="caption" VerticalAlignment="Center" />
                                                 </StackPanel>
                                                 <TextBlock Text="{Binding Unavailable}" Classes="caption" IsVisible="{Binding IsUnavailable}" />
-                                                <TextBlock Text="{Binding Notes}" Classes="caption" MaxHeight="120"
-                                                           TextTrimming="CharacterEllipsis" IsVisible="{Binding HasNotes}" />
+                                                <!-- Un vistazo a las notas (con formato) y el enlace a leerlas enteras. -->
+                                                <ctl:NotesView Markdown="{Binding Notes}" MaxBlocks="4"
+                                                               Opacity="0.85" IsVisible="{Binding HasNotes}" />
+                                                <Button Classes="ghost" Padding="0,2" HorizontalAlignment="Left"
+                                                        IsVisible="{Binding HasNotes}" CommandParameter="{Binding}"
+                                                        Command="{Binding $parent[UserControl].((vm:UpdatesViewModel)DataContext).ShowNotesCommand}">
+                                                    <TextBlock Text="Ver notas completas" FontSize="12"
+                                                               Foreground="{DynamicResource AccentTextBrush}" />
+                                                </Button>
                                             </StackPanel>
                                         </DockPanel>
                                     </Border>
