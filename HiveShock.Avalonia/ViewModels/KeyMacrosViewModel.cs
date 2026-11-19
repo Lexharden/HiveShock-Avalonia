@@ -43,6 +43,9 @@ public sealed partial class KeyMacrosViewModel : ViewModelBase
     public SaveStatusViewModel SaveStatus { get; }
 
     public ObservableCollection<KeyMacroRow> Macros { get; } = [];
+
+    /// <summary>Selección múltiple de la lista (Ctrl/Mayús+clic).</summary>
+    public ObservableCollection<KeyMacroRow> SelectedMacros { get; } = [];
     public ObservableCollection<OpenWindowChoice> OpenWindows { get; } = [];
 
     public IReadOnlyList<Choice<KeyAction>> ActionChoices => KeyStepRow.ActionChoices;
@@ -96,6 +99,8 @@ public sealed partial class KeyMacrosViewModel : ViewModelBase
     /// <summary>Carga macros y ventana del perfil activo. No cuenta como edición del usuario.</summary>
     public void Load()
     {
+        // Lo que se ofrecía deshacer eran filas de antes de recargar: ya no valen.
+        _shell.Undo.Dismiss();
         using var _ = _saver.Suppress();
         Macros.Clear();
         foreach (var macro in _shell.Runtime.LoadKeyMacros())
@@ -145,13 +150,13 @@ public sealed partial class KeyMacrosViewModel : ViewModelBase
         var models = Macros.Select(m => m.ToModel()).ToList();
         if (models.Any(m => m.Id.Length == 0))
         {
-            throw new InvalidOperationException("Hay una macro sin id.");
+            throw new InvalidOperationException("Hay una macro sin ID.");
         }
 
         var duplicate = models.GroupBy(m => m.Id, StringComparer.OrdinalIgnoreCase).FirstOrDefault(g => g.Count() > 1);
         if (duplicate != null)
         {
-            throw new InvalidOperationException($"Dos macros usan el id «{duplicate.Key}».");
+            throw new InvalidOperationException($"Dos macros usan el ID «{duplicate.Key}».");
         }
 
         var target = CurrentTarget();
@@ -208,7 +213,7 @@ public sealed partial class KeyMacrosViewModel : ViewModelBase
         var id = SelectedMacro.Id.Trim();
         if (id.Length > 0 && Macros.Count(m => string.Equals(m.Id.Trim(), id, StringComparison.OrdinalIgnoreCase)) > 1)
         {
-            errors.Insert(0, $"Otra macro ya usa el id «{id}».");
+            errors.Insert(0, $"Otra macro ya usa el ID «{id}».");
         }
 
         if (id.Length > 0 && _shell.Runtime.HotkeyProblems.TryGetValue(id, out var hotkeyProblem))
@@ -258,18 +263,10 @@ public sealed partial class KeyMacrosViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void RemoveMacro()
-    {
-        if (SelectedMacro is null)
-        {
-            return;
-        }
-
-        var index = Macros.IndexOf(SelectedMacro);
-        Macros.Remove(SelectedMacro);
-        SelectedMacro = Macros.Count == 0 ? null : Macros[Math.Min(index, Macros.Count - 1)];
-        OnPropertyChanged(nameof(HasMacros));
-    }
+    private void RemoveMacro() =>
+        _shell.Undo.RemoveWithUndo(Macros, UndoBarViewModel.Targets(SelectedMacros, SelectedMacro),
+            m => $"Macro «{m.Label}» eliminada", n => $"{n} macros eliminadas", m => SelectedMacro = m,
+            () => OnPropertyChanged(nameof(HasMacros)));
 
     [RelayCommand]
     private void AddStep()

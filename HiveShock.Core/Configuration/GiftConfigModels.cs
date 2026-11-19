@@ -48,6 +48,21 @@ public sealed class BitsBracket
     public EffectPlan EffectivePlan => Plan ?? EffectPlan.Single(Effect);
 }
 
+/// <summary>Qué hace en el juego el canje de una recompensa de puntos del canal de Twitch.</summary>
+public sealed class TwitchRewardRule
+{
+    /// <summary>Id de la recompensa en Twitch: no cambia al renombrarla. Vacío si solo se conoce el nombre.</summary>
+    public string RewardId { get; init; } = "";
+
+    /// <summary>Nombre de la recompensa: se usa si el id no coincide (p. ej. se borró y se creó otra igual).</summary>
+    public string Title { get; init; } = "";
+
+    public string Effect { get; init; } = "";
+    public EffectPlan? Plan { get; init; }
+
+    public EffectPlan EffectivePlan => Plan ?? EffectPlan.Single(Effect);
+}
+
 public sealed class LikesConfig
 {
     public int Every { get; init; }
@@ -96,7 +111,27 @@ public sealed class GiftRuntimeConfig
     public SimpleEffectConfig TwitchFollow { get; init; } = new();
     public ChatConfig TwitchChat { get; init; } = new();
     public IReadOnlyList<BitsBracket> TwitchBits { get; init; } = [];
+    public IReadOnlyList<TwitchRewardRule> TwitchRewards { get; init; } = [];
     public IReadOnlyList<GiftGoalConfig> Goals { get; init; } = [];
+
+    /// <summary>
+    /// Regla de una recompensa canjeada: primero por id (sobrevive a renombrarla en Twitch) y, si ninguna tiene ese
+    /// id, por nombre (recompensa recreada, o regla escrita a mano sin id). Null si no hay ninguna.
+    /// </summary>
+    public TwitchRewardRule? MatchReward(string? rewardId, string? title)
+    {
+        if (!string.IsNullOrWhiteSpace(rewardId) &&
+            TwitchRewards.FirstOrDefault(r => string.Equals(r.RewardId, rewardId.Trim(), StringComparison.OrdinalIgnoreCase))
+                is { } byId)
+        {
+            return byId;
+        }
+
+        var name = (title ?? "").Trim();
+        return name.Length == 0
+            ? null
+            : TwitchRewards.FirstOrDefault(r => string.Equals(r.Title.Trim(), name, StringComparison.CurrentCultureIgnoreCase));
+    }
 }
 
 /// <summary>Meta del live: varios viewers suman el mismo regalo (no es un combo de uno).</summary>

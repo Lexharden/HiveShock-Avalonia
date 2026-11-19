@@ -28,6 +28,9 @@ public sealed partial class EventsMapViewModel : ObservableObject
     [ObservableProperty] private string _twitchFollowEffect = "";
     [ObservableProperty] private ChatMapRow? _selectedTwitchCommand;
     [ObservableProperty] private BitsMapRow? _selectedBitsRule;
+    [ObservableProperty] private RewardMapRow? _selectedReward;
+    [ObservableProperty] private string _channelRewardsStatus = "";
+    [ObservableProperty] private bool _channelRewardsBusy;
     [ObservableProperty] private GoalMapRow? _selectedGoal;
 
     public bool HasGoalSelection => SelectedGoal != null;
@@ -38,6 +41,11 @@ public sealed partial class EventsMapViewModel : ObservableObject
     public ObservableCollection<ChatMapRow> ChatCommands { get; } = [];
     public ObservableCollection<ChatMapRow> TwitchChatCommands { get; } = [];
     public ObservableCollection<BitsMapRow> TwitchBits { get; } = [];
+    public ObservableCollection<RewardMapRow> TwitchRewards { get; } = [];
+
+    /// <summary>Recompensas reales del canal para el desplegable (vacía hasta pulsar «Leer del canal»).</summary>
+    public ObservableCollection<RewardOption> ChannelRewards { get; } = [];
+
     public ObservableCollection<GoalMapRow> Goals { get; } = [];
 
     public void NotifyEffects() => OnPropertyChanged(nameof(EffectsWithNone));
@@ -57,7 +65,7 @@ public sealed partial class EventsMapViewModel : ObservableObject
         ChatCommands.Clear();
         foreach (var cmd in editor.ChatCommands)
         {
-            ChatCommands.Add(new ChatMapRow { Word = cmd.Word, Effect = cmd.Effect });
+            ChatCommands.Add(new ChatMapRow { Word = cmd.Word, Effect = cmd.Effect, MoreSteps = [.. cmd.MoreSteps] });
         }
 
         SelectedCommand = ChatCommands.FirstOrDefault();
@@ -70,7 +78,7 @@ public sealed partial class EventsMapViewModel : ObservableObject
         TwitchChatCommands.Clear();
         foreach (var cmd in editor.TwitchChatCommands)
         {
-            TwitchChatCommands.Add(new ChatMapRow { Word = cmd.Word, Effect = cmd.Effect });
+            TwitchChatCommands.Add(new ChatMapRow { Word = cmd.Word, Effect = cmd.Effect, MoreSteps = [.. cmd.MoreSteps] });
         }
 
         SelectedTwitchCommand = TwitchChatCommands.FirstOrDefault();
@@ -82,10 +90,19 @@ public sealed partial class EventsMapViewModel : ObservableObject
             {
                 MinText = Math.Max(1, bit.Min).ToString(),
                 Effect = bit.Effect,
+                MoreSteps = [.. bit.MoreSteps],
             });
         }
 
         SelectedBitsRule = TwitchBits.FirstOrDefault();
+
+        TwitchRewards.Clear();
+        foreach (var reward in editor.TwitchRewards)
+        {
+            TwitchRewards.Add(NewRewardRow(reward.RewardId, reward.Title, reward.Effect, reward.MoreSteps));
+        }
+
+        SelectedReward = TwitchRewards.FirstOrDefault();
 
         Goals.Clear();
         foreach (var goal in editor.Goals)
@@ -99,6 +116,7 @@ public sealed partial class EventsMapViewModel : ObservableObject
                 GiftsText = goal.GiftsText,
                 AlsoInstant = goal.AlsoInstant,
                 Repeat = goal.Repeat,
+                MoreSteps = [.. goal.MoreSteps],
             });
         }
 
@@ -120,7 +138,7 @@ public sealed partial class EventsMapViewModel : ObservableObject
         editor.ChatCommands.Clear();
         foreach (var cmd in ChatCommands)
         {
-            editor.ChatCommands.Add(new EditableChatCommand { Word = cmd.Word, Effect = cmd.Effect });
+            editor.ChatCommands.Add(new EditableChatCommand { Word = cmd.Word, Effect = cmd.Effect, MoreSteps = [.. cmd.MoreSteps] });
         }
 
         editor.TwitchFollowEffect = TwitchFollowEffect ?? "";
@@ -131,7 +149,7 @@ public sealed partial class EventsMapViewModel : ObservableObject
         editor.TwitchChatCommands.Clear();
         foreach (var cmd in TwitchChatCommands)
         {
-            editor.TwitchChatCommands.Add(new EditableChatCommand { Word = cmd.Word, Effect = cmd.Effect });
+            editor.TwitchChatCommands.Add(new EditableChatCommand { Word = cmd.Word, Effect = cmd.Effect, MoreSteps = [.. cmd.MoreSteps] });
         }
 
         editor.TwitchBits.Clear();
@@ -142,7 +160,19 @@ public sealed partial class EventsMapViewModel : ObservableObject
                 continue;
             }
 
-            editor.TwitchBits.Add(new EditableBitsRule { Min = min, Effect = bit.Effect ?? "" });
+            editor.TwitchBits.Add(new EditableBitsRule { Min = min, Effect = bit.Effect ?? "", MoreSteps = [.. bit.MoreSteps] });
+        }
+
+        editor.TwitchRewards.Clear();
+        foreach (var reward in TwitchRewards)
+        {
+            editor.TwitchRewards.Add(new EditableTwitchReward
+            {
+                RewardId = reward.RewardId ?? "",
+                Title = reward.Title ?? "",
+                Effect = reward.Effect ?? "",
+                MoreSteps = [.. reward.MoreSteps],
+            });
         }
 
         editor.Goals.Clear();
@@ -162,6 +192,7 @@ public sealed partial class EventsMapViewModel : ObservableObject
                 GiftsText = row.GiftsText ?? "",
                 AlsoInstant = row.AlsoInstant,
                 Repeat = row.Repeat,
+                MoreSteps = [.. row.MoreSteps],
             });
         }
     }
@@ -212,6 +243,79 @@ public sealed partial class EventsMapViewModel : ObservableObject
 
         TwitchBits.Remove(SelectedBitsRule);
         SelectedBitsRule = TwitchBits.FirstOrDefault();
+    }
+
+    [RelayCommand]
+    private void AddReward()
+    {
+        var used = TwitchRewards.Select(r => r.RewardId).Where(id => id.Length > 0)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var next = ChannelRewards.FirstOrDefault(c => !used.Contains(c.Id));
+        var row = NewRewardRow(next?.Id ?? "", next?.Title ?? "", _shell.DefaultEffectId(), []);
+        TwitchRewards.Add(row);
+        SelectedReward = row;
+    }
+
+    [RelayCommand]
+    private void RemoveReward()
+    {
+        if (SelectedReward is null)
+        {
+            return;
+        }
+
+        TwitchRewards.Remove(SelectedReward);
+        SelectedReward = TwitchRewards.FirstOrDefault();
+    }
+
+    [RelayCommand]
+    private async Task LoadChannelRewardsAsync()
+    {
+        if (ChannelRewardsBusy)
+        {
+            return;
+        }
+
+        ChannelRewardsBusy = true;
+        ChannelRewardsStatus = "Leyendo las recompensas del canal…";
+        try
+        {
+            var result = await _shell.Runtime.ListTwitchRewardsAsync().ConfigureAwait(true);
+            ChannelRewards.Clear();
+            foreach (var reward in result.Rewards)
+            {
+                ChannelRewards.Add(new RewardOption(reward.Id, reward.Title, reward.Cost));
+            }
+
+            foreach (var row in TwitchRewards)
+            {
+                row.RepaintSelection();
+            }
+
+            ChannelRewardsStatus = result.Availability == TwitchRewardsAvailability.Ok && result.Message.Length == 0
+                ? $"{result.Rewards.Count} recompensas en tu canal."
+                : result.Message;
+        }
+        finally
+        {
+            ChannelRewardsBusy = false;
+        }
+    }
+
+    private RewardMapRow NewRewardRow(string rewardId, string title, string effect, IEnumerable<EditableGiftStep> more)
+    {
+        var row = new RewardMapRow { RewardId = rewardId, Title = title, Effect = effect, MoreSteps = [.. more] };
+        // Elegir otra recompensa en el desplegable trae su nombre (lo que se usa si algún día cambia de id).
+        row.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(RewardMapRow.RewardId) &&
+                ChannelRewards.FirstOrDefault(c => string.Equals(c.Id, row.RewardId, StringComparison.OrdinalIgnoreCase))
+                    is { } picked)
+            {
+                row.Title = picked.Title;
+            }
+        };
+        return row;
     }
 
     [RelayCommand]

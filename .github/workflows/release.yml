@@ -41,6 +41,10 @@ jobs:
           fi
           echo "HiveShock ${PROPS}"
 
+      # Antes de compilar en 7 runners: versión válida y notas del CHANGELOG escritas (son las del release).
+      - name: Comprobar versión y CHANGELOG
+        run: python3 scripts/check_release.py "${{ steps.out.outputs.version }}"
+
   pack:
     name: Pack ${{ matrix.runtime }}
     needs: version
@@ -154,6 +158,9 @@ jobs:
   pack-ios:
     name: Pack ios (experimental)
     needs: version
+    # DESACTIVADO temporalmente: no se genera el .ipa. Para reactivarlo, borra esta línea (y la del job ios en ci.yml).
+    # «publish» sigue listando este job en needs: al estar saltado no lo bloquea (su if usa !cancelled()).
+    if: false
     runs-on: macos-latest
     continue-on-error: true
     steps:

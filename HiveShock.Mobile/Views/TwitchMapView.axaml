@@ -6,7 +6,7 @@
     <ScrollViewer>
         <StackPanel Margin="16">
             <TextBlock Classes="hint"
-                       Text="Chat, follows y bits de Twitch. Los regalos de TikTok no se mezclan aquí. La cuenta se entra en Inicio." />
+                       Text="Chat, follows, bits y recompensas de puntos de Twitch. Los regalos de TikTok no se mezclan aquí. La cuenta se entra en Inicio." />
 
             <Border Classes="card">
                 <StackPanel>
@@ -63,6 +63,40 @@
                             <DataTemplate x:DataType="vm:BitsMapRow">
                                 <StackPanel Spacing="6">
                                     <TextBox Text="{Binding MinText}" PlaceholderText="mín. bits" />
+                                    <ComboBox ItemsSource="{Binding $parent[UserControl].((vm:EventsMapViewModel)DataContext).EffectsWithNone}"
+                                              SelectedValue="{Binding Effect}"
+                                              SelectedValueBinding="{Binding Id}"
+                                              DisplayMemberBinding="{Binding Display}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel>
+                    <TextBlock Classes="sectionTitle" Text="RECOMPENSAS (PUNTOS DEL CANAL)" />
+                    <TextBlock Classes="hint" TextWrapping="Wrap"
+                               Text="Cuando alguien canjea una recompensa de tu canal. Se crean en Twitch; los puntos se gastan aunque los efectos estén en pausa." />
+                    <WrapPanel>
+                        <Button Classes="secondary" Content="Leer del canal" Command="{Binding LoadChannelRewardsCommand}"
+                                IsEnabled="{Binding !ChannelRewardsBusy}" />
+                        <Button Classes="secondary" Content="Añadir" Command="{Binding AddRewardCommand}" />
+                        <Button Classes="secondary" Content="Quitar" Command="{Binding RemoveRewardCommand}" />
+                    </WrapPanel>
+                    <TextBlock Classes="hint" TextWrapping="Wrap" Text="{Binding ChannelRewardsStatus}" Margin="0,6,0,0" />
+                    <ListBox ItemsSource="{Binding TwitchRewards}" SelectedItem="{Binding SelectedReward}"
+                             MinHeight="80" MaxHeight="260" Margin="0,8,0,0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RewardMapRow">
+                                <StackPanel Spacing="6">
+                                    <ComboBox PlaceholderText="Recompensa del canal"
+                                              ItemsSource="{Binding $parent[UserControl].((vm:EventsMapViewModel)DataContext).ChannelRewards}"
+                                              SelectedValue="{Binding RewardId}"
+                                              SelectedValueBinding="{Binding Id}"
+                                              DisplayMemberBinding="{Binding Display}" />
+                                    <TextBox Text="{Binding Title}" PlaceholderText="o el nombre exacto de la recompensa" />
                                     <ComboBox ItemsSource="{Binding $parent[UserControl].((vm:EventsMapViewModel)DataContext).EffectsWithNone}"
                                               SelectedValue="{Binding Effect}"
                                               SelectedValueBinding="{Binding Id}"

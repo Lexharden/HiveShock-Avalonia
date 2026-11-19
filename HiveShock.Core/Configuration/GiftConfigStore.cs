@@ -198,11 +198,13 @@ public sealed class GiftConfigStore
         var twitchChat = chat;
         var twitchFollow = follow;
         var twitchBits = (IReadOnlyList<BitsBracket>)[];
+        var twitchRewards = (IReadOnlyList<TwitchRewardRule>)[];
         if (root.TryGetProperty("twitch", out var twitch) && twitch.ValueKind == JsonValueKind.Object)
         {
             twitchChat = ParseChat(twitch);
             twitchFollow = ParseSimple(twitch, "follow");
             twitchBits = ParseBitsBrackets(twitch);
+            twitchRewards = ParseTwitchRewards(twitch);
         }
 
         return new GiftRuntimeConfig
@@ -218,6 +220,7 @@ public sealed class GiftConfigStore
             TwitchFollow = twitchFollow,
             TwitchChat = twitchChat,
             TwitchBits = twitchBits,
+            TwitchRewards = twitchRewards,
             Goals = ParseGoals(root),
         };
     }
@@ -488,6 +491,36 @@ public sealed class GiftConfigStore
                 ? Math.Max(1, minV)
                 : 1;
             list.Add(new BitsBracket { Min = min, Effect = plan.EffectId, Plan = plan });
+        }
+
+        return list;
+    }
+
+    /// <summary><c>twitch.rewards</c>: <c>[{ "rewardId", "title", "effect" | "effects" }]</c>. Sin efecto o sin id ni nombre, se ignora.</summary>
+    private static List<TwitchRewardRule> ParseTwitchRewards(JsonElement container)
+    {
+        var list = new List<TwitchRewardRule>();
+        if (!container.TryGetProperty("rewards", out var arr) || arr.ValueKind != JsonValueKind.Array)
+        {
+            return list;
+        }
+
+        foreach (var row in arr.EnumerateArray())
+        {
+            if (row.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            var rewardId = (GetString(row, "rewardId") ?? "").Trim();
+            var title = (GetString(row, "title") ?? "").Trim();
+            var plan = ParsePlan(row, GetString(row, "effect") ?? "", null);
+            if (plan.IsEmpty || (rewardId.Length == 0 && title.Length == 0))
+            {
+                continue;
+            }
+
+            list.Add(new TwitchRewardRule { RewardId = rewardId, Title = title, Effect = plan.EffectId, Plan = plan });
         }
 
         return list;

@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using System;
 
 namespace HiveShock.Avalonia;
@@ -17,7 +17,25 @@ sealed class Program
             return HiveShock.Updates.UpdateApplier.RunFromPlanFile(args[1]);
         }
 
-        return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        // Una sola copia por usuario: si ya hay una (quizá escondida en la bandeja), se le pide que se muestre.
+        if (!HiveShock.Avalonia.Services.SingleInstance.TryAcquire())
+        {
+            if (HiveShock.Avalonia.Services.SingleInstance.SignalExisting())
+            {
+                return 0;
+            }
+
+            // La otra copia no responde (colgada o cerrándose): mejor arrancar que dejar al usuario sin app.
+        }
+
+        try
+        {
+            return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        }
+        finally
+        {
+            HiveShock.Avalonia.Services.SingleInstance.Release();
+        }
     }
 
     // Avalonia configuration, don't remove; also used by visual designer.

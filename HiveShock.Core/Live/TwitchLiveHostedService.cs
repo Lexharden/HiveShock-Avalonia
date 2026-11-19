@@ -31,7 +31,7 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
         !string.IsNullOrWhiteSpace(_options.TwitchClientId) &&
         !string.IsNullOrWhiteSpace(_options.TwitchAccessToken);
     public LivePortCapability Capabilities =>
-        LivePortCapability.Chat | LivePortCapability.Follow | LivePortCapability.Bits;
+        LivePortCapability.Chat | LivePortCapability.Follow | LivePortCapability.Bits | LivePortCapability.ChannelPoints;
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken) => RunAsync(stoppingToken);
 
@@ -116,16 +116,16 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
         {
             try
             {
-                var tokens = await auth.RefreshAsync(clientId, refresh, ct).ConfigureAwait(false);
-                access = tokens.AccessToken;
-                refresh = string.IsNullOrWhiteSpace(tokens.RefreshToken) ? refresh : tokens.RefreshToken;
-                TwitchSessionStore.Persist(_options, clientId, tokens.AccessToken, refresh, _options.TwitchUserLogin, _options.TwitchUserId);
+                access = await TwitchTokenRefresher.RefreshAsync(_options, clientId, refresh, ct).ConfigureAwait(false);
+                refresh = _options.TwitchRefreshToken ?? refresh;
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 BridgeLog.Warn($"Twitch token: {ex.Message}");
             }
         }
+
+        var redemptions = await CanUseRedemptionsAsync(access, ct).ConfigureAwait(false);
 
         var userId = _options.TwitchUserId;
         if (string.IsNullOrWhiteSpace(userId))
@@ -166,7 +166,81 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
                 }
             },
             ct,
-            id => _router.Accept("tw", id, 0, TimeSpan.MaxValue, "Evento de Twitch")).ConfigureAwait(false);
+            id => _router.Accept("tw", id, 0, TimeSpan.MaxValue, "Evento de Twitch"),
+            redemptions ? (viewer, redemption) => _router.HandleTwitchRedemption(viewer, redemption, ct) : null)
+            .ConfigureAwait(false);
+    }
+
+    private int _redemptionScopeWarned;
+
+    /// <summary>
+    /// Las cuentas enlazadas antes de las recompensas no tienen ese permiso (renovar el token no lo añade): sin él
+    /// no se pide la suscripción y se avisa una vez de que hay que volver a entrar. Si no se puede comprobar, se intenta.
+    /// </summary>
+    private async Task<bool> CanUseRedemptionsAsync(string accessToken, CancellationToken ct)
+    {
+        IReadOnlyList<string>? scopes;
+        try
+        {
+            scopes = await TwitchRewardsApi.GetScopesAsync(accessToken, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return true;
+        }
+
+        if (scopes == null || TwitchRewardsApi.HasRedemptionScope(scopes))
+        {
+            return true;
+        }
+
+        if (Interlocked.Exchange(ref _redemptionScopeWarned, 1) == 0)
+        {
+            BridgeLog.Warn(
+                "Twitch recompensas: falta un permiso nuevo. Sal y vuelve a entrar con Twitch para usar los puntos del canal.");
+        }
+
+        return false;
+    }
+}
+
+/// <summary>
+/// Renueva el token de Twitch de uno en uno. En una app sin secreto (login por código) cada refresh token vale una
+/// sola vez: si el puente y la pantalla de Twitch renovaran a la vez con el mismo, uno fallaría y la sesión se
+/// perdería. Quien llega tarde ve que ya se renovó y usa el token nuevo.
+/// </summary>
+public static class TwitchTokenRefresher
+{
+    private static readonly SemaphoreSlim Gate = new(1, 1);
+
+    /// <param name="usedRefresh">El refresh token que leyó quien llama; si ya cambió, otro renovó antes.</param>
+    public static async Task<string> RefreshAsync(
+        BridgeOptions options,
+        string clientId,
+        string usedRefresh,
+        CancellationToken ct)
+    {
+        await Gate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var current = options.TwitchRefreshToken ?? "";
+            if (!string.Equals(current, usedRefresh, StringComparison.Ordinal) &&
+                !string.IsNullOrWhiteSpace(options.TwitchAccessToken))
+            {
+                return options.TwitchAccessToken;
+            }
+
+            using var auth = new TwitchAuthClient();
+            var tokens = await auth.RefreshAsync(clientId, current, ct).ConfigureAwait(false);
+            var refresh = string.IsNullOrWhiteSpace(tokens.RefreshToken) ? current : tokens.RefreshToken;
+            TwitchSessionStore.Persist(
+                options, clientId, tokens.AccessToken, refresh, options.TwitchUserLogin, options.TwitchUserId);
+            return tokens.AccessToken;
+        }
+        finally
+        {
+            Gate.Release();
+        }
     }
 }
 

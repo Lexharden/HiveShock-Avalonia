@@ -62,7 +62,7 @@ public sealed class GiftAlertOverlayWindow : Window
         _giftsPanel = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Center };
         _empty = new TextBlock
         {
-            Text = "Marca “Mostrar en pantalla” en un regalo y pulsa Guardar.",
+            Text = "Activa «En pantalla (OBS)» en un regalo de la lista.",
             TextWrapping = TextWrapping.Wrap,
             TextAlignment = TextAlignment.Center,
         };

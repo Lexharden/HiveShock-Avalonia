@@ -20,9 +20,19 @@ public static class BridgeLog
 {
     private static readonly object Gate = new();
     private static StreamWriter? _writer;
+    private static DateTime _day;
     private static string _path = "";
 
-    public static string Path => _path;
+    public static string Path
+    {
+        get
+        {
+            lock (Gate)
+            {
+                return _path;
+            }
+        }
+    }
 
     public static event Action<LogEntry>? Logged;
 
@@ -35,15 +45,54 @@ public static class BridgeLog
                 return;
             }
 
-            var dir = System.IO.Path.Combine(AppPaths.AppDirectory, "logs");
-            Directory.CreateDirectory(dir);
-            _path = System.IO.Path.Combine(dir, $"HiveShock-{DateTime.Now:yyyyMMdd}.log");
-            _writer = new StreamWriter(
-                new FileStream(_path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite),
-                new UTF8Encoding(false))
-            {
-                AutoFlush = true,
-            };
+            OpenLocked(DateTime.Now.Date);
+        }
+    }
+
+    /// <summary>Abre (o crea) el archivo del día indicado. Llamar con <see cref="Gate"/> tomado.</summary>
+    private static void OpenLocked(DateTime day)
+    {
+        var dir = System.IO.Path.Combine(AppPaths.AppDirectory, "logs");
+        Directory.CreateDirectory(dir);
+        var path = System.IO.Path.Combine(dir, $"HiveShock-{day:yyyyMMdd}.log");
+        _writer = new StreamWriter(
+            new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite),
+            new UTF8Encoding(false))
+        {
+            AutoFlush = true,
+        };
+        _path = path;
+        _day = day;
+    }
+
+    /// <summary>Un directo que pasa de medianoche sigue en el archivo del día nuevo.</summary>
+    private static void RollOverLocked(DateTime now)
+    {
+        if (_writer == null || now.Date == _day)
+        {
+            return;
+        }
+
+        var old = _writer;
+        try
+        {
+            OpenLocked(now.Date);
+        }
+        catch
+        {
+            // Si no se puede abrir el nuevo, se sigue escribiendo en el de ayer antes que perder líneas
+            // (y no se reintenta en cada línea hasta el día siguiente).
+            _day = now.Date;
+            return;
+        }
+
+        try
+        {
+            old.Dispose();
+        }
+        catch
+        {
+            // ya cerrado
         }
     }
 
@@ -87,6 +136,7 @@ public static class BridgeLog
         {
             try
             {
+                RollOverLocked(entry.Timestamp);
                 _writer?.WriteLine(line);
             }
             catch

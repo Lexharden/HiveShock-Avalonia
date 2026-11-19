@@ -17,8 +17,12 @@ public sealed record TwitchUser(string Id, string Login, string DisplayName);
 
 public sealed class TwitchAuthClient : IDisposable
 {
+    /// <summary>
+    /// Permisos que se piden al entrar. Si se añade uno, quien ya tenía la cuenta enlazada debe volver a entrar:
+    /// renovar el token conserva los permisos de antes (ver <see cref="TwitchRewardsApi.HasRedemptionScope"/>).
+    /// </summary>
     public const string DefaultScopes =
-        "user:read:chat user:bot channel:bot moderator:read:followers bits:read";
+        "user:read:chat user:bot channel:bot moderator:read:followers bits:read " + TwitchRewardsApi.ManageScope;
 
     private readonly HttpClient _http = new()
     {

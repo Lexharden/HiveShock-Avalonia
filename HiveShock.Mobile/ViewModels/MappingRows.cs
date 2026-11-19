@@ -53,12 +53,57 @@ public sealed partial class ChatMapRow : ObservableObject
 {
     [ObservableProperty] private string _word = "";
     [ObservableProperty] private string _effect = "";
+
+    /// <summary>Efectos adicionales (se configuran en el escritorio): aquí no se editan, pero se conservan al guardar.</summary>
+    public List<HiveShock.Configuration.EditableGiftStep> MoreSteps { get; init; } = [];
 }
 
 public sealed partial class BitsMapRow : ObservableObject
 {
     [ObservableProperty] private string _minText = "1";
     [ObservableProperty] private string _effect = "";
+
+    /// <summary>Efectos adicionales (se configuran en el escritorio): aquí no se editan, pero se conservan al guardar.</summary>
+    public List<HiveShock.Configuration.EditableGiftStep> MoreSteps { get; init; } = [];
+}
+
+/// <summary>Recompensa de puntos del canal de Twitch → efecto.</summary>
+public sealed partial class RewardMapRow : ObservableObject
+{
+    private string _rewardId = "";
+
+    [ObservableProperty] private string _title = "";
+    [ObservableProperty] private string _effect = "";
+
+    /// <summary>El desplegable manda null al rehacer su lista: no es una elección y se ignora.</summary>
+    public string RewardId
+    {
+        get => _rewardId;
+        set
+        {
+            if (value is null)
+            {
+                OnPropertyChanged();
+                return;
+            }
+
+            SetProperty(ref _rewardId, value);
+        }
+    }
+
+    /// <summary>
+    /// Efectos adicionales configurados en el escritorio. Aquí no se editan, pero se conservan al guardar
+    /// para no borrarlos.
+    /// </summary>
+    public List<HiveShock.Configuration.EditableGiftStep> MoreSteps { get; init; } = [];
+
+    public void RepaintSelection() => OnPropertyChanged(nameof(RewardId));
+}
+
+/// <summary>Una recompensa del canal en el desplegable.</summary>
+public sealed record RewardOption(string Id, string Title, int Cost)
+{
+    public string Display => $"{Title} · {Cost:N0} puntos";
 }
 
 public sealed partial class GoalMapRow : ObservableObject
@@ -71,4 +116,7 @@ public sealed partial class GoalMapRow : ObservableObject
     [ObservableProperty] private bool _alsoInstant = true;
     [ObservableProperty] private bool _repeat = true;
     [ObservableProperty] private string _progressText = "0/2";
+
+    /// <summary>Efectos adicionales (se configuran en el escritorio): aquí no se editan, pero se conservan al guardar.</summary>
+    public List<HiveShock.Configuration.EditableGiftStep> MoreSteps { get; init; } = [];
 }

@@ -80,6 +80,8 @@ jobs:
   # iOS es experimental (nunca se ha compilado en un Mac real): no bloquea el CI hasta que se verifique.
   ios:
     name: Build (iOS, experimental)
+    # DESACTIVADO temporalmente: iOS no se construye. Para reactivarlo, borra esta línea (y la de pack-ios en release.yml).
+    if: false
     runs-on: macos-latest
     continue-on-error: true
     steps:

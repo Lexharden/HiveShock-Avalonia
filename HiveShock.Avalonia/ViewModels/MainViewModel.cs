@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,8 +14,14 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     private const int MaxLogLines = 500;
     private const int MaxActivity = 40;
 
-    private readonly List<string> _logLines = [];
-    private readonly List<string> _activityLines = [];
+    /// <summary>Cada cuánto se repinta el log como mucho: con spam de likes o chat llegan cientos de líneas por segundo.</summary>
+    private static readonly TimeSpan LogFlushInterval = TimeSpan.FromMilliseconds(100);
+
+    private readonly Queue<string> _logLines = new();
+    private readonly Queue<string> _activityLines = new();
+    private readonly System.Collections.Concurrent.ConcurrentQueue<LogEntry> _incomingLog = new();
+    private readonly DispatcherTimer _logTimer;
+    private int _logFlushScheduled;
     private bool _closing;
     /// <summary>True cuando TikTok / puerto de pruebas ya respondió (no solo el host arrancó).</summary>
     private bool _sessionReady;
@@ -24,6 +30,12 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     {
         Dialogs = dialogs;
         Overlays = overlays;
+        _logTimer = new DispatcherTimer { Interval = LogFlushInterval };
+        _logTimer.Tick += (_, _) =>
+        {
+            _logTimer.Stop();
+            FlushLog();
+        };
         Runtime = BridgeRuntime.Create();
         Prefs = UiPreferences.Load();
         if (Application.Current != null)
@@ -55,8 +67,10 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         CurrentPageKey = "studio";
         DetailLogOpen = Prefs.DetailLogOpen;
         ActivityPanelOpen = Prefs.ActivityPanelOpen;
-        ActivityPanelHeight = Math.Clamp(Prefs.ActivityPanelHeight, MinActivityPanelHeight, MaxActivityPanelHeight);
+        ActivityPanelWidth = Math.Clamp(Prefs.ActivityPanelWidth, MinActivityPanelWidth, MaxActivityPanelWidth);
         NavExpanded = Prefs.NavExpanded;
+        CloseToTray = Prefs.CloseToTray;
+        Tutorial = new TutorialViewModel(this);
         SelectedThemeId = Prefs.Theme is "dark" or "light" ? Prefs.Theme : "system";
 
         Overlays.GiftLookup = key => Runtime.Catalog.FindByKey(key) is { } gift
@@ -97,7 +111,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Runtime.Guard.PausedChanged += OnViewerPauseChanged;
         BridgeLog.Logged += OnLogged;
         BridgeLog.Init();
-        BridgeLog.Info($"UI lista · perfil {Runtime.Profile.DisplayName}");
+        BridgeLog.Info($"HiveShock listo · perfil {Runtime.Profile.DisplayName}");
         RefreshStatus();
     }
 
@@ -109,6 +123,46 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public OverlayService Overlays { get; }
 
     public StudioViewModel Studio { get; }
+
+    /// <summary>Tutorial guiado (primera vez y desde Ayuda/Preferencias).</summary>
+    public TutorialViewModel Tutorial { get; }
+
+    /// <summary>Aviso «… eliminado · Deshacer» tras borrar en cualquier lista.</summary>
+    public UndoBarViewModel Undo { get; } = new();
+
+    /// <summary>Botón «Novedades» (Ayuda, Acerca de): las notas de la versión instalada.</summary>
+    [RelayCommand]
+    private Task ShowWhatsNewAsync()
+    {
+        var entries = WhatsNew.ForVersion(About.Version);
+        return Dialogs.ShowWhatsNewAsync(entries, $"Novedades de HiveShock {About.Version}", Subtitle(entries));
+    }
+
+    /// <summary>
+    /// Al abrir la ventana: primero las novedades si se acaba de actualizar (una sola vez);
+    /// después el tutorial si nunca se vio. Así no se pisan.
+    /// </summary>
+    public async Task ShowStartupGuidesAsync()
+    {
+        var pending = WhatsNew.TakePendingOnStartup(Prefs, About.Version);
+        if (pending.Count > 0)
+        {
+            await Dialogs.ShowWhatsNewAsync(pending, $"Novedades de HiveShock {About.Version}", Subtitle(pending));
+        }
+
+        Tutorial.StartIfFirstRun();
+    }
+
+    private static string? Subtitle(IReadOnlyList<HiveShock.Updates.ChangelogEntry> entries) =>
+        entries.Count switch
+        {
+            0 => "No hay notas para esta versión.",
+            1 => entries[0].DateText.Length > 0 ? $"Publicada el {entries[0].DateText}." : null,
+            _ => $"Lo nuevo en {entries.Count} versiones desde la última que abriste.",
+        };
+
+    /// <summary>Ya empezó el cierre real (ShutdownAsync): la X o un Close() ya no deben esconder la ventana.</summary>
+    public bool IsShuttingDown => _closing;
     public GiftsViewModel Gifts { get; }
     public CatalogViewModel Catalog { get; }
     public EventsViewModel Events { get; }
@@ -154,14 +208,22 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private bool _detailLogOpen;
     [ObservableProperty] private bool _activityPanelOpen;
-    [ObservableProperty] private double _activityPanelHeight = 220;
+    [ObservableProperty] private double _activityPanelWidth = 340;
+    [ObservableProperty] private string _lastActivityLine = NoActivityLine;
+
+    private const string NoActivityLine = "Sin actividad todavía. Cuando conectes, aquí verás lo último que pasó.";
     [ObservableProperty] private string _activityText = "Nada todavía. Cuando conectes, aquí verás lo que pasa.";
     [ObservableProperty] private string _detailLogText = "";
     [ObservableProperty] private string _selectedThemeId = "system";
     [ObservableProperty] private bool _navExpanded = true;
     [ObservableProperty] private bool _viewerEffectsPaused;
+    /// <summary>La X deja HiveShock en la bandeja (Preferencias). Se guarda en <see cref="UiPreferences.CloseToTray"/>.</summary>
+    [ObservableProperty] private bool _closeToTray = true;
 
     public string PauseButtonText => ViewerEffectsPaused ? "▶ Efectos en pausa · Reanudar" : "⏸ Pausar efectos";
+
+    /// <summary>Texto corto del botón de pausa de la barra de título (el icono ya indica el estado).</summary>
+    public string PauseShortText => ViewerEffectsPaused ? "En pausa · Reanudar" : "Pausar efectos";
 
     public bool IsStudioNav => CurrentPageKey == "studio";
     public bool IsTikTokNav => CurrentPageKey is "tiktok" or "gifts" or "catalog";
@@ -179,8 +241,8 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public bool IsToneLive => StatusTone == "live";
     public bool StatusOn => StatusTone is "connecting" or "ok" or "live";
     public bool NavCollapsed => !NavExpanded;
-    public double SidebarWidth => NavExpanded ? 208 : 56;
-    public string NavToggleTip => NavExpanded ? "Ocultar menú" : "Mostrar menú";
+    public double SidebarWidth => NavExpanded ? 220 : 64;
+    public string NavToggleTip => NavExpanded ? "Ocultar menú (Ctrl+B)" : "Mostrar menú (Ctrl+B)";
 
     public void Attach()
     {
@@ -233,7 +295,8 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         foreach (var (id, label) in entries.Where(e => !have.Contains(e.Id)))
         {
             EffectChoices.Add(new EffectChoice(id, label));
-        }
+        }
+
 
         Events?.RefreshBroken();
     }
@@ -261,9 +324,13 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     /// <summary>Perfil activo, siempre visible en la barra superior para no confundir a qué perfil pertenece lo que editas.</summary>
     public string ActiveProfileText => $"Perfil: {Runtime.Profile.ShortDisplayName}";
 
+    /// <summary>Nombre corto del perfil activo (píldora de la barra de título).</summary>
+    public string ActiveProfileName => Runtime.Profile.ShortDisplayName;
+
     public void OnProfileChanged()
     {
         OnPropertyChanged(nameof(ActiveProfileText));
+        OnPropertyChanged(nameof(ActiveProfileName));
         ReloadEffectChoices();
         KeyMacros.Load();
         Studio.RefreshProfiles();
@@ -392,26 +459,13 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Dialogs.Error("Conectar", FriendlyStartError(ex.Message));
+            Dialogs.Error("Conectar", ex.Message);
         }
         finally
         {
             IsBusy = false;
             RefreshStatus();
         }
-    }
-
-    private static string FriendlyStartError(string message)
-    {
-        if (message.Contains("canal", StringComparison.OrdinalIgnoreCase) ||
-            message.Contains("TikTok", StringComparison.OrdinalIgnoreCase) ||
-            message.Contains("Twitch", StringComparison.OrdinalIgnoreCase) ||
-            message.Contains("Activa al menos", StringComparison.OrdinalIgnoreCase))
-        {
-            return message;
-        }
-
-        return message;
     }
 
     private async Task WatchRuntimeAsync()
@@ -469,6 +523,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
         CurrentPage = Twitch;
         CurrentPageKey = "twitch";
+        Events.EnsureChannelRewards();
     }
 
     public void GoModeration()
@@ -481,21 +536,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     {
         CurrentPage = KeyMacros;
         CurrentPageKey = "teclas";
-    }
-
-    public void GoGifts(bool reload = true)
-    {
-        GoTikTok();
-    }
-
-    public void GoCatalog()
-    {
-        GoTikTok();
-    }
-
-    public void GoEvents()
-    {
-        GoTikTok();
     }
 
     public void GoHelp()
@@ -528,6 +568,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     [RelayCommand]
     private void NavStudio() => GoStudio();
+
 
     [RelayCommand]
     private void NavTikTok() => GoTikTok();
@@ -563,14 +604,44 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         _logLines.Clear();
         ActivityText = "";
         DetailLogText = "";
+        LastActivityLine = NoActivityLine;
     }
 
     [RelayCommand]
     private void ClearLog() => ClearActivity();
 
-    partial void OnViewerEffectsPausedChanged(bool value) => OnPropertyChanged(nameof(PauseButtonText));
+    partial void OnViewerEffectsPausedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(PauseButtonText));
+        OnPropertyChanged(nameof(PauseShortText));
+    }
+
+    [RelayCommand]
+    private void ToggleActivityPanel() => ActivityPanelOpen = !ActivityPanelOpen;
+
+    /// <summary>Ctrl+S: guarda ya todo lo pendiente (regalos, metas, eventos, macros), con o sin autoguardado.</summary>
+    [RelayCommand]
+    private void SaveAll()
+    {
+        LastActivityLine = AutoSaver.FlushAll(out var error)
+            ? "Todo guardado."
+            : $"No se pudo guardar: {error}";
+    }
 
     private void OnViewerPauseChanged(bool paused) => Dispatch(() => ViewerEffectsPaused = paused);
+
+    partial void OnCloseToTrayChanged(bool value)
+    {
+        if (Prefs.CloseToTray == value)
+        {
+            return;
+        }
+
+        Prefs.CloseToTray = value;
+        // Cambiarlo a mano en Preferencias también cuenta como elección: ya no se vuelve a preguntar.
+        Prefs.CloseActionChosen = true;
+        Prefs.Save();
+    }
 
     partial void OnNavExpandedChanged(bool value)
     {
@@ -593,16 +664,17 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Prefs.Save();
     }
 
-    public const double MinActivityPanelHeight = 140;
-    public const double MaxActivityPanelHeight = 640;
+    public const double MinActivityPanelWidth = 260;
+    public const double MaxActivityPanelWidth = 640;
 
-    /// <summary>Arrastra el separador del panel "Qué está pasando" (ver MainWindow.axaml.cs).</summary>
-    public void ResizeActivityPanel(double deltaY) =>
-        ActivityPanelHeight = Math.Clamp(ActivityPanelHeight - deltaY, MinActivityPanelHeight, MaxActivityPanelHeight);
+    /// <summary>Arrastra el borde izquierdo del panel lateral de actividad (ver MainWindow.axaml.cs).</summary>
+    public void ResizeActivityPanelWidth(double deltaX) =>
+        ActivityPanelWidth = Math.Clamp(ActivityPanelWidth - deltaX, MinActivityPanelWidth, MaxActivityPanelWidth);
 
-    partial void OnActivityPanelHeightChanged(double value)
+    /// <summary>Guarda el ancho al soltar el borde (no en cada movimiento del ratón).</summary>
+    public void CommitActivityPanelWidth()
     {
-        Prefs.ActivityPanelHeight = value;
+        Prefs.ActivityPanelWidth = ActivityPanelWidth;
         Prefs.Save();
     }
 
@@ -650,6 +722,10 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
             Overlays.Feed?.Alert(e.Kind, e.User, e.Title, e.Count, image);
         });
 
+    /// <summary>
+    /// Llega desde cualquier hilo. No repinta por cada línea (unir 500 líneas en el hilo de la interfaz cientos de
+    /// veces por segundo la frena en pleno directo): las acumula y <see cref="FlushLog"/> las vuelca juntas.
+    /// </summary>
     private void OnLogged(LogEntry entry)
     {
         if (_closing)
@@ -657,34 +733,69 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
             return;
         }
 
-        Dispatch(() =>
+        _incomingLog.Enqueue(entry);
+        if (Interlocked.Exchange(ref _logFlushScheduled, 1) == 0)
         {
-            _logLines.Add(entry.Formatted);
-            while (_logLines.Count > MaxLogLines)
-            {
-                _logLines.RemoveAt(0);
-            }
+            Dispatch(() => _logTimer.Start());
+        }
+    }
 
-            DetailLogText = string.Join(Environment.NewLine, _logLines);
+    private void FlushLog()
+    {
+        // Antes de vaciar: una línea que llegue mientras tanto programa el siguiente volcado.
+        Interlocked.Exchange(ref _logFlushScheduled, 0);
+        if (_closing)
+        {
+            return;
+        }
 
+        var logChanged = false;
+        var activityChanged = false;
+        var sessionReady = false;
+        string? lastFriendly = null;
+        while (_incomingLog.TryDequeue(out var entry))
+        {
+            logChanged = true;
+            _logLines.Enqueue(entry.Formatted);
             var friendly = ActivityCopy.ToViewerLine(entry);
             if (friendly != null)
             {
-                _activityLines.Add($"{DateTime.Now:HH:mm}  {friendly}");
-                while (_activityLines.Count > MaxActivity)
-                {
-                    _activityLines.RemoveAt(0);
-                }
-
-                ActivityText = string.Join(Environment.NewLine, _activityLines);
+                activityChanged = true;
+                _activityLines.Enqueue($"{entry.Timestamp:HH:mm}  {friendly}");
+                lastFriendly = friendly;
             }
 
-            if (MarksSessionReady(entry.Message))
+            sessionReady |= MarksSessionReady(entry.Message);
+        }
+
+        if (!logChanged)
+        {
+            return;
+        }
+
+        while (_logLines.Count > MaxLogLines)
+        {
+            _logLines.Dequeue();
+        }
+
+        DetailLogText = string.Join(Environment.NewLine, _logLines);
+
+        if (activityChanged)
+        {
+            while (_activityLines.Count > MaxActivity)
             {
-                _sessionReady = true;
-                RefreshStatus();
+                _activityLines.Dequeue();
             }
-        });
+
+            ActivityText = string.Join(Environment.NewLine, _activityLines);
+            LastActivityLine = lastFriendly!;
+        }
+
+        if (sessionReady)
+        {
+            _sessionReady = true;
+            RefreshStatus();
+        }
     }
 
     private static bool MarksSessionReady(string message) =>

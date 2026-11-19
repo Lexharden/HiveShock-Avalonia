@@ -1,119 +1,8 @@
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using HiveShock.Logging;
 
 namespace HiveShock.Configuration;
-
-public sealed class EditableGift
-{
-    public string Gift { get; set; } = "";
-    public List<string> Also { get; set; } = [];
-    public string Id { get; set; } = "";
-    public string Effect { get; set; } = "";
-    public string What { get; set; } = "";
-    public int? Diamonds { get; set; }
-    /// <summary>Mínimo de unidades del combo (xN) para disparar. 1 = siempre.</summary>
-    public int MinCount { get; set; } = 1;
-    /// <summary>Si true, un efecto por unidad (x10 → 10). Si false, una vez al cerrar el combo.</summary>
-    public bool Each { get; set; }
-    /// <summary>Ruta opcional en gifts.json (ej. 5655.webp o gifts-images/custom.png).</summary>
-    public string Image { get; set; } = "";
-    /// <summary>Si true, aparece en la ventana overlay de OBS / live.</summary>
-    public bool Overlay { get; set; }
-    /// <summary>Texto en el overlay. Vacío = nombre del gift.</summary>
-    public string OverlayText { get; set; } = "";
-    /// <summary>Overrides numéricos en unidades wire (p.ej. value=4 = 1 corazón). Vacío = default del efecto.</summary>
-    public Dictionary<string, double> Params { get; set; } = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>Efectos que se lanzan después de <see cref="Effect"/>, en orden (un regalo puede hacer varias cosas).</summary>
-    public List<EditableGiftStep> MoreSteps { get; set; } = [];
-
-    /// <summary>Todos los efectos del regalo como plan: primero <see cref="Effect"/> y luego <see cref="MoreSteps"/>.</summary>
-    public EffectPlan ToPlan()
-    {
-        var steps = new List<EffectStep>(1 + MoreSteps.Count)
-        {
-            new(Effect, Params.Count > 0 ? new Dictionary<string, double>(Params, StringComparer.OrdinalIgnoreCase) : null),
-        };
-        foreach (var more in MoreSteps)
-        {
-            steps.Add(new EffectStep(
-                more.Effect,
-                more.Params.Count > 0 ? new Dictionary<string, double>(more.Params, StringComparer.OrdinalIgnoreCase) : null,
-                EffectPlan.DelayToMs(more.DelaySec)));
-        }
-
-        return EffectPlan.FromSteps(steps);
-    }
-
-    public string OverlayLabel =>
-        string.IsNullOrWhiteSpace(OverlayText) ? Gift : OverlayText;
-
-    public string? ResolvedImagePath
-    {
-        get
-        {
-            var direct = GiftImages.ResolvePath(Id, Gift, Image);
-            if (direct != null)
-            {
-                return direct;
-            }
-
-            foreach (var alias in Also)
-            {
-                var byAlias = GiftImages.ResolvePath(null, alias, null);
-                if (byAlias != null)
-                {
-                    return byAlias;
-                }
-            }
-
-            return null;
-        }
-    }
-
-    public bool HasImage => ResolvedImagePath != null;
-}
-
-/// <summary>Un efecto adicional de un regalo (del segundo en adelante).</summary>
-public sealed class EditableGiftStep
-{
-    public string Effect { get; set; } = "";
-
-    /// <summary>Segundos de espera antes de lanzarlo, contados desde el efecto anterior (0 = enseguida).</summary>
-    public double DelaySec { get; set; }
-
-    public Dictionary<string, double> Params { get; set; } = new(StringComparer.OrdinalIgnoreCase);
-}
-
-public sealed class EditableChatCommand
-{
-    public string Word { get; set; } = "";
-    public string Effect { get; set; } = "";
-
-    /// <summary>Efectos que se lanzan después del principal, en orden.</summary>
-    public List<EditableGiftStep> MoreSteps { get; set; } = [];
-}
-
-public sealed class EditableBitsRule
-{
-    public int Min { get; set; } = 1;
-    public string Effect { get; set; } = "";
-    public List<EditableGiftStep> MoreSteps { get; set; } = [];
-}
-
-public sealed class EditableGiftGoal
-{
-    public string Id { get; set; } = "";
-    public string Label { get; set; } = "";
-    public int Need { get; set; } = 2;
-    public string Effect { get; set; } = "";
-    public List<EditableGiftStep> MoreSteps { get; set; } = [];
-    public string GiftsText { get; set; } = "";
-    public bool AlsoInstant { get; set; } = true;
-    public bool Repeat { get; set; } = true;
-}
 
 public sealed class GiftFileEditor
 {
@@ -147,6 +36,7 @@ public sealed class GiftFileEditor
     public string TwitchFollowEffect { get; set; } = "";
     public List<EditableGiftStep> TwitchFollowMore { get; } = [];
     public List<EditableBitsRule> TwitchBits { get; } = [];
+    public List<EditableTwitchReward> TwitchRewards { get; } = [];
     public List<EditableGiftGoal> Goals { get; } = [];
 
     public void Load()
@@ -230,6 +120,7 @@ public sealed class GiftFileEditor
         TwitchChatCommands.Clear();
         TwitchFollowEffect = "";
         TwitchBits.Clear();
+        TwitchRewards.Clear();
         Goals.Clear();
 
         if (_root["likes"] is JsonObject likes)
@@ -302,6 +193,27 @@ public sealed class GiftFileEditor
                         Min = Math.Max(1, ReadInt(bit, "min") ?? 1),
                         Effect = bitEffect,
                         MoreSteps = bitMore,
+                    });
+                }
+            }
+
+            if (twitch["rewards"] is JsonArray twRewards)
+            {
+                foreach (var node in twRewards)
+                {
+                    if (node is not JsonObject reward)
+                    {
+                        continue;
+                    }
+
+                    var rewardMore = new List<EditableGiftStep>();
+                    var rewardEffect = ReadEffects(reward, rewardMore);
+                    TwitchRewards.Add(new EditableTwitchReward
+                    {
+                        RewardId = ReadText(reward, "rewardId"),
+                        Title = ReadText(reward, "title"),
+                        Effect = rewardEffect,
+                        MoreSteps = rewardMore,
                     });
                 }
             }
@@ -426,6 +338,24 @@ public sealed class GiftFileEditor
         }
 
         twitch["bits"] = bitsArr;
+
+        // Una recompensa elegida sin efecto («Ninguno») se conserva, como los comandos: no se pierde lo elegido.
+        var rewardsArr = new JsonArray();
+        foreach (var reward in TwitchRewards)
+        {
+            var rewardId = (reward.RewardId ?? "").Trim();
+            var title = (reward.Title ?? "").Trim();
+            if (rewardId.Length == 0 && title.Length == 0)
+            {
+                continue;
+            }
+
+            var rewardNode = new JsonObject { ["rewardId"] = rewardId, ["title"] = title };
+            WriteEffects(rewardNode, reward.Effect, reward.MoreSteps);
+            rewardsArr.Add(rewardNode);
+        }
+
+        twitch["rewards"] = rewardsArr;
         _root["twitch"] = twitch;
 
         var goalsArr = new JsonArray();
@@ -618,6 +548,10 @@ public sealed class GiftFileEditor
     }
 
     private static int ClampWaitSec(int value) => Math.Clamp(value, 0, 3600);
+
+    /// <summary>Texto de una clave; vacío si falta o no es texto (un archivo editado a mano no debe romper la carga).</summary>
+    private static string ReadText(JsonObject obj, string key) =>
+        (obj[key] as JsonValue)?.TryGetValue<string>(out var s) == true ? s : "";
 
     private static bool ReadBoolOr(JsonObject obj, string key, bool fallback) =>
         obj[key] is null ? fallback : ReadBool(obj, key);
@@ -942,76 +876,5 @@ public sealed class GiftFileEditor
         }
 
         return node;
-    }
-}
-
-public static class EnvFileWriter
-{
-    public static void Upsert(string envPath, string key, string value)
-    {
-        var lines = File.Exists(envPath)
-            ? File.ReadAllLines(envPath, Encoding.UTF8).ToList()
-            : [];
-
-        var found = false;
-        for (var i = 0; i < lines.Count; i++)
-        {
-            var line = lines[i].TrimStart();
-            if (line.StartsWith('#') || !line.Contains('='))
-            {
-                continue;
-            }
-
-            var eq = lines[i].IndexOf('=');
-            if (eq <= 0)
-            {
-                continue;
-            }
-
-            if (!string.Equals(lines[i][..eq].Trim(), key, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            lines[i] = $"{key}={value}";
-            found = true;
-            break;
-        }
-
-        if (!found)
-        {
-            if (lines.Count > 0 && !string.IsNullOrWhiteSpace(lines[^1]))
-            {
-                lines.Add("");
-            }
-
-            lines.Add($"{key}={value}");
-        }
-
-        File.WriteAllLines(envPath, lines, new UTF8Encoding(false));
-        Environment.SetEnvironmentVariable(key, value);
-    }
-
-    public static string EnsureEnvPath()
-    {
-        var existing = AppPaths.Find(".env");
-        if (existing != null)
-        {
-            return existing;
-        }
-
-        var path = Path.Combine(AppPaths.AppDirectory, ".env");
-        var example = AppPaths.Find(".env.example");
-        if (example != null)
-        {
-            // File.Copy usa ioctl FICLONE; Android lo deniega en app data (avc 0x9409).
-            File.WriteAllBytes(path, File.ReadAllBytes(example));
-        }
-        else
-        {
-            File.WriteAllText(path, "TIKTOK_UNIQUE_ID=\n", new UTF8Encoding(false));
-        }
-
-        return path;
     }
 }

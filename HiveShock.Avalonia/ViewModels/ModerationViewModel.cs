@@ -119,7 +119,7 @@ public sealed partial class ModerationViewModel : ViewModelBase
 
         if (_guard.BlockHandle(port, handle))
         {
-            Message = $"Bloqueado: @{handle}. Cuando HiveShock lo vea activo, también aprende su id.";
+            Message = $"Bloqueado: @{handle}. Cuando HiveShock lo vea activo, también aprende su ID.";
             NewHandle = "";
         }
         else
