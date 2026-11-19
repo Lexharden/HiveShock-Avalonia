@@ -4,6 +4,8 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [3.0.0-beta.3] - 2026-11-18
+
 ### Recompensas de puntos del canal (Twitch)
 * **Las recompensas de puntos de tu canal ya pueden lanzar efectos**, igual que los bits. En Twitch → **Recompensas** eliges una recompensa de tu canal (HiveShock lee la lista de Twitch) y qué pasa en el juego, con varios efectos y esperas si quieres. Si cambias el nombre de la recompensa en Twitch, sigue funcionando.
 * Las recompensas, su coste y su tiempo de espera se crean en el panel de Twitch. Solo existen en canales **Afiliado o Partner**.
