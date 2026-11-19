@@ -101,9 +101,10 @@ public sealed partial class RewardMapRow : ObservableObject
 }
 
 /// <summary>Una recompensa del canal en el desplegable.</summary>
-public sealed record RewardOption(string Id, string Title, int Cost)
+public sealed record RewardOption(string Id, string Title, int Cost, bool IsManageable = false)
 {
-    public string Display => $"{Title} · {Cost:N0} puntos";
+    /// <summary>«· HiveShock»: creada desde el escritorio, devuelve los puntos y se pausa sola.</summary>
+    public string Display => $"{Title} · {Cost:N0} puntos{(IsManageable ? " · HiveShock" : "")}";
 }
 
 public sealed partial class GoalMapRow : ObservableObject

@@ -78,7 +78,7 @@
                 <StackPanel>
                     <TextBlock Classes="sectionTitle" Text="RECOMPENSAS (PUNTOS DEL CANAL)" />
                     <TextBlock Classes="hint" TextWrapping="Wrap"
-                               Text="Cuando alguien canjea una recompensa de tu canal. Se crean en Twitch; los puntos se gastan aunque los efectos estén en pausa." />
+                               Text="Cuando alguien canjea una recompensa de tu canal. Las marcadas «HiveShock» (se crean desde el escritorio) devuelven los puntos si el efecto no llega y se pausan solas; las del panel de Twitch solo reaccionan." />
                     <WrapPanel>
                         <Button Classes="secondary" Content="Leer del canal" Command="{Binding LoadChannelRewardsCommand}"
                                 IsEnabled="{Binding !ChannelRewardsBusy}" />

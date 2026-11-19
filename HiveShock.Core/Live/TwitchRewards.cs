@@ -10,7 +10,92 @@ namespace HiveShock.Live;
 public sealed record TwitchRedemption(string Id, string RewardId, string RewardTitle, int Cost, string UserInput);
 
 /// <summary>Una recompensa personalizada del canal, tal como la devuelve Helix.</summary>
-public sealed record TwitchChannelReward(string Id, string Title, int Cost, bool IsEnabled, bool IsPaused);
+/// <param name="IsManageable">
+/// La creó HiveShock (mismo Client ID): solo de estas se pueden devolver puntos, completar canjes y pausarlas.
+/// </param>
+public sealed record TwitchChannelReward(string Id, string Title, int Cost, bool IsEnabled, bool IsPaused)
+{
+    public bool IsManageable { get; init; }
+    public string Prompt { get; init; } = "";
+    public int GlobalCooldownSeconds { get; init; }
+    public int MaxPerStream { get; init; }
+    public int MaxPerUserPerStream { get; init; }
+
+    /// <summary>Lo que se puede editar desde HiveShock, con los valores actuales.</summary>
+    public TwitchRewardSpec ToSpec() =>
+        new(Title, Cost, Prompt, GlobalCooldownSeconds, MaxPerStream, MaxPerUserPerStream);
+}
+
+/// <summary>
+/// Datos de una recompensa que crea o edita HiveShock. 0 en esperas y límites = sin límite. El nombre debe ser único
+/// en el canal (Twitch lo exige) y el coste al menos 1.
+/// </summary>
+public sealed record TwitchRewardSpec(
+    string Title,
+    int Cost,
+    string Prompt = "",
+    int GlobalCooldownSeconds = 0,
+    int MaxPerStream = 0,
+    int MaxPerUserPerStream = 0)
+{
+    public const int MaxTitleLength = 45;
+    public const int MaxPromptLength = 200;
+
+    /// <summary>Qué falta o sobra para que Twitch la acepte; null si vale.</summary>
+    public string? Validate()
+    {
+        var title = (Title ?? "").Trim();
+        if (title.Length == 0)
+        {
+            return "Ponle un nombre a la recompensa.";
+        }
+
+        if (title.Length > MaxTitleLength)
+        {
+            return $"El nombre puede tener como mucho {MaxTitleLength} caracteres.";
+        }
+
+        if (Cost < 1)
+        {
+            return "El coste debe ser de al menos 1 punto.";
+        }
+
+        if ((Prompt ?? "").Trim().Length > MaxPromptLength)
+        {
+            return $"La descripción puede tener como mucho {MaxPromptLength} caracteres.";
+        }
+
+        return GlobalCooldownSeconds < 0 || MaxPerStream < 0 || MaxPerUserPerStream < 0
+            ? "Las esperas y los límites no pueden ser negativos (0 = sin límite)."
+            : null;
+    }
+
+    /// <summary>
+    /// Cuerpo para crear o editar en Helix. Los canjes NO se saltan la cola de Twitch: si se saltaran, salen ya
+    /// completados y no habría forma de devolver los puntos cuando el efecto no llega al juego.
+    /// </summary>
+    public Dictionary<string, object> ToHelixBody() => new()
+    {
+        ["title"] = (Title ?? "").Trim(),
+        ["cost"] = Cost,
+        ["prompt"] = (Prompt ?? "").Trim(),
+        ["is_global_cooldown_enabled"] = GlobalCooldownSeconds > 0,
+        ["global_cooldown_seconds"] = Math.Max(1, GlobalCooldownSeconds),
+        ["is_max_per_stream_enabled"] = MaxPerStream > 0,
+        ["max_per_stream"] = Math.Max(1, MaxPerStream),
+        ["is_max_per_user_per_stream_enabled"] = MaxPerUserPerStream > 0,
+        ["max_per_user_per_stream"] = Math.Max(1, MaxPerUserPerStream),
+        ["should_redemptions_skip_request_queue"] = false,
+    };
+}
+
+/// <summary>Un canje que sigue pendiente en la cola de Twitch (para recuperarlo tras un corte).</summary>
+public sealed record TwitchPendingRedemption(
+    string UserId,
+    string Login,
+    string DisplayName,
+    TwitchRedemption Redemption,
+    DateTimeOffset RedeemedAt);
 
 public enum TwitchRewardsAvailability
 {
@@ -90,12 +175,14 @@ public static class TwitchRewardsApi
         string accessToken,
         string broadcasterId,
         CancellationToken ct,
-        HttpClient? http = null)
+        HttpClient? http = null,
+        bool onlyManageable = false)
     {
         http ??= HiveShock.Net.SharedHttp.Client;
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            $"https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id={Uri.EscapeDataString(broadcasterId)}");
+            $"https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id={Uri.EscapeDataString(broadcasterId)}" +
+            (onlyManageable ? "&only_manageable_rewards=true" : ""));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         request.Headers.TryAddWithoutValidation("Client-Id", clientId);
         using var response = await http.SendAsync(request, ct).ConfigureAwait(false);
@@ -132,7 +219,8 @@ public static class TwitchRewardsApi
         return TwitchRewardsResult.Fail(TwitchRewardsAvailability.Error, helixMessage);
     }
 
-    public static IReadOnlyList<TwitchChannelReward> ParseRewards(JsonElement root)
+    /// <param name="manageable">Ids de las recompensas creadas por HiveShock (se marcan con IsManageable).</param>
+    public static IReadOnlyList<TwitchChannelReward> ParseRewards(JsonElement root, IReadOnlySet<string>? manageable = null)
     {
         var list = new List<TwitchChannelReward>();
         if (!root.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
@@ -152,13 +240,55 @@ public static class TwitchRewardsApi
             list.Add(new TwitchChannelReward(
                 id,
                 title,
-                item.TryGetProperty("cost", out var cost) && cost.TryGetInt32(out var c) ? c : 0,
+                Int(item, "cost"),
                 !item.TryGetProperty("is_enabled", out var enabled) || enabled.ValueKind != JsonValueKind.False,
-                item.TryGetProperty("is_paused", out var paused) && paused.ValueKind == JsonValueKind.True));
+                item.TryGetProperty("is_paused", out var paused) && paused.ValueKind == JsonValueKind.True)
+            {
+                IsManageable = manageable?.Contains(id) == true,
+                Prompt = Str(item, "prompt"),
+                GlobalCooldownSeconds = Setting(item, "global_cooldown_setting", "global_cooldown_seconds"),
+                MaxPerStream = Setting(item, "max_per_stream_setting", "max_per_stream"),
+                MaxPerUserPerStream = Setting(item, "max_per_user_per_stream_setting", "max_per_user_per_stream"),
+            });
         }
 
         return [.. list.OrderBy(r => r.Cost).ThenBy(r => r.Title, StringComparer.CurrentCultureIgnoreCase)];
     }
+
+    /// <summary>Canjes de <c>GET /channel_points/custom_rewards/redemptions</c>. Se saltan los que no se pueden leer.</summary>
+    public static IReadOnlyList<TwitchPendingRedemption> ParsePendingRedemptions(JsonElement root)
+    {
+        var list = new List<TwitchPendingRedemption>();
+        if (!root.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
+        {
+            return list;
+        }
+
+        foreach (var item in data.EnumerateArray())
+        {
+            if (ParseRedemption(item) is not { } redemption ||
+                !DateTimeOffset.TryParse(Str(item, "redeemed_at"), System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AssumeUniversal, out var at))
+            {
+                continue;
+            }
+
+            list.Add(new TwitchPendingRedemption(
+                Str(item, "user_id"), Str(item, "user_login"), Str(item, "user_name"), redemption, at));
+        }
+
+        return list;
+    }
+
+    private static int Int(JsonElement el, string name) =>
+        el.TryGetProperty(name, out var v) && v.TryGetInt32(out var n) ? n : 0;
+
+    /// <summary>Valor de un ajuste de Twitch («{ is_enabled, valor }»); 0 si está desactivado.</summary>
+    private static int Setting(JsonElement item, string setting, string value) =>
+        item.TryGetProperty(setting, out var s) && s.ValueKind == JsonValueKind.Object &&
+        s.TryGetProperty("is_enabled", out var on) && on.ValueKind == JsonValueKind.True
+            ? Int(s, value)
+            : 0;
 
     /// <summary>Lee el canje de la notificación. Null si le falta el id del canje o de la recompensa.</summary>
     public static TwitchRedemption? ParseRedemption(JsonElement evt)

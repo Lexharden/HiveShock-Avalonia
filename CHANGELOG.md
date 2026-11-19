@@ -4,6 +4,13 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+### Recompensas de Twitch que devuelven los puntos
+* **«Crear en Twitch»** (Twitch → Recompensas) crea la recompensa en tu canal desde HiveShock, con su coste, descripción, espera entre canjes y límites por directo y por espectador. Se pueden editar y borrar desde ahí.
+* **Si el efecto no llega al juego, se devuelven los puntos:** con los efectos en pausa, el espectador bloqueado, la recompensa sin efecto en el juego activo o el juego cerrado. Cuando llega, el canje se marca como completado solo.
+* **Se pausan solas** cuando no estás conectado, con la pausa de emergencia o si no tienen efecto en el juego que tienes elegido, y se reactivan al conectar. Así nadie gasta puntos en algo que no va a pasar.
+* Los canjes que quedaron pendientes por un corte o por cerrar la app se atienden al volver a conectar (o se devuelven si son de hace mucho).
+* En la lista se marcan con **HiveShock**. Las recompensas creadas en el panel de Twitch siguen funcionando como antes: solo reaccionan y sus puntos se gastan siempre (Twitch no deja que otra app los devuelva).
+
 ## [3.0.0-beta.3] - 2026-11-18
 
 ### Recompensas de puntos del canal (Twitch)

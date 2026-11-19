@@ -214,18 +214,20 @@ public sealed class EffectDispatcher : IDisposable
     /// del primero con espera, el resto se programa aparte para no frenar a los demás espectadores. Si entre medias
     /// se pausan los efectos o se cancela, lo que faltaba se descarta.
     /// </summary>
+    /// <param name="tracker">Si se da, recibe el resultado de cada efecto (uno por elemento de <paramref name="items"/>).</param>
     public void EnqueueSequence(
         IReadOnlyList<PlannedEffect> items,
         string? user,
         CancellationToken ct = default,
-        bool fromChat = false)
+        bool fromChat = false,
+        PlanTracker? tracker = null)
     {
         var generation = Volatile.Read(ref _generation);
         var index = 0;
         for (; index < items.Count && items[index].Step.DelayMs <= 0; index++)
         {
             var now = items[index];
-            EnqueueAsync(now.Step.EffectId, user, now.Reason, ct, fromChat, now.Step.Params).FireAndLog("Efecto en cola");
+            EnqueueAsync(now.Step.EffectId, user, now.Reason, ct, fromChat, now.Step.Params, tracker).FireAndLog("Efecto en cola");
         }
 
         if (index >= items.Count)
@@ -236,6 +238,8 @@ public sealed class EffectDispatcher : IDisposable
         var later = items.Skip(index).ToList();
         _ = Task.Run(async () =>
         {
+            // Cuántos de «later» no llegaron a encolarse: si se corta la cadena, cuentan como descartados.
+            var pending = later.Count;
             try
             {
                 foreach (var item in later)
@@ -251,7 +255,8 @@ public sealed class EffectDispatcher : IDisposable
                         return;
                     }
 
-                    await EnqueueAsync(item.Step.EffectId, user, item.Reason, ct, fromChat, item.Step.Params)
+                    pending--;
+                    await EnqueueAsync(item.Step.EffectId, user, item.Reason, ct, fromChat, item.Step.Params, tracker)
                         .ConfigureAwait(false);
                 }
             }
@@ -263,6 +268,10 @@ public sealed class EffectDispatcher : IDisposable
             {
                 BridgeLog.Error($"Efectos en cadena: {ex.Message}");
             }
+            finally
+            {
+                tracker?.ReportDiscarded(pending);
+            }
         }, CancellationToken.None);
     }
 
@@ -272,7 +281,8 @@ public sealed class EffectDispatcher : IDisposable
         string reason,
         CancellationToken ct = default,
         bool fromChat = false,
-        IReadOnlyDictionary<string, double>? paramOverrides = null)
+        IReadOnlyDictionary<string, double>? paramOverrides = null,
+        PlanTracker? tracker = null)
     {
         if (SystemEffectIds.IsSystemEffect(effectId) && _effects.Contains(effectId))
         {
@@ -285,6 +295,7 @@ public sealed class EffectDispatcher : IDisposable
                 _system.Trigger(effectId, user, reason);
             }
 
+            tracker?.Report(_system is not null);
             return;
         }
 
@@ -300,6 +311,7 @@ public sealed class EffectDispatcher : IDisposable
                 _keys.Enqueue(macro, user, reason);
             }
 
+            tracker?.Report(_keys is not null);
             return;
         }
 
@@ -307,6 +319,7 @@ public sealed class EffectDispatcher : IDisposable
         if (cmd is null)
         {
             BridgeLog.Warn($"Efecto desconocido: {effectId}");
+            tracker?.Report(false);
             return;
         }
 
@@ -319,11 +332,13 @@ public sealed class EffectDispatcher : IDisposable
         try
         {
             var generation = Volatile.Read(ref _generation);
-            await _channel.Writer.WriteAsync(new EffectWorkItem(effectId, user, reason, cmd, fromChat, generation, pendingId), ct)
+            await _channel.Writer.WriteAsync(
+                    new EffectWorkItem(effectId, user, reason, cmd, fromChat, generation, pendingId, tracker), ct)
                 .ConfigureAwait(false);
         }
         catch
         {
+            tracker?.Report(false);
             _ledger?.MarkDiscarded(pendingId);
             if (fromChat)
             {
@@ -346,25 +361,31 @@ public sealed class EffectDispatcher : IDisposable
                     {
                         BridgeLog.Info($"Descartado {item.EffectId} <- {item.User ?? "anon"} ({item.Reason}): efectos en pausa");
                         _ledger?.MarkDiscarded(item.PendingId);
+                        item.Tracker?.Report(false);
                         continue;
                     }
 
                     if (!await SendWithRetryAsync(item, ct).ConfigureAwait(false))
                     {
                         _ledger?.MarkDiscarded(item.PendingId);
+                        item.Tracker?.Report(false);
                         continue;
                     }
 
                     _ledger?.MarkDelivered(item.PendingId);
                     BridgeLog.Info($"OK {item.EffectId} <- {item.User ?? "anon"} ({item.Reason})");
+                    item.Tracker?.Report(true);
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
+                    // Desconexión con el efecto a medias: queda pendiente en el ledger; quien siga el plan
+                    // (p. ej. un canje de Twitch) lo resuelve al parar.
                     break;
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _ledger?.MarkDiscarded(item.PendingId);
+                    item.Tracker?.Report(false);
                     BridgeLog.Error($"Fallo {item.EffectId}: {ex.Message}");
                 }
                 finally
@@ -436,7 +457,8 @@ public sealed class EffectDispatcher : IDisposable
         Dictionary<string, object?> Command,
         bool FromChat,
         int Generation,
-        string? PendingId = null);
+        string? PendingId = null,
+        PlanTracker? Tracker = null);
 }
 
 public sealed class TestServer

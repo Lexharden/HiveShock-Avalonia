@@ -99,6 +99,12 @@ public sealed partial class BridgeRuntime
     public void ReloadGifts()
     {
         _gifts.Reload(GiftsPath);
+        // Una recompensa que gana o pierde su efecto se reactiva o se pausa en Twitch al momento.
+        if (IsRunning)
+        {
+            SyncTwitchRewards();
+        }
+
         Goals.ApplyDefinitions(_gifts.Snapshot.Goals);
     }
 

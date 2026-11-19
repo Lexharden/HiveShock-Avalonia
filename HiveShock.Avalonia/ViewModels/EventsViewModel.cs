@@ -32,7 +32,8 @@ public sealed partial class EventsViewModel : ViewModelBase
         saver.Track(TwitchChatCommands);
         saver.Track(TwitchBits);
         // El coste viene de la lista del canal y no se guarda: refrescarla no es un cambio del usuario.
-        saver.Track(TwitchRewards, name => name is nameof(RewardRowViewModel.Cost) or nameof(RewardRowViewModel.CostText));
+        saver.Track(TwitchRewards, name => name is nameof(RewardRowViewModel.Cost) or nameof(RewardRowViewModel.CostText)
+            or nameof(RewardRowViewModel.IsManaged) or nameof(RewardRowViewModel.IsPanelReward));
     }
 
     public SaveStatusViewModel SaveStatus => _shell.Gifts.SaveStatus;
@@ -99,7 +100,11 @@ public sealed partial class EventsViewModel : ViewModelBase
     [ObservableProperty] private string _channelRewardsStatus = "";
     [ObservableProperty] private bool _channelRewardsBusy;
     [ObservableProperty] private bool _channelRewardsNeedRelogin;
+    [ObservableProperty] private bool _channelRewardsCanManage;
     private bool _channelRewardsLoaded;
+
+    /// <summary>Datos completos de cada recompensa del canal (para editar las de HiveShock con sus valores).</summary>
+    private readonly Dictionary<string, TwitchChannelReward> _channelRewardData = new(StringComparer.OrdinalIgnoreCase);
 
     public IEnumerable<EffectChoice> EffectsWithNone =>
         new EffectChoice[] { new("", "Ninguno") }.Concat(_shell.EffectChoices);
@@ -416,13 +421,17 @@ public sealed partial class EventsViewModel : ViewModelBase
             var result = await _shell.Runtime.ListTwitchRewardsAsync().ConfigureAwait(true);
             _channelRewardsLoaded = result.Availability != TwitchRewardsAvailability.Error;
             ChannelRewardsNeedRelogin = result.Availability == TwitchRewardsAvailability.NeedsRelogin;
+            ChannelRewardsCanManage = result.Availability == TwitchRewardsAvailability.Ok;
             // Rehacer la lista no es una edición: el desplegable se vacía un momento y vuelve a pintar lo elegido.
             using (_shell.Gifts.AutoSaver.Suppress())
             {
                 ChannelRewards.Clear();
+                _channelRewardData.Clear();
                 foreach (var reward in result.Rewards)
                 {
-                    ChannelRewards.Add(new RewardChoice(reward.Id, reward.Title, reward.Cost, reward.IsEnabled && !reward.IsPaused));
+                    _channelRewardData[reward.Id] = reward;
+                    ChannelRewards.Add(new RewardChoice(
+                        reward.Id, reward.Title, reward.Cost, reward.IsEnabled && !reward.IsPaused, reward.IsManageable));
                 }
 
                 ApplyChannelCosts();
@@ -445,9 +454,11 @@ public sealed partial class EventsViewModel : ViewModelBase
     {
         _channelRewardsLoaded = false;
         ChannelRewardsNeedRelogin = false;
+        ChannelRewardsCanManage = false;
         using (_shell.Gifts.AutoSaver.Suppress())
         {
             ChannelRewards.Clear();
+            _channelRewardData.Clear();
             ApplyChannelCosts();
         }
 
@@ -473,14 +484,131 @@ public sealed partial class EventsViewModel : ViewModelBase
         return row;
     }
 
+    /// <summary>Coste y si es de HiveShock de cada fila, según la última lista del canal (no se guardan).</summary>
     private void ApplyChannelCosts()
     {
         foreach (var row in TwitchRewards)
         {
-            row.Cost = ChannelRewards.FirstOrDefault(c => string.Equals(c.Id, row.RewardId, StringComparison.OrdinalIgnoreCase))
-                ?.Cost ?? 0;
+            var known = _channelRewardData.GetValueOrDefault(row.RewardId ?? "");
+            row.Cost = known?.Cost ?? 0;
+            row.IsManaged = known?.IsManageable == true;
+            row.IsPanelReward = known is { IsManageable: false };
         }
     }
+
+    /// <summary>«Crear en Twitch»: la recompensa nace gestionada por HiveShock y se añade a la lista lista para elegir efecto.</summary>
+    [RelayCommand]
+    private async Task CreateTwitchRewardAsync()
+    {
+        var spec = await _shell.Dialogs.EditTwitchRewardAsync(null).ConfigureAwait(true);
+        if (spec == null)
+        {
+            return;
+        }
+
+        ChannelRewardsBusy = true;
+        TwitchChannelReward created;
+        try
+        {
+            created = await _shell.Runtime.CreateTwitchRewardAsync(spec).ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            _shell.Dialogs.Error("Crear recompensa", TwitchRewardError(ex.Message));
+            return;
+        }
+        finally
+        {
+            ChannelRewardsBusy = false;
+        }
+
+        await LoadChannelRewardsAsync().ConfigureAwait(true);
+        var row = NewRewardRow(created.Id, created.Title, DefaultEffect());
+        row.AttachSteps(NewSteps());
+        TwitchRewards.Add(row);
+        ApplyChannelCosts();
+        SelectedReward = row;
+    }
+
+    [RelayCommand]
+    private async Task EditTwitchRewardAsync()
+    {
+        if (SelectedReward is not { IsManaged: true } row || !_channelRewardData.TryGetValue(row.RewardId, out var current))
+        {
+            return;
+        }
+
+        var spec = await _shell.Dialogs.EditTwitchRewardAsync(current.ToSpec()).ConfigureAwait(true);
+        if (spec == null)
+        {
+            return;
+        }
+
+        ChannelRewardsBusy = true;
+        try
+        {
+            var updated = await _shell.Runtime.UpdateTwitchRewardAsync(row.RewardId, spec).ConfigureAwait(true);
+            row.Title = updated.Title;
+        }
+        catch (Exception ex)
+        {
+            _shell.Dialogs.Error("Editar recompensa", TwitchRewardError(ex.Message));
+            return;
+        }
+        finally
+        {
+            ChannelRewardsBusy = false;
+        }
+
+        await LoadChannelRewardsAsync().ConfigureAwait(true);
+    }
+
+    [RelayCommand]
+    private async Task DeleteTwitchRewardAsync()
+    {
+        if (SelectedReward is not { IsManaged: true } row)
+        {
+            return;
+        }
+
+        if (!await _shell.Dialogs.ConfirmAsync(
+                "Borrar de Twitch",
+                $"Se borra «{row.DisplayTitle}» de tu canal de Twitch y los espectadores dejarán de verla. " +
+                "No se puede deshacer. ¿Seguir?").ConfigureAwait(true))
+        {
+            return;
+        }
+
+        ChannelRewardsBusy = true;
+        try
+        {
+            await _shell.Runtime.DeleteTwitchRewardAsync(row.RewardId).ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            _shell.Dialogs.Error("Borrar de Twitch", TwitchRewardError(ex.Message));
+            return;
+        }
+        finally
+        {
+            ChannelRewardsBusy = false;
+        }
+
+        // Ya no existe en Twitch: la regla no sirve. Sin «Deshacer»: la recompensa no vuelve.
+        TwitchRewards.Remove(row);
+        SelectedReward = TwitchRewards.FirstOrDefault();
+        await LoadChannelRewardsAsync().ConfigureAwait(true);
+    }
+
+    /// <summary>Los códigos de error de Twitch más típicos, en palabras.</summary>
+    private static string TwitchRewardError(string message) =>
+        message.Contains("DUPLICATE", StringComparison.OrdinalIgnoreCase)
+            ? "Ya hay una recompensa con ese nombre en tu canal. Usa otro."
+            : message.Contains("affiliate", StringComparison.OrdinalIgnoreCase) || message.Contains("partner", StringComparison.OrdinalIgnoreCase)
+                ? "Los puntos del canal solo existen en canales Afiliado o Partner de Twitch."
+                : message.Contains("MAX", StringComparison.OrdinalIgnoreCase) && message.Contains("REWARD", StringComparison.OrdinalIgnoreCase)
+                    ? "Tu canal ya tiene el máximo de recompensas que permite Twitch. Borra alguna antes."
+                    : message;
 
     private string DefaultEffect() =>
         _shell.EffectChoices.FirstOrDefault(e => string.Equals(e.Id, "impulse", StringComparison.OrdinalIgnoreCase))?.Id

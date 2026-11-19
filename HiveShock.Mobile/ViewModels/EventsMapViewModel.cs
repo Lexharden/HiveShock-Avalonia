@@ -284,7 +284,7 @@ public sealed partial class EventsMapViewModel : ObservableObject
             ChannelRewards.Clear();
             foreach (var reward in result.Rewards)
             {
-                ChannelRewards.Add(new RewardOption(reward.Id, reward.Title, reward.Cost));
+                ChannelRewards.Add(new RewardOption(reward.Id, reward.Title, reward.Cost, reward.IsManageable));
             }
 
             foreach (var row in TwitchRewards)

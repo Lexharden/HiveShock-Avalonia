@@ -160,9 +160,38 @@ public static class ActivityCopy
 
         if (m.StartsWith("Twitch recompensas:", StringComparison.Ordinal))
         {
-            return m.Contains("permiso", StringComparison.OrdinalIgnoreCase)
-                ? "Twitch: para usar los puntos del canal, vuelve a entrar con tu cuenta (pestaña Recompensas)."
+            if (m.Contains("permiso", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Twitch: para usar los puntos del canal, vuelve a entrar con tu cuenta (pestaña Recompensas).";
+            }
+
+            if (m.Contains("canje", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Twitch: no se pudo completar o devolver un canje (¿lo resolviste a mano en Twitch?).";
+            }
+
+            return m.Contains("pausar", StringComparison.OrdinalIgnoreCase) || m.Contains("reactivar", StringComparison.OrdinalIgnoreCase)
+                ? "Twitch: no se pudo pausar o reactivar una recompensa de HiveShock."
                 : "Twitch: no se pudieron activar las recompensas de puntos (¿el canal es Afiliado?).";
+        }
+
+        // «Puntos devueltos a ana por «Saltar» (efectos en pausa).»
+        if (m.StartsWith("Puntos devueltos a ", StringComparison.Ordinal))
+        {
+            var rest = m["Puntos devueltos a ".Length..];
+            var who = rest.Split(" por ", 2)[0];
+            var reason = Between(m, '(', ')');
+            return $"Se devolvieron los puntos a {who} («{Between(m, '«', '»')}»){(reason.Length > 0 ? ": " + reason : "")}.";
+        }
+
+        if (m.StartsWith("Twitch: recompensa «", StringComparison.Ordinal) && m.Contains(" creada", StringComparison.Ordinal))
+        {
+            return $"Recompensa «{Between(m, '«', '»')}» creada en tu canal de Twitch.";
+        }
+
+        if (m.StartsWith("Twitch: ", StringComparison.Ordinal) && m.Contains("canje(s) pendiente(s)", StringComparison.Ordinal))
+        {
+            return "Twitch: se recuperaron canjes de puntos de antes de conectar.";
         }
 
         if (m.StartsWith("Twitch desconectado", StringComparison.Ordinal) ||

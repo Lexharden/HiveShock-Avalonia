@@ -35,6 +35,7 @@ public sealed class LiveEffectRouter : IDisposable
     private long _guardDeniedLogTicks;
     private int _followUnidentifiedWarned;
     private readonly ConcurrentDictionary<string, byte> _seenUnmapped = new();
+    private readonly ITwitchRedemptionSink? _redemptions;
     private long _likeBucket;
 
     public LiveEffectRouter(
@@ -47,8 +48,10 @@ public sealed class LiveEffectRouter : IDisposable
         GiftGoalBank goals,
         ViewerGuard guard,
         FollowGate? followGate = null,
-        GiftLedger? ledger = null)
+        GiftLedger? ledger = null,
+        ITwitchRedemptionSink? redemptions = null)
     {
+        _redemptions = redemptions;
         _ownsLedger = ledger == null;
         _ledger = ledger ?? new GiftLedger();
         _options = options;
@@ -308,8 +311,9 @@ public sealed class LiveEffectRouter : IDisposable
     }
 
     /// <summary>
-    /// Canje de una recompensa de puntos del canal de Twitch. Fase 1: solo se reacciona (no se devuelven los puntos
-    /// si está en pausa o bloqueado; para eso harán falta recompensas creadas por HiveShock).
+    /// Canje de una recompensa de puntos del canal de Twitch. Si la recompensa la creó HiveShock, el canje se completa
+    /// cuando el efecto llega al juego y, si no puede salir (pausa, bloqueado, sin efecto, juego caído), se devuelven
+    /// los puntos. Las del panel de Twitch solo se pueden atender: sus puntos se gastan pase lo que pase.
     /// </summary>
     public void HandleTwitchRedemption(ViewerIdentity viewerId, TwitchRedemption redemption, CancellationToken ct)
     {
@@ -320,11 +324,22 @@ public sealed class LiveEffectRouter : IDisposable
 
         var title = string.IsNullOrWhiteSpace(redemption.RewardTitle) ? redemption.RewardId : redemption.RewardTitle.Trim();
         var what = $"Recompensa «{title}»";
+        var user = Viewer(viewerId.Label);
+        var managed = _redemptions?.IsManaged(redemption.RewardId) == true;
+
+        void Refund(string reason)
+        {
+            if (managed)
+            {
+                _redemptions!.Resolve(redemption, user, fulfilled: false, reason);
+            }
+        }
 
         // Bloqueado: nada de lo suyo cuenta.
         if (_guard.IsBlocked(viewerId))
         {
             NoteDenied(ViewerVerdict.Blocked, viewerId, what);
+            Refund("espectador bloqueado");
             return;
         }
 
@@ -337,18 +352,62 @@ public sealed class LiveEffectRouter : IDisposable
                 BridgeLog.Info($"Recompensa «{title}» canjeada sin efecto en HiveShock (se ignora).");
             }
 
+            Refund("no tiene efecto en este juego");
             return;
         }
 
         if (!Admit(viewerId, what))
         {
+            Refund("efectos en pausa");
             return;
         }
 
-        var user = Viewer(viewerId.Label);
         var plan = rule.EffectivePlan;
         BridgeLog.Info($"Recompensa {user} «{title}» ({redemption.Cost} puntos) -> {plan.Describe()}");
-        EnqueuePlan(plan, user, what, ct);
+        var tracker = managed ? _redemptions!.Begin(redemption, user, plan.Steps.Count) : null;
+        EnqueuePlan(plan, user, what, ct, tracker: tracker);
+    }
+
+    /// <summary>
+    /// Canjes que siguen pendientes en Twitch tras un corte o un cierre (solo de recompensas de HiveShock). Los que ya
+    /// se atendieron (sus efectos vuelven solos del registro) se completan; los demasiado viejos devuelven los puntos;
+    /// el resto se atiende ahora. Devuelve cuántos se lanzaron.
+    /// </summary>
+    public int RecoverTwitchRedemptions(IEnumerable<TwitchPendingRedemption> pending, CancellationToken ct)
+    {
+        if (_redemptions == null)
+        {
+            return 0;
+        }
+
+        var launched = 0;
+        var now = DateTimeOffset.UtcNow;
+        foreach (var p in pending)
+        {
+            // Con su plan aún en marcha (corte breve en esta misma sesión): ya se resolverá al terminar.
+            if (_redemptions.IsPending(p.Redemption.Id))
+            {
+                continue;
+            }
+
+            var user = Viewer(string.IsNullOrWhiteSpace(p.DisplayName) ? p.Login : p.DisplayName);
+            if (!_ledger.TryClaim("tw:" + TwitchEventSubClient.RedemptionKey(p.Redemption.Id)))
+            {
+                _redemptions.Resolve(p.Redemption, user, fulfilled: true, "");
+                continue;
+            }
+
+            if (now - p.RedeemedAt > GiftMaxAge)
+            {
+                _redemptions.Resolve(p.Redemption, user, fulfilled: false, "llegó mientras HiveShock no estaba conectado");
+                continue;
+            }
+
+            HandleTwitchRedemption(ViewerIdentity.Twitch(p.UserId, p.Login, p.DisplayName), p.Redemption, ct);
+            launched++;
+        }
+
+        return launched;
     }
 
     public void HandleShare(ViewerIdentity viewerId, CancellationToken ct)
@@ -638,13 +697,19 @@ public sealed class LiveEffectRouter : IDisposable
     }
 
     /// <summary>Encola los efectos de un disparador, en orden y con sus esperas (un solo efecto = como siempre).</summary>
-    private void EnqueuePlan(EffectPlan plan, string? user, string reason, CancellationToken ct, bool fromChat = false)
+    private void EnqueuePlan(
+        EffectPlan plan,
+        string? user,
+        string reason,
+        CancellationToken ct,
+        bool fromChat = false,
+        PlanTracker? tracker = null)
     {
         var steps = plan.Steps;
         var planned = steps
             .Select((s, i) => new PlannedEffect(s, steps.Count > 1 ? $"{reason} [{i + 1}/{steps.Count}]" : reason))
             .ToList();
-        _dispatcher.EnqueueSequence(planned, user, ct, fromChat);
+        _dispatcher.EnqueueSequence(planned, user, ct, fromChat, tracker);
     }
 
     private void LogUnmapped(string name, string id, long diamonds, int repeat)

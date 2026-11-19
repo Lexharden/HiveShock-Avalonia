@@ -114,6 +114,10 @@ public sealed class GiftRuntimeConfig
     public IReadOnlyList<TwitchRewardRule> TwitchRewards { get; init; } = [];
     public IReadOnlyList<GiftGoalConfig> Goals { get; init; } = [];
 
+    /// <summary>Ids de las recompensas que hacen algo en este perfil: son las que se dejan activas en Twitch al conectar.</summary>
+    public IReadOnlyList<string> ActiveRewardIds() =>
+        [.. TwitchRewards.Where(r => r.RewardId.Length > 0 && !r.EffectivePlan.IsEmpty).Select(r => r.RewardId)];
+
     /// <summary>
     /// Regla de una recompensa canjeada: primero por id (sobrevive a renombrarla en Twitch) y, si ninguna tiene ese
     /// id, por nombre (recompensa recreada, o regla escrita a mano sin id). Null si no hay ninguna.

@@ -69,6 +69,9 @@ public sealed partial class BridgeRuntime : IAsyncDisposable
     /// <summary>Pausa de emergencia y lista de bloqueo de espectadores. Vive aunque se desconecte el puente.</summary>
     public ViewerGuard Guard { get; } = new();
 
+    /// <summary>Recompensas de puntos creadas por HiveShock: completar o devolver canjes, pausarlas, crearlas.</summary>
+    public TwitchRewardManager RewardManager { get; }
+
 #if DEBUG
     public Live.LiveDiagnosticSink Diagnostics { get; } = new();
 #endif
@@ -125,6 +128,20 @@ public sealed partial class BridgeRuntime : IAsyncDisposable
         _events = new GameEventServer(options);
         _events.EventReceived += OnGameEvent;
         _events.Start();
+
+        RewardManager = new TwitchRewardManager(options);
+        // Pausa de emergencia: las recompensas de HiveShock se pausan también en Twitch (nadie gasta puntos en vano).
+        Guard.PausedChanged += _ => SyncTwitchRewards();
+    }
+
+    /// <summary>
+    /// Pone las recompensas de HiveShock como tocan ahora: activas (las que tienen efecto en este perfil) solo con el
+    /// directo en marcha, Twitch conectado y sin pausa de emergencia; pausadas en cualquier otro caso.
+    /// </summary>
+    private void SyncTwitchRewards(bool refresh = false)
+    {
+        var live = IsRunning && ActiveMode == BridgeRunMode.Live && Options.TwitchReady && !Guard.IsPaused;
+        RewardManager.RequestSync(_gifts.Snapshot.ActiveRewardIds(), live, refresh);
     }
 
     public static BridgeRuntime Create(string[]? args = null)
@@ -144,6 +161,14 @@ public sealed partial class BridgeRuntime : IAsyncDisposable
         var runtime = new BridgeRuntime(options, profile, effects, gifts, catalog, library);
         runtime.Goals.ApplyDefinitions(gifts.Snapshot.Goals);
         runtime.ApplyHotkeys();
+
+        // Si la app se cerró de golpe con el directo en marcha, sus recompensas pueden seguir activas: al abrir se
+        // pausan hasta que conecte (sin cuenta, sin permiso o sin recompensas propias no hace nada).
+        if (options.TwitchReady)
+        {
+            runtime.SyncTwitchRewards(refresh: true);
+        }
+
         return runtime;
     }
 
@@ -239,6 +264,8 @@ public sealed partial class BridgeRuntime : IAsyncDisposable
         builder.Services.AddSingleton(KeyRunner);
         builder.Services.AddSingleton(SystemEffects);
         builder.Services.AddSingleton(Ledger);
+        builder.Services.AddSingleton(RewardManager);
+        builder.Services.AddSingleton<ITwitchRedemptionSink>(RewardManager);
         builder.Services.AddSingleton<EffectDispatcher>();
         builder.Services.AddSingleton<LiveEffectRouter>();
         builder.Services.AddSingleton<TestServer>();
@@ -364,6 +391,12 @@ public sealed partial class BridgeRuntime : IAsyncDisposable
 
         host.Dispose();
         cts?.Dispose();
+
+        // Canjes de puntos con el plan a medias y recompensas de HiveShock: se resuelven y se pausan en Twitch antes
+        // de dar por terminado (sin esperar más de unos segundos si Twitch no responde).
+        RewardManager.SettleOutstanding(keepPending);
+        SyncTwitchRewards();
+        await RewardManager.FlushAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
         BridgeLog.Info("Detenido.");
     }
 
@@ -373,6 +406,7 @@ public sealed partial class BridgeRuntime : IAsyncDisposable
         KeyRunner.CancelAll();
         SystemEffects.Dispose();
         Ledger.Dispose();
+        await RewardManager.DisposeAsync().ConfigureAwait(false);
         _hotkeys.Dispose();
         await _keyCts.CancelAsync().ConfigureAwait(false);
         _events.EventReceived -= OnGameEvent;

@@ -350,6 +350,16 @@
                                         <TextBlock Text="Volver a entrar con Twitch" />
                                     </StackPanel>
                                 </Button>
+                                <Button Classes="primary" Margin="0"
+                                        Command="{Binding Events.CreateTwitchRewardCommand}"
+                                        IsVisible="{Binding Events.ChannelRewardsCanManage}"
+                                        IsEnabled="{Binding !Events.ChannelRewardsBusy}"
+                                        ToolTip.Tip="Crea la recompensa en tu canal. Las creadas desde HiveShock devuelven los puntos si el efecto no llega y se pausan cuando no estás conectado.">
+                                    <StackPanel Classes="btnContent">
+                                        <ctl:Icon Data="{StaticResource Icon.Plus}" />
+                                        <TextBlock Text="Crear en Twitch" />
+                                    </StackPanel>
+                                </Button>
                                 <Button Classes="secondary" Margin="0"
                                         Command="{Binding Events.RefreshChannelRewardsCommand}"
                                         IsEnabled="{Binding !Events.ChannelRewardsBusy}"
@@ -363,9 +373,9 @@
                             </StackPanel>
                             <StackPanel Spacing="2" VerticalAlignment="Center">
                                 <TextBlock Classes="caption" TextWrapping="Wrap"
-                                           Text="Cuando alguien canjea una recompensa de puntos de tu canal, pasa esto en el juego. Las recompensas, su coste y su tiempo de espera se crean en el panel de Twitch." />
+                                           Text="Cuando alguien canjea una recompensa de puntos de tu canal, pasa esto en el juego." />
                                 <TextBlock Classes="caption" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}"
-                                           Text="Los puntos se gastan aunque los efectos estén en pausa o el espectador esté bloqueado." />
+                                           Text="Las creadas con «Crear en Twitch» devuelven los puntos si el efecto no llega al juego (pausa, espectador bloqueado, juego cerrado) y se pausan solas cuando no estás conectado. Las del panel de Twitch solo reaccionan: sus puntos se gastan siempre." />
                                 <TextBlock TextWrapping="Wrap" FontSize="12" FontWeight="SemiBold" Margin="0,4,0,0"
                                            Text="{Binding Events.ChannelRewardsStatus}"
                                            IsVisible="{Binding Events.ChannelRewardsHasStatus}" />
@@ -433,6 +443,11 @@
                                                             IsVisible="{Binding HasExtraSteps}">
                                                         <TextBlock Text="{Binding StepSummary}" />
                                                     </Border>
+                                                    <Border DockPanel.Dock="Right" Classes="pill ok" Margin="8,0,0,0"
+                                                            IsVisible="{Binding IsManaged}"
+                                                            ToolTip.Tip="Creada desde HiveShock: devuelve los puntos si el efecto no llega y se pausa sola.">
+                                                        <TextBlock Text="HiveShock" />
+                                                    </Border>
                                                     <StackPanel Spacing="2">
                                                         <TextBlock FontWeight="SemiBold" TextTrimming="CharacterEllipsis">
                                                             <Run Text="{Binding DisplayTitle}" />
@@ -492,6 +507,23 @@
                                                           DisplayMemberBinding="{Binding Display}" />
                                             </StackPanel>
                                         </UniformGrid>
+                                        <Border Classes="section" Padding="12,10" Margin="0,0,0,12" IsVisible="{Binding IsManaged}">
+                                            <DockPanel>
+                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                    <Button Classes="secondary" Margin="0" Content="Editar en Twitch"
+                                                            Command="{Binding $parent[UserControl].((vm:TwitchViewModel)DataContext).Events.EditTwitchRewardCommand}"
+                                                            IsEnabled="{Binding !$parent[UserControl].((vm:TwitchViewModel)DataContext).Events.ChannelRewardsBusy}" />
+                                                    <Button Classes="ghost" Margin="0" Content="Borrar de Twitch"
+                                                            Command="{Binding $parent[UserControl].((vm:TwitchViewModel)DataContext).Events.DeleteTwitchRewardCommand}"
+                                                            IsEnabled="{Binding !$parent[UserControl].((vm:TwitchViewModel)DataContext).Events.ChannelRewardsBusy}" />
+                                                </StackPanel>
+                                                <TextBlock Classes="caption" TextWrapping="Wrap" VerticalAlignment="Center"
+                                                           Text="Creada desde HiveShock: si el efecto no llega al juego se devuelven los puntos, y se pausa sola cuando no estás conectado." />
+                                            </DockPanel>
+                                        </Border>
+                                        <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,0,0,12" IsVisible="{Binding IsPanelReward}"
+                                                   Foreground="{DynamicResource MutedBrush}"
+                                                   Text="Creada en el panel de Twitch: solo reacciona y sus puntos se gastan siempre. Si quieres que los devuelva, créala con «Crear en Twitch»." />
                                         <StackPanel Classes="field" IsVisible="{Binding IsManual}">
                                             <TextBlock Classes="fieldLabel" Text="O escribe el nombre exacto de la recompensa" />
                                             <TextBox Text="{Binding Title}" PlaceholderText="p. ej. Soltar un enemigo" />

@@ -36,6 +36,15 @@ public sealed partial class RewardRowViewModel : ViewModelBase
     /// <summary>Coste en puntos según la última lista del canal (0 = desconocido). Solo informativo.</summary>
     [ObservableProperty] private int _cost;
 
+    /// <summary>
+    /// La creó HiveShock (según la última lista del canal): devuelve puntos y se pausa sola. No se guarda en
+    /// gifts.json: lo decide Twitch.
+    /// </summary>
+    [ObservableProperty] private bool _isManaged;
+
+    /// <summary>Se conoce de qué recompensa se trata y no es de HiveShock (es del panel de Twitch).</summary>
+    [ObservableProperty] private bool _isPanelReward;
+
     public string Effect
     {
         get => _effect;
@@ -77,8 +86,9 @@ public sealed partial class RewardRowViewModel : ViewModelBase
 }
 
 /// <summary>Una recompensa del canal en el desplegable.</summary>
-public sealed record RewardChoice(string Id, string Title, int Cost, bool IsActive)
+public sealed record RewardChoice(string Id, string Title, int Cost, bool IsActive, bool IsManageable = false)
 {
+    // Las de HiveShock se pausan solas sin directo: «pausada» no es un aviso para ellas.
     public string Display =>
-        $"{Title} · {Cost:N0} puntos{(IsActive ? "" : " (pausada o desactivada en Twitch)")}";
+        $"{Title} · {Cost:N0} puntos{(IsManageable ? " · HiveShock" : IsActive ? "" : " (pausada o desactivada en Twitch)")}";
 }

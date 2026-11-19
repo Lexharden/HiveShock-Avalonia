@@ -10,18 +10,24 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
     private readonly LiveEffectRouter _router;
     private readonly LivePortHub _hub;
     private readonly ViewerGuard _guard;
+    private readonly GiftConfigStore? _gifts;
+    private readonly TwitchRewardManager? _rewards;
     private readonly ConnectionGap _gap = new();
 
     public TwitchLiveHostedService(
         BridgeOptions options,
         LiveEffectRouter router,
         LivePortHub hub,
-        ViewerGuard guard)
+        ViewerGuard guard,
+        GiftConfigStore? gifts = null,
+        TwitchRewardManager? rewards = null)
     {
         _options = options;
         _router = router;
         _hub = hub;
         _guard = guard;
+        _gifts = gifts;
+        _rewards = rewards;
     }
 
     public string Id => LivePortIds.Twitch;
@@ -101,6 +107,29 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
         }
     }
 
+    /// <summary>
+    /// Canjes que se quedaron pendientes en Twitch (cierre de la app, corte de red): EventSub no reenvía lo perdido,
+    /// pero las recompensas de HiveShock no se saltan la cola, así que siguen ahí.
+    /// </summary>
+    private async Task RecoverRedemptionsAsync(TwitchRewardManager rewards, IReadOnlyList<string> active, CancellationToken ct)
+    {
+        try
+        {
+            var pending = await rewards.GetPendingAsync(active, ct).ConfigureAwait(false);
+            if (pending.Count == 0)
+            {
+                return;
+            }
+
+            var launched = _router.RecoverTwitchRedemptions(pending, ct);
+            BridgeLog.Info($"Twitch: {pending.Count} canje(s) pendiente(s) de antes de conectar; se lanzan {launched}.");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            BridgeLog.Warn($"Twitch recompensas: no se pudieron recuperar los canjes pendientes ({ex.Message}).");
+        }
+    }
+
     private async Task ConnectOnceAsync(CancellationToken ct, Action onLive)
     {
         var clientId = _options.ResolvedTwitchClientId();
@@ -126,6 +155,18 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
         }
 
         var redemptions = await CanUseRedemptionsAsync(access, ct).ConfigureAwait(false);
+        if (redemptions && _rewards != null)
+        {
+            // Antes de escuchar: un canje que llegue nada más conectar ya sabe si la recompensa es de HiveShock.
+            try
+            {
+                await _rewards.RefreshManageableAsync(ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                BridgeLog.Warn($"Twitch recompensas: no se pudieron leer las recompensas de HiveShock ({ex.Message}).");
+            }
+        }
 
         var userId = _options.TwitchUserId;
         if (string.IsNullOrWhiteSpace(userId))
@@ -163,6 +204,13 @@ public sealed class TwitchLiveHostedService : BackgroundService, ILivePort
                 {
                     BridgeLog.Warn(note);
                     RecoverFollowsAsync(clientId, access, userId, DateTimeOffset.UtcNow - cut - TimeSpan.FromSeconds(30), ct).FireAndLog("Recuperar seguidores");
+                }
+
+                if (redemptions && _rewards is { HasManageable: true } rewards)
+                {
+                    var active = _gifts?.Snapshot.ActiveRewardIds() ?? [];
+                    rewards.RequestSync(active, live: !_guard.IsPaused);
+                    RecoverRedemptionsAsync(rewards, active, ct).FireAndLog("Recuperar canjes");
                 }
             },
             ct,

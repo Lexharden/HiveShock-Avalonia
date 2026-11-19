@@ -135,7 +135,17 @@ public sealed partial class BridgeRuntime
                     "Para usar los puntos del canal, sal y vuelve a entrar con Twitch (hace falta un permiso nuevo).");
             }
 
-            return await TwitchRewardsApi.GetCustomRewardsAsync(clientId, access, userId, ct).ConfigureAwait(false);
+            var all = await TwitchRewardsApi.GetCustomRewardsAsync(clientId, access, userId, ct).ConfigureAwait(false);
+            if (all.Availability != TwitchRewardsAvailability.Ok || all.Rewards.Count == 0)
+            {
+                return all;
+            }
+
+            // Cuáles creó HiveShock: solo esas devuelven puntos y se pausan solas.
+            var mine = await TwitchRewardsApi.GetCustomRewardsAsync(clientId, access, userId, ct, onlyManageable: true)
+                .ConfigureAwait(false);
+            var mineIds = mine.Rewards.Select(r => r.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return all with { Rewards = [.. all.Rewards.Select(r => r with { IsManageable = mineIds.Contains(r.Id) })] };
         }
         catch (OperationCanceledException)
         {
@@ -146,4 +156,21 @@ public sealed partial class BridgeRuntime
             return TwitchRewardsResult.Fail(TwitchRewardsAvailability.Error, $"No se pudieron leer las recompensas: {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// Crea una recompensa de HiveShock en el canal: sus canjes se completan o devuelven los puntos solos, y se pausa
+    /// mientras no estés conectado. Lanza con el motivo si Twitch no la acepta (p. ej. nombre repetido).
+    /// </summary>
+    public async Task<TwitchChannelReward> CreateTwitchRewardAsync(TwitchRewardSpec spec, CancellationToken ct = default)
+    {
+        var reward = await RewardManager.CreateAsync(spec, ct).ConfigureAwait(false);
+        SyncTwitchRewards(); // nace activa en Twitch: se pausa si no hay directo
+        return reward;
+    }
+
+    public Task<TwitchChannelReward> UpdateTwitchRewardAsync(string rewardId, TwitchRewardSpec spec, CancellationToken ct = default) =>
+        RewardManager.UpdateAsync(rewardId, spec, ct);
+
+    public Task DeleteTwitchRewardAsync(string rewardId, CancellationToken ct = default) =>
+        RewardManager.DeleteAsync(rewardId, ct);
 }

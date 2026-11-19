@@ -97,6 +97,13 @@ public sealed class DialogService
         return await ShowAsync(dlg) ? dlg.Result : null;
     }
 
+    /// <summary>Datos de una recompensa de Twitch para crearla (sin <paramref name="existing"/>) o editarla. Null si se canceló.</summary>
+    public async Task<HiveShock.Live.TwitchRewardSpec?> EditTwitchRewardAsync(HiveShock.Live.TwitchRewardSpec? existing)
+    {
+        var dlg = new TwitchRewardDialog(existing);
+        return await ShowAsync(dlg) ? dlg.Result : null;
+    }
+
     private async Task<bool> ShowMessageAsync(string title, string message, bool confirm, string kind)
     {
         var dlg = new MessageDialog(title, message, confirm, kind);
