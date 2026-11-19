@@ -4,6 +4,39 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-11-18
+
+> **HiveShock 3.0: interfaz nueva.** Tus perfiles, regalos, comandos y ajustes se conservan tal cual. Al abrirla por primera vez, un tutorial corto enseña dónde está cada cosa.
+
+### Interfaz nueva
+* **Rediseño completo de la app de escritorio:** barra de título propia, menú lateral con iconos (se pliega con Ctrl+B), tarjeta de «Conectar» siempre a la vista y panel de actividad a la derecha. Tema claro y oscuro revisados.
+* **Más espacio para editar:** Regalos, Comandos, Metas, Bits y Teclas en lista + editor; el Catálogo como tabla con buscador; los overlays de OBS en su propia pestaña con vista previa.
+* **Listas más ágiles:** Supr elimina (con **Deshacer** o Ctrl+Z), selección múltiple con Ctrl/Mayús+clic, arrastrar para ordenar, clic derecho con las acciones más usadas y buscador en Regalos. Del Catálogo, doble clic o arrastrar un regalo lo añade al juego.
+* **Atajos:** Ctrl+1…5 (páginas), Ctrl+N (nuevo), Ctrl+F (buscar), Ctrl+S (guardar todo), F1 (ayuda) y Ctrl+Mayús+P (pausa de emergencia).
+* Textos más claros en toda la app («Modo ensayo», «directo», «Sin conexión»…).
+
+### Novedades y tutorial
+* **Tutorial guiado** la primera vez, que se puede repetir desde Ayuda o Preferencias.
+* **Ventana «Novedades»** al abrir una versión nueva, con todo lo que cambió desde la última que abriste.
+
+### Segundo plano
+* **La X deja HiveShock en la bandeja del sistema** con el directo y los efectos funcionando (la primera vez se pregunta; se cambia en Preferencias). En Linux minimiza a la barra de tareas.
+* **Una sola copia abierta:** abrir HiveShock otra vez muestra la ventana que ya estaba, en vez de lanzar dos que se pelean por los puertos.
+
+### Recompensas de puntos del canal (Twitch)
+* **Las recompensas de puntos de tu canal lanzan efectos**, igual que los bits: en Twitch → **Recompensas** eliges una recompensa de tu canal y qué pasa en el juego. Solo existen en canales **Afiliado o Partner**.
+* **Hay que volver a entrar con Twitch una vez** (botón en esa pestaña) por un permiso nuevo. Mientras tanto, chat, seguidores y bits siguen funcionando.
+* Por ahora los puntos se gastan aunque los efectos estén en pausa o el espectador esté bloqueado.
+
+### Arreglos
+* Un fallo en la ventana ya no cierra HiveShock en mitad del directo.
+* El panel de actividad va más fluido con mucho chat o likes, y el log cambia de archivo a medianoche.
+* El puerto de pruebas ya no estropea nombres con «ñ», acentos o emojis.
+* **Móvil:** guardar desde el teléfono ya no borra los efectos adicionales de bits, comandos y metas configurados en el escritorio.
+
+### Mantenimiento
+* Código interno más ordenado y dependencias al día. La versión para iPhone deja de compilarse por ahora.
+
 ## [3.0.0-beta.3] - 2026-11-18
 
 ### Recompensas de puntos del canal (Twitch)
