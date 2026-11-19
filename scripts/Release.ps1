@@ -31,8 +31,22 @@ $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
 function Invoke-Native([string]$What, [scriptblock]$Command) {
-    & $Command
-    if ($LASTEXITCODE -ne 0) { throw "$What falló (código $LASTEXITCODE)." }
+    # git push/fetch escriben su progreso por stderr («To https://…»). En Windows PowerShell 5.1, si stderr está
+    # redirigido (2>&1, un log, CI), cada línea se convierte en un error y con «Stop» cortaba el script aunque git
+    # hubiera terminado bien. Aquí stderr se muestra como texto y lo que decide es el código de salida.
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & $Command 2>&1 | ForEach-Object {
+            if ($_ -is [System.Management.Automation.ErrorRecord]) { Write-Host $_.ToString() } else { $_ }
+        }
+        $code = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previous
+    }
+
+    if ($code -ne 0) { throw "$What falló (código $code)." }
 }
 
 $python = if (Get-Command python3 -ErrorAction SilentlyContinue) { "python3" } else { "python" }
