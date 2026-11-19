@@ -485,6 +485,9 @@ public sealed class TestServer
             {
                 var stream = client.GetStream();
                 var buffer = new byte[8192];
+                // Decoder con estado: un carácter de varios bytes (ñ, emoji) puede llegar partido entre dos lecturas.
+                var decoder = Encoding.UTF8.GetDecoder();
+                var chars = new char[Encoding.UTF8.GetMaxCharCount(buffer.Length)];
                 var pending = new StringBuilder();
 
                 while (!ct.IsCancellationRequested)
@@ -495,7 +498,8 @@ public sealed class TestServer
                         break;
                     }
 
-                    pending.Append(Encoding.UTF8.GetString(buffer, 0, read));
+                    var charCount = decoder.GetChars(buffer, 0, read, chars, 0, flush: false);
+                    pending.Append(chars, 0, charCount);
                     var text = pending.ToString();
                     var parts = text.Split(['\n', '\0']);
                     pending.Clear();

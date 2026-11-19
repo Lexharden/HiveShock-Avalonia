@@ -307,6 +307,50 @@ public sealed class LiveEffectRouter : IDisposable
         EnqueuePlan(match.EffectivePlan, viewer, $"Bits x{bits}", ct);
     }
 
+    /// <summary>
+    /// Canje de una recompensa de puntos del canal de Twitch. Fase 1: solo se reacciona (no se devuelven los puntos
+    /// si está en pausa o bloqueado; para eso harán falta recompensas creadas por HiveShock).
+    /// </summary>
+    public void HandleTwitchRedemption(ViewerIdentity viewerId, TwitchRedemption redemption, CancellationToken ct)
+    {
+        if (_options.CaptureOnly)
+        {
+            return;
+        }
+
+        var title = string.IsNullOrWhiteSpace(redemption.RewardTitle) ? redemption.RewardId : redemption.RewardTitle.Trim();
+        var what = $"Recompensa «{title}»";
+
+        // Bloqueado: nada de lo suyo cuenta.
+        if (_guard.IsBlocked(viewerId))
+        {
+            NoteDenied(ViewerVerdict.Blocked, viewerId, what);
+            return;
+        }
+
+        var rule = _gifts.Snapshot.MatchReward(redemption.RewardId, redemption.RewardTitle);
+        if (rule == null || rule.EffectivePlan.IsEmpty)
+        {
+            // Una recompensa sin efecto en HiveShock (p. ej. «Hidratarse») es normal: se anota una vez por recompensa.
+            if (_seenUnmapped.TryAdd("tw-reward|" + redemption.RewardId, 0))
+            {
+                BridgeLog.Info($"Recompensa «{title}» canjeada sin efecto en HiveShock (se ignora).");
+            }
+
+            return;
+        }
+
+        if (!Admit(viewerId, what))
+        {
+            return;
+        }
+
+        var user = Viewer(viewerId.Label);
+        var plan = rule.EffectivePlan;
+        BridgeLog.Info($"Recompensa {user} «{title}» ({redemption.Cost} puntos) -> {plan.Describe()}");
+        EnqueuePlan(plan, user, what, ct);
+    }
+
     public void HandleShare(ViewerIdentity viewerId, CancellationToken ct)
     {
         if (_options.CaptureOnly)

@@ -4,6 +4,24 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+### Recompensas de puntos del canal (Twitch)
+* **Las recompensas de puntos de tu canal ya pueden lanzar efectos**, igual que los bits. En Twitch → **Recompensas** eliges una recompensa de tu canal (HiveShock lee la lista de Twitch) y qué pasa en el juego, con varios efectos y esperas si quieres. Si cambias el nombre de la recompensa en Twitch, sigue funcionando.
+* Las recompensas, su coste y su tiempo de espera se crean en el panel de Twitch. Solo existen en canales **Afiliado o Partner**.
+* **Hay que volver a entrar con Twitch una vez** (botón en la pestaña Recompensas): hace falta un permiso nuevo. Mientras tanto, chat, seguidores y bits siguen funcionando como siempre.
+* Por ahora los puntos se gastan aunque los efectos estén en pausa o el espectador esté bloqueado (en ese caso no pasa nada en el juego). Devolverlos llegará con las recompensas creadas desde HiveShock.
+* También en la app del móvil (Twitch → Recompensas).
+
+### Arreglos
+* **Móvil:** guardar desde el teléfono ya no borra los efectos adicionales («Añadir otro efecto») de las reglas de bits, los comandos de chat (TikTok y Twitch) y las metas configurados en el escritorio.
+* **Un fallo en la ventana ya no cierra HiveShock** en mitad del directo: se avisa, queda en el log y la app sigue (con el directo y los efectos en marcha).
+* El panel de actividad va más fluido cuando el chat o los likes llegan a montones.
+* Un directo que pasa de medianoche sigue escribiendo el log en el archivo del día nuevo.
+* El puerto de pruebas ya no estropea nombres con «ñ», acentos o emojis.
+
+### Mantenimiento
+* Código interno más ordenado y dependencias al día. Sin cambios de uso.
+* La versión para iPhone deja de compilarse por ahora.
+
 ## [3.0.0-beta.2] - 2026-11-11
 
 > **Segunda beta de la nueva interfaz:** listas mucho más rápidas de manejar (Supr, deshacer, arrastrar, Ctrl+N/F) y textos más claros. Solo se ofrece a quien tenga activadas las versiones beta en Actualizaciones.

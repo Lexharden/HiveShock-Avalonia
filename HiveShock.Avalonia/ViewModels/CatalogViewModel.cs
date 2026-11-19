@@ -131,6 +131,6 @@ public sealed partial class CatalogViewModel : ViewModelBase
         }
 
         _shell.Gifts.AddFromCatalog(Selected);
-        _shell.GoGifts(reload: false);
+        _shell.GoTikTok();
     }
 }

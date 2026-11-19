@@ -14,8 +14,14 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     private const int MaxLogLines = 500;
     private const int MaxActivity = 40;
 
-    private readonly List<string> _logLines = [];
-    private readonly List<string> _activityLines = [];
+    /// <summary>Cada cuánto se repinta el log como mucho: con spam de likes o chat llegan cientos de líneas por segundo.</summary>
+    private static readonly TimeSpan LogFlushInterval = TimeSpan.FromMilliseconds(100);
+
+    private readonly Queue<string> _logLines = new();
+    private readonly Queue<string> _activityLines = new();
+    private readonly System.Collections.Concurrent.ConcurrentQueue<LogEntry> _incomingLog = new();
+    private readonly DispatcherTimer _logTimer;
+    private int _logFlushScheduled;
     private bool _closing;
     /// <summary>True cuando TikTok / puerto de pruebas ya respondió (no solo el host arrancó).</summary>
     private bool _sessionReady;
@@ -24,6 +30,12 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     {
         Dialogs = dialogs;
         Overlays = overlays;
+        _logTimer = new DispatcherTimer { Interval = LogFlushInterval };
+        _logTimer.Tick += (_, _) =>
+        {
+            _logTimer.Stop();
+            FlushLog();
+        };
         Runtime = BridgeRuntime.Create();
         Prefs = UiPreferences.Load();
         if (Application.Current != null)
@@ -55,7 +67,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         CurrentPageKey = "studio";
         DetailLogOpen = Prefs.DetailLogOpen;
         ActivityPanelOpen = Prefs.ActivityPanelOpen;
-        ActivityPanelHeight = Math.Clamp(Prefs.ActivityPanelHeight, MinActivityPanelHeight, MaxActivityPanelHeight);
         ActivityPanelWidth = Math.Clamp(Prefs.ActivityPanelWidth, MinActivityPanelWidth, MaxActivityPanelWidth);
         NavExpanded = Prefs.NavExpanded;
         CloseToTray = Prefs.CloseToTray;
@@ -197,7 +208,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private bool _detailLogOpen;
     [ObservableProperty] private bool _activityPanelOpen;
-    [ObservableProperty] private double _activityPanelHeight = 220;
     [ObservableProperty] private double _activityPanelWidth = 340;
     [ObservableProperty] private string _lastActivityLine = NoActivityLine;
 
@@ -449,26 +459,13 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Dialogs.Error("Conectar", FriendlyStartError(ex.Message));
+            Dialogs.Error("Conectar", ex.Message);
         }
         finally
         {
             IsBusy = false;
             RefreshStatus();
         }
-    }
-
-    private static string FriendlyStartError(string message)
-    {
-        if (message.Contains("canal", StringComparison.OrdinalIgnoreCase) ||
-            message.Contains("TikTok", StringComparison.OrdinalIgnoreCase) ||
-            message.Contains("Twitch", StringComparison.OrdinalIgnoreCase) ||
-            message.Contains("Activa al menos", StringComparison.OrdinalIgnoreCase))
-        {
-            return message;
-        }
-
-        return message;
     }
 
     private async Task WatchRuntimeAsync()
@@ -526,6 +523,7 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
         CurrentPage = Twitch;
         CurrentPageKey = "twitch";
+        Events.EnsureChannelRewards();
     }
 
     public void GoModeration()
@@ -538,21 +536,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     {
         CurrentPage = KeyMacros;
         CurrentPageKey = "teclas";
-    }
-
-    public void GoGifts(bool reload = true)
-    {
-        GoTikTok();
-    }
-
-    public void GoCatalog()
-    {
-        GoTikTok();
-    }
-
-    public void GoEvents()
-    {
-        GoTikTok();
     }
 
     public void GoHelp()
@@ -681,13 +664,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Prefs.Save();
     }
 
-    public const double MinActivityPanelHeight = 140;
-    public const double MaxActivityPanelHeight = 640;
-
-    /// <summary>Arrastra el separador del panel "Qué está pasando" (ver MainWindow.axaml.cs).</summary>
-    public void ResizeActivityPanel(double deltaY) =>
-        ActivityPanelHeight = Math.Clamp(ActivityPanelHeight - deltaY, MinActivityPanelHeight, MaxActivityPanelHeight);
-
     public const double MinActivityPanelWidth = 260;
     public const double MaxActivityPanelWidth = 640;
 
@@ -699,12 +675,6 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
     public void CommitActivityPanelWidth()
     {
         Prefs.ActivityPanelWidth = ActivityPanelWidth;
-        Prefs.Save();
-    }
-
-    partial void OnActivityPanelHeightChanged(double value)
-    {
-        Prefs.ActivityPanelHeight = value;
         Prefs.Save();
     }
 
@@ -752,6 +722,10 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
             Overlays.Feed?.Alert(e.Kind, e.User, e.Title, e.Count, image);
         });
 
+    /// <summary>
+    /// Llega desde cualquier hilo. No repinta por cada línea (unir 500 líneas en el hilo de la interfaz cientos de
+    /// veces por segundo la frena en pleno directo): las acumula y <see cref="FlushLog"/> las vuelca juntas.
+    /// </summary>
     private void OnLogged(LogEntry entry)
     {
         if (_closing)
@@ -759,35 +733,69 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
             return;
         }
 
-        Dispatch(() =>
+        _incomingLog.Enqueue(entry);
+        if (Interlocked.Exchange(ref _logFlushScheduled, 1) == 0)
         {
-            _logLines.Add(entry.Formatted);
-            while (_logLines.Count > MaxLogLines)
-            {
-                _logLines.RemoveAt(0);
-            }
+            Dispatch(() => _logTimer.Start());
+        }
+    }
 
-            DetailLogText = string.Join(Environment.NewLine, _logLines);
+    private void FlushLog()
+    {
+        // Antes de vaciar: una línea que llegue mientras tanto programa el siguiente volcado.
+        Interlocked.Exchange(ref _logFlushScheduled, 0);
+        if (_closing)
+        {
+            return;
+        }
 
+        var logChanged = false;
+        var activityChanged = false;
+        var sessionReady = false;
+        string? lastFriendly = null;
+        while (_incomingLog.TryDequeue(out var entry))
+        {
+            logChanged = true;
+            _logLines.Enqueue(entry.Formatted);
             var friendly = ActivityCopy.ToViewerLine(entry);
             if (friendly != null)
             {
-                _activityLines.Add($"{DateTime.Now:HH:mm}  {friendly}");
-                while (_activityLines.Count > MaxActivity)
-                {
-                    _activityLines.RemoveAt(0);
-                }
-
-                ActivityText = string.Join(Environment.NewLine, _activityLines);
-                LastActivityLine = friendly;
+                activityChanged = true;
+                _activityLines.Enqueue($"{entry.Timestamp:HH:mm}  {friendly}");
+                lastFriendly = friendly;
             }
 
-            if (MarksSessionReady(entry.Message))
+            sessionReady |= MarksSessionReady(entry.Message);
+        }
+
+        if (!logChanged)
+        {
+            return;
+        }
+
+        while (_logLines.Count > MaxLogLines)
+        {
+            _logLines.Dequeue();
+        }
+
+        DetailLogText = string.Join(Environment.NewLine, _logLines);
+
+        if (activityChanged)
+        {
+            while (_activityLines.Count > MaxActivity)
             {
-                _sessionReady = true;
-                RefreshStatus();
+                _activityLines.Dequeue();
             }
-        });
+
+            ActivityText = string.Join(Environment.NewLine, _activityLines);
+            LastActivityLine = lastFriendly!;
+        }
+
+        if (sessionReady)
+        {
+            _sessionReady = true;
+            RefreshStatus();
+        }
     }
 
     private static bool MarksSessionReady(string message) =>

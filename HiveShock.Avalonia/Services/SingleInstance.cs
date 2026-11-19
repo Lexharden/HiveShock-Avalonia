@@ -46,14 +46,12 @@ public static class SingleInstance
                 return true;
             }
 
+            // Otra copia viva tiene el candado. Si se hubiera cerrado de golpe, el sistema lo habría soltado al morir
+            // el proceso y arriba saldría createdNew = true: no hay caso «abandonado» que tratar aquí (el constructor
+            // no lanza AbandonedMutexException; eso solo ocurre al esperar con WaitOne).
             _mutex.Dispose();
             _mutex = null;
             return false;
-        }
-        catch (AbandonedMutexException)
-        {
-            // La copia anterior se cerró de golpe: el candado es nuestro.
-            return true;
         }
         catch
         {

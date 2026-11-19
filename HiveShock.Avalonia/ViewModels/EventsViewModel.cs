@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HiveShock.Configuration;
+using HiveShock.Live;
+using HiveShock.Logging;
 
 namespace HiveShock.Avalonia.ViewModels;
 
@@ -14,7 +16,8 @@ public sealed partial class EventsViewModel : ViewModelBase
         _shell = shell;
         // Todo lo editable de esta página cuenta; solo se ignora lo que es selección de la lista.
         static bool Ignore(string? name) =>
-            name != null && (name.StartsWith("Selected", StringComparison.Ordinal) || name == nameof(EffectsWithNone));
+            name != null && (name.StartsWith("Selected", StringComparison.Ordinal) || name == nameof(EffectsWithNone) ||
+                             name.StartsWith("ChannelRewards", StringComparison.Ordinal));
         LikesSteps = NewSteps();
         FollowSteps = NewSteps();
         ShareSteps = NewSteps();
@@ -28,6 +31,8 @@ public sealed partial class EventsViewModel : ViewModelBase
         saver.Track(ChatCommands);
         saver.Track(TwitchChatCommands);
         saver.Track(TwitchBits);
+        // El coste viene de la lista del canal y no se guarda: refrescarla no es un cambio del usuario.
+        saver.Track(TwitchRewards, name => name is nameof(RewardRowViewModel.Cost) or nameof(RewardRowViewModel.CostText));
     }
 
     public SaveStatusViewModel SaveStatus => _shell.Gifts.SaveStatus;
@@ -88,6 +93,13 @@ public sealed partial class EventsViewModel : ViewModelBase
     }
     [ObservableProperty] private ChatCommandRowViewModel? _selectedTwitchCommand;
     [ObservableProperty] private BitsRowViewModel? _selectedBitsRule;
+    [ObservableProperty] private RewardRowViewModel? _selectedReward;
+
+    // Lista de recompensas del canal (Twitch): no es configuración del usuario, el guardado la ignora (ChannelRewards*).
+    [ObservableProperty] private string _channelRewardsStatus = "";
+    [ObservableProperty] private bool _channelRewardsBusy;
+    [ObservableProperty] private bool _channelRewardsNeedRelogin;
+    private bool _channelRewardsLoaded;
 
     public IEnumerable<EffectChoice> EffectsWithNone =>
         new EffectChoice[] { new("", "Ninguno") }.Concat(_shell.EffectChoices);
@@ -95,11 +107,18 @@ public sealed partial class EventsViewModel : ViewModelBase
     public ObservableCollection<ChatCommandRowViewModel> ChatCommands { get; } = [];
     public ObservableCollection<ChatCommandRowViewModel> TwitchChatCommands { get; } = [];
     public ObservableCollection<BitsRowViewModel> TwitchBits { get; } = [];
+    public ObservableCollection<RewardRowViewModel> TwitchRewards { get; } = [];
+
+    /// <summary>Recompensas reales del canal para el desplegable (vacía hasta leerlas de Twitch).</summary>
+    public ObservableCollection<RewardChoice> ChannelRewards { get; } = [];
+
+    public bool ChannelRewardsHasStatus => ChannelRewardsStatus.Length > 0;
 
     // Selección múltiple de cada lista (Ctrl/Mayús+clic): Supr o la papelera los quitan juntos.
     public ObservableCollection<ChatCommandRowViewModel> SelectedChatCommands { get; } = [];
     public ObservableCollection<ChatCommandRowViewModel> SelectedTwitchCommands { get; } = [];
     public ObservableCollection<BitsRowViewModel> SelectedBitsRules { get; } = [];
+    public ObservableCollection<RewardRowViewModel> SelectedRewards { get; } = [];
 
     public void NotifyEffects() => OnPropertyChanged(nameof(EffectsWithNone));
 
@@ -127,6 +146,8 @@ public sealed partial class EventsViewModel : ViewModelBase
             .Select(e => $"Twitch {TwitchChatPrefix}{c.Word} → {e}")));
         broken.AddRange(TwitchBits.SelectMany(b => new[] { b.Effect }.Concat(MissingSteps(b.Steps)).Where(Missing)
             .Select(e => $"Bits {b.MinText} → {e}")));
+        broken.AddRange(TwitchRewards.SelectMany(r => new[] { r.Effect }.Concat(MissingSteps(r.Steps)).Where(Missing)
+            .Select(e => $"Recompensa «{r.DisplayTitle}» → {e}")));
         foreach (var (what, steps) in new[]
                  {
                      ("Likes", LikesSteps), ("Seguir", FollowSteps), ("Compartir", ShareSteps),
@@ -209,6 +230,17 @@ public sealed partial class EventsViewModel : ViewModelBase
         }
 
         SelectedBitsRule = TwitchBits.FirstOrDefault();
+
+        TwitchRewards.Clear();
+        foreach (var reward in editor.TwitchRewards)
+        {
+            var row = NewRewardRow(reward.RewardId, reward.Title, reward.Effect);
+            row.AttachSteps(NewSteps(reward.MoreSteps));
+            TwitchRewards.Add(row);
+        }
+
+        SelectedReward = TwitchRewards.FirstOrDefault();
+        ApplyChannelCosts();
         RefreshBroken();
     }
 
@@ -273,6 +305,18 @@ public sealed partial class EventsViewModel : ViewModelBase
                 MoreSteps = bit.Steps?.Model.ToList() ?? [],
             });
         }
+
+        editor.TwitchRewards.Clear();
+        foreach (var reward in TwitchRewards)
+        {
+            editor.TwitchRewards.Add(new EditableTwitchReward
+            {
+                RewardId = reward.RewardId ?? "",
+                Title = reward.Title ?? "",
+                Effect = reward.Effect ?? "",
+                MoreSteps = reward.Steps?.Model.ToList() ?? [],
+            });
+        }
     }
 
     [RelayCommand]
@@ -326,6 +370,122 @@ public sealed partial class EventsViewModel : ViewModelBase
     private void RemoveBitsRule() =>
         _shell.Undo.RemoveWithUndo(TwitchBits, UndoBarViewModel.Targets(SelectedBitsRules, SelectedBitsRule),
             r => $"Regla de {r.MinText} bits eliminada", n => $"{n} reglas de bits eliminadas", r => SelectedBitsRule = r);
+
+    /// <summary>Nueva regla: la primera recompensa del canal que aún no tiene efecto; sin lista, una para escribir el nombre.</summary>
+    [RelayCommand]
+    private void AddReward()
+    {
+        var used = TwitchRewards.Select(r => r.RewardId).Where(id => id.Length > 0)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var next = ChannelRewards.FirstOrDefault(c => !used.Contains(c.Id));
+        var row = NewRewardRow(next?.Id ?? "", next?.Title ?? "", DefaultEffect());
+        row.AttachSteps(NewSteps());
+        TwitchRewards.Add(row);
+        ApplyChannelCosts();
+        SelectedReward = row;
+    }
+
+    [RelayCommand]
+    private void RemoveReward() =>
+        _shell.Undo.RemoveWithUndo(TwitchRewards, UndoBarViewModel.Targets(SelectedRewards, SelectedReward),
+            r => $"Recompensa «{r.DisplayTitle}» eliminada", n => $"{n} recompensas eliminadas", r => SelectedReward = r);
+
+    /// <summary>Al abrir la pestaña Twitch: lee las recompensas del canal una vez (luego, con «Actualizar»).</summary>
+    public void EnsureChannelRewards()
+    {
+        if (!_channelRewardsLoaded && !ChannelRewardsBusy && _shell.Studio.TwitchHasAccount)
+        {
+            LoadChannelRewardsAsync().FireAndLog("Recompensas de Twitch");
+        }
+    }
+
+    [RelayCommand]
+    private Task RefreshChannelRewardsAsync() => LoadChannelRewardsAsync();
+
+    public async Task LoadChannelRewardsAsync()
+    {
+        if (ChannelRewardsBusy)
+        {
+            return;
+        }
+
+        ChannelRewardsBusy = true;
+        ChannelRewardsStatus = "Leyendo las recompensas de tu canal…";
+        try
+        {
+            var result = await _shell.Runtime.ListTwitchRewardsAsync().ConfigureAwait(true);
+            _channelRewardsLoaded = result.Availability != TwitchRewardsAvailability.Error;
+            ChannelRewardsNeedRelogin = result.Availability == TwitchRewardsAvailability.NeedsRelogin;
+            // Rehacer la lista no es una edición: el desplegable se vacía un momento y vuelve a pintar lo elegido.
+            using (_shell.Gifts.AutoSaver.Suppress())
+            {
+                ChannelRewards.Clear();
+                foreach (var reward in result.Rewards)
+                {
+                    ChannelRewards.Add(new RewardChoice(reward.Id, reward.Title, reward.Cost, reward.IsEnabled && !reward.IsPaused));
+                }
+
+                ApplyChannelCosts();
+                foreach (var row in TwitchRewards)
+                {
+                    row.RepaintSelection();
+                }
+            }
+
+            ChannelRewardsStatus = result.Message;
+        }
+        finally
+        {
+            ChannelRewardsBusy = false;
+        }
+    }
+
+    /// <summary>Tras cerrar la sesión de Twitch: la lista era de esa cuenta.</summary>
+    public void ForgetChannelRewards()
+    {
+        _channelRewardsLoaded = false;
+        ChannelRewardsNeedRelogin = false;
+        using (_shell.Gifts.AutoSaver.Suppress())
+        {
+            ChannelRewards.Clear();
+            ApplyChannelCosts();
+        }
+
+        ChannelRewardsStatus = "";
+    }
+
+    partial void OnChannelRewardsStatusChanged(string value) => OnPropertyChanged(nameof(ChannelRewardsHasStatus));
+
+    private RewardRowViewModel NewRewardRow(string rewardId, string title, string effect)
+    {
+        var row = new RewardRowViewModel { RewardId = rewardId, Title = title, Effect = effect };
+        // Elegir otra recompensa en el desplegable trae su nombre (lo que se usa si algún día cambia de id).
+        row.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(RewardRowViewModel.RewardId) &&
+                ChannelRewards.FirstOrDefault(c => string.Equals(c.Id, row.RewardId, StringComparison.OrdinalIgnoreCase))
+                    is { } picked)
+            {
+                row.Title = picked.Title;
+                row.Cost = picked.Cost;
+            }
+        };
+        return row;
+    }
+
+    private void ApplyChannelCosts()
+    {
+        foreach (var row in TwitchRewards)
+        {
+            row.Cost = ChannelRewards.FirstOrDefault(c => string.Equals(c.Id, row.RewardId, StringComparison.OrdinalIgnoreCase))
+                ?.Cost ?? 0;
+        }
+    }
+
+    private string DefaultEffect() =>
+        _shell.EffectChoices.FirstOrDefault(e => string.Equals(e.Id, "impulse", StringComparison.OrdinalIgnoreCase))?.Id
+        ?? _shell.EffectChoices.FirstOrDefault()?.Id
+        ?? "";
 
     private static int ParseWaitSec(string text, int fallback)
     {

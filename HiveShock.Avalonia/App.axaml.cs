@@ -8,6 +8,7 @@ using HiveShock.Avalonia.Themes;
 using HiveShock.Avalonia.ViewModels;
 using HiveShock.Avalonia.Views;
 using HiveShock.Avalonia.Views.Dialogs;
+using HiveShock.Logging;
 
 namespace HiveShock.Avalonia;
 
@@ -23,18 +24,23 @@ public partial class App : Application
         Dispatcher.UIThread.UnhandledException += OnUiUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
-            if (args.ExceptionObject is OperationCanceledException)
+            // El proceso va a terminar sí o sí: al menos que quede en el log por qué.
+            if (args.ExceptionObject is Exception ex && !IsBenignCancellation(ex))
             {
-                return;
+                BridgeLog.Init();
+                BridgeLog.Error($"Error fatal: {ex}");
             }
         };
         TaskScheduler.UnobservedTaskException += (_, args) =>
         {
-            if (args.Exception.InnerExceptions.All(static ex => ex is OperationCanceledException) ||
-                args.Exception.GetBaseException() is OperationCanceledException)
+            if (!args.Exception.InnerExceptions.All(IsBenignCancellation) &&
+                !IsBenignCancellation(args.Exception))
             {
-                args.SetObserved();
+                BridgeLog.Error($"Error en segundo plano sin observar: {args.Exception.GetBaseException()}");
             }
+
+            // Ya registrado: no debe tumbar nada.
+            args.SetObserved();
         };
 
         var prefs = UiPreferences.Load();
@@ -93,18 +99,37 @@ public partial class App : Application
         };
     }
 
+    private bool _errorDialogOpen;
+
+    /// <summary>
+    /// Un fallo de la interfaz no cierra HiveShock: en pleno directo, perder el puente (y los efectos en cola)
+    /// es peor que un botón que falló. Se registra con su traza, se avisa una vez y la app sigue.
+    /// </summary>
     private async void OnUiUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs args)
     {
+        args.Handled = true;
         if (IsBenignCancellation(args.Exception))
         {
-            args.Handled = true;
             return;
         }
 
-        args.Handled = true;
+        BridgeLog.Error($"Error en la interfaz: {args.Exception}");
+
+        // Un fallo que se repite (p. ej. en cada repintado) no debe apilar diálogos.
+        if (_errorDialogOpen)
+        {
+            return;
+        }
+
+        _errorDialogOpen = true;
         try
         {
-            var dlg = new MessageDialog("HiveShock", args.Exception.Message, confirm: false, kind: "danger");
+            var dlg = new MessageDialog(
+                "HiveShock",
+                $"Algo falló en la ventana: {args.Exception.Message}\n\nHiveShock sigue funcionando. " +
+                "Si vuelve a pasar, reinícialo y envíanos el log.",
+                confirm: false,
+                kind: "danger");
             dlg.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { IsVisible: true } main })
             {
@@ -112,17 +137,19 @@ public partial class App : Application
             }
             else
             {
+                var closed = new TaskCompletionSource();
+                dlg.Closed += (_, _) => closed.TrySetResult();
                 dlg.Show();
+                await closed.Task;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignore
+            BridgeLog.Warn($"No se pudo mostrar el aviso de error: {ex.Message}");
         }
-
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        finally
         {
-            desktop.Shutdown(1);
+            _errorDialogOpen = false;
         }
     }
 

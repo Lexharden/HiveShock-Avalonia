@@ -329,6 +329,184 @@
                 </Grid>
             </TabItem>
 
+            <!-- ============================== Recompensas (puntos del canal) -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Classes="tabHeader">
+                        <ctl:Icon Data="{StaticResource Icon.Sparkle}" />
+                        <TextBlock Text="Recompensas" />
+                    </StackPanel>
+                </TabItem.Header>
+                <DockPanel Margin="0,12,0,0">
+                    <Border DockPanel.Dock="Top" Classes="section" Padding="14,10" Margin="0,0,0,12">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <Button Classes="primary" Margin="0"
+                                        Command="{Binding Studio.ConnectTwitchCommand}"
+                                        IsEnabled="{Binding Studio.CanTwitchConnect}"
+                                        IsVisible="{Binding Events.ChannelRewardsNeedRelogin}">
+                                    <StackPanel Classes="btnContent">
+                                        <ctl:Icon Data="{StaticResource Icon.Twitch}" />
+                                        <TextBlock Text="Volver a entrar con Twitch" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Classes="secondary" Margin="0"
+                                        Command="{Binding Events.RefreshChannelRewardsCommand}"
+                                        IsEnabled="{Binding !Events.ChannelRewardsBusy}"
+                                        IsVisible="{Binding Studio.TwitchHasAccount}"
+                                        ToolTip.Tip="Vuelve a leer las recompensas de tu canal (si creaste o cambiaste alguna en Twitch).">
+                                    <StackPanel Classes="btnContent">
+                                        <ctl:Icon Data="{StaticResource Icon.Refresh}" />
+                                        <TextBlock Text="Actualizar lista" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <StackPanel Spacing="2" VerticalAlignment="Center">
+                                <TextBlock Classes="caption" TextWrapping="Wrap"
+                                           Text="Cuando alguien canjea una recompensa de puntos de tu canal, pasa esto en el juego. Las recompensas, su coste y su tiempo de espera se crean en el panel de Twitch." />
+                                <TextBlock Classes="caption" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}"
+                                           Text="Los puntos se gastan aunque los efectos estén en pausa o el espectador esté bloqueado." />
+                                <TextBlock TextWrapping="Wrap" FontSize="12" FontWeight="SemiBold" Margin="0,4,0,0"
+                                           Text="{Binding Events.ChannelRewardsStatus}"
+                                           IsVisible="{Binding Events.ChannelRewardsHasStatus}" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="280" MinWidth="220" MaxWidth="520" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" MinWidth="340" />
+                        </Grid.ColumnDefinitions>
+                        <Border Classes="panel">
+                            <DockPanel>
+                                <Border DockPanel.Dock="Top" Classes="paneHeader">
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Classes="bar" Spacing="2">
+                                            <Button Classes="icon" ctl:Hotkey.Gesture="Ctrl+N" Command="{Binding Events.AddRewardCommand}" ToolTip.Tip="Añadir recompensa (Ctrl+N)">
+                                                <ctl:Icon Data="{StaticResource Icon.Plus}" />
+                                            </Button>
+                                            <Button Classes="icon" Command="{Binding Events.RemoveRewardCommand}" ToolTip.Tip="Eliminar la recompensa seleccionada (Supr)">
+                                                <ctl:Icon Data="{StaticResource Icon.Trash}" />
+                                            </Button>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                            <TextBlock Classes="h2" Text="Recompensas" />
+                                            <Border Classes="pill">
+                                                <TextBlock Text="{Binding Events.TwitchRewards.Count}" />
+                                            </Border>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <Border DockPanel.Dock="Bottom" Classes="paneFooter">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Classes="primary" Margin="8,0,0,0" Command="{Binding Events.SaveCommand}">
+                                            <StackPanel Classes="btnContent">
+                                                <ctl:Icon Data="{StaticResource Icon.Save}" />
+                                                <TextBlock Text="Guardar" />
+                                            </StackPanel>
+                                        </Button>
+                                        <ctl:SaveStatusChip DataContext="{Binding Events.SaveStatus}" />
+                                    </DockPanel>
+                                </Border>
+                                <Panel>
+                                    <ListBox Classes="plain" ItemsSource="{Binding Events.TwitchRewards}"
+                                             SelectedItem="{Binding Events.SelectedReward}"
+                                             SelectedItems="{Binding Events.SelectedRewards}" SelectionMode="Multiple"
+                                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                             ctl:ListGestures.DeleteCommand="{Binding Events.RemoveRewardCommand}"
+                                             ctl:ListGestures.Reorder="True">
+                                        <ListBox.ContextFlyout>
+                                            <MenuFlyout>
+                                                <MenuItem Header="Eliminar" Command="{Binding Events.RemoveRewardCommand}">
+                                                    <MenuItem.Icon>
+                                                        <ctl:Icon Data="{StaticResource Icon.Trash}" Size="16" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                            </MenuFlyout>
+                                        </ListBox.ContextFlyout>
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:RewardRowViewModel">
+                                                <DockPanel>
+                                                    <Border DockPanel.Dock="Right" Classes="pill gold" Margin="8,0,0,0"
+                                                            IsVisible="{Binding HasExtraSteps}">
+                                                        <TextBlock Text="{Binding StepSummary}" />
+                                                    </Border>
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock FontWeight="SemiBold" TextTrimming="CharacterEllipsis">
+                                                            <Run Text="{Binding DisplayTitle}" />
+                                                            <Run Text="{Binding CostText}" Foreground="{DynamicResource FaintBrush}" />
+                                                        </TextBlock>
+                                                        <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis">
+                                                            <TextBlock.Text>
+                                                                <MultiBinding Converter="{StaticResource EffectDisplay}">
+                                                                    <Binding Path="Effect" />
+                                                                    <Binding Path="$parent[UserControl].((vm:TwitchViewModel)DataContext).Events.EffectsWithNone" />
+                                                                </MultiBinding>
+                                                            </TextBlock.Text>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <StackPanel Classes="empty" IsVisible="{Binding !Events.TwitchRewards.Count}">
+                                        <ctl:Icon Data="{StaticResource Icon.Sparkle}" />
+                                        <TextBlock Classes="h2" Text="Sin recompensas" />
+                                        <TextBlock Classes="caption" Text="Añade una con + y elige qué pasa en el juego cuando la canjean." />
+                                    </StackPanel>
+                                </Panel>
+                            </DockPanel>
+                        </Border>
+
+                        <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+
+                        <Border Grid.Column="2" Classes="panel" Container.Name="editor" Container.Sizing="Width">
+                            <Panel>
+                                <StackPanel Classes="empty" IsVisible="{Binding Events.SelectedReward, Converter={x:Static ObjectConverters.IsNull}}">
+                                    <ctl:Icon Data="{StaticResource Icon.Sparkle}" />
+                                    <TextBlock Classes="h2" Text="Elige una recompensa" />
+                                    <TextBlock Classes="caption" Text="Selecciona una recompensa de la lista para editarla." />
+                                </StackPanel>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                              IsVisible="{Binding Events.SelectedReward, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                    <StackPanel Margin="20,18,20,24" MaxWidth="720" DataContext="{Binding Events.SelectedReward}"
+                                                x:DataType="vm:RewardRowViewModel">
+                                        <UniformGrid Classes="formRow">
+                                            <StackPanel Grid.Column="0" Classes="field">
+                                                <TextBlock Classes="fieldLabel" Text="Recompensa del canal" />
+                                                <ComboBox HorizontalAlignment="Stretch"
+                                                          PlaceholderText="Elige una recompensa"
+                                                          ItemsSource="{Binding $parent[UserControl].((vm:TwitchViewModel)DataContext).Events.ChannelRewards}"
+                                                          SelectedValue="{Binding RewardId}"
+                                                          SelectedValueBinding="{Binding Id}"
+                                                          DisplayMemberBinding="{Binding Display}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" Classes="field">
+                                                <TextBlock Classes="fieldLabel" Text="Efecto" />
+                                                <ComboBox HorizontalAlignment="Stretch"
+                                                          ItemsSource="{Binding $parent[UserControl].((vm:TwitchViewModel)DataContext).Events.EffectsWithNone}"
+                                                          SelectedValue="{Binding Effect}"
+                                                          SelectedValueBinding="{Binding Id}"
+                                                          DisplayMemberBinding="{Binding Display}" />
+                                            </StackPanel>
+                                        </UniformGrid>
+                                        <StackPanel Classes="field" IsVisible="{Binding IsManual}">
+                                            <TextBlock Classes="fieldLabel" Text="O escribe el nombre exacto de la recompensa" />
+                                            <TextBox Text="{Binding Title}" PlaceholderText="p. ej. Soltar un enemigo" />
+                                            <TextBlock Classes="caption" TextWrapping="Wrap"
+                                                       Text="Sin elegirla de la lista se reconoce por el nombre: si la renombras en Twitch, cámbialo aquí también." />
+                                        </StackPanel>
+                                        <ctl:StepListEditor DataContext="{Binding Steps}" Margin="0,6,0,0" />
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Panel>
+                        </Border>
+                    </Grid>
+                </DockPanel>
+            </TabItem>
+
             <!-- ============================== Seguidores -->
             <TabItem>
                 <TabItem.Header>

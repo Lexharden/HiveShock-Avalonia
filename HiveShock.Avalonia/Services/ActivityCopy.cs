@@ -84,6 +84,21 @@ public static class ActivityCopy
             return FormatArrowLine(m["Bits ".Length..], "mandó bits");
         }
 
+        // «Recompensa ana «Saltar» (500 puntos) -> impulse» / «Recompensa «Hidratarse» canjeada sin efecto…»
+        if (m.StartsWith("Recompensa ", StringComparison.Ordinal))
+        {
+            var title = Between(m, '«', '»');
+            if (!m.Contains("->", StringComparison.Ordinal))
+            {
+                return title.Length > 0 ? $"Canjearon «{title}», que no tiene efecto en HiveShock." : null;
+            }
+
+            var user = m["Recompensa ".Length..].Split(' ', 2)[0];
+            var effect = m[(m.IndexOf("->", StringComparison.Ordinal) + 2)..].Trim();
+            var paren = effect.IndexOf('(');
+            return $"{user} canjeó «{title}» → {(paren > 0 ? effect[..paren].Trim() : effect)}";
+        }
+
         if (m.StartsWith("Meta ", StringComparison.Ordinal))
         {
             if (m.Contains("->", StringComparison.Ordinal))
@@ -141,6 +156,13 @@ public static class ActivityCopy
         if (m.StartsWith("Twitch bits:", StringComparison.Ordinal))
         {
             return "Twitch: falta permiso para los bits. Sal y vuelve a entrar con tu cuenta.";
+        }
+
+        if (m.StartsWith("Twitch recompensas:", StringComparison.Ordinal))
+        {
+            return m.Contains("permiso", StringComparison.OrdinalIgnoreCase)
+                ? "Twitch: para usar los puntos del canal, vuelve a entrar con tu cuenta (pestaña Recompensas)."
+                : "Twitch: no se pudieron activar las recompensas de puntos (¿el canal es Afiliado?).";
         }
 
         if (m.StartsWith("Twitch desconectado", StringComparison.Ordinal) ||
@@ -236,6 +258,13 @@ public static class ActivityCopy
         }
 
         return null;
+    }
+
+    private static string Between(string text, char open, char close)
+    {
+        var start = text.IndexOf(open);
+        var end = start >= 0 ? text.IndexOf(close, start + 1) : -1;
+        return end > start ? text[(start + 1)..end].Trim() : "";
     }
 
     private static string NameBeforeParen(string text)
