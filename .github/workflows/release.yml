@@ -158,6 +158,9 @@ jobs:
   pack-ios:
     name: Pack ios (experimental)
     needs: version
+    # DESACTIVADO temporalmente: no se genera el .ipa. Para reactivarlo, borra esta línea (y la del job ios en ci.yml).
+    # «publish» sigue listando este job en needs: al estar saltado no lo bloquea (su if usa !cancelled()).
+    if: false
     runs-on: macos-latest
     continue-on-error: true
     steps:
