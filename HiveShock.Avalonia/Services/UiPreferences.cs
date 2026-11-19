@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using HiveShock.Avalonia.Themes;
 using HiveShock.Configuration;
 using HiveShock.Hosting;
@@ -24,8 +25,27 @@ public sealed class UiPreferences
     public bool DetailLogOpen { get; set; }
     public bool NavExpanded { get; set; } = true;
     public double ActivityPanelHeight { get; set; } = 220;
+    /// <summary>Ancho del panel lateral de actividad (interfaz nueva: el panel va a la derecha).</summary>
+    public double ActivityPanelWidth { get; set; } = 300;
     /// <summary>El panel de actividad empieza recogido: solo pesa lo justo salvo que el usuario lo abra.</summary>
     public bool ActivityPanelOpen { get; set; }
+
+    /// <summary>La X de la ventana deja HiveShock en la bandeja del sistema (el directo sigue) en vez de cerrarlo.</summary>
+    public bool CloseToTray { get; set; } = true;
+    /// <summary>Ya se preguntó (una vez) qué hacer al pulsar la X; desde entonces se respeta <see cref="CloseToTray"/>.</summary>
+    public bool CloseActionChosen { get; set; }
+    /// <summary>El tutorial guiado ya se vio (terminado o saltado). Se puede repetir desde Ayuda o Preferencias.</summary>
+    public bool TutorialCompleted { get; set; }
+
+    /// <summary>Última versión cuyas novedades se enseñaron; al abrir una más nueva se muestran las de en medio.</summary>
+    public string LastSeenVersion { get; set; } = "";
+
+    /// <summary>No había preferencias guardadas: instalación nueva (no se guarda; se calcula al cargar).</summary>
+    [JsonIgnore]
+    public bool IsFirstRun { get; private set; }
+
+    /// <summary>Orden de las tarjetas de juego en Inicio (ids de perfil); los que no estén van al final.</summary>
+    public List<string> ProfileOrder { get; set; } = [];
 
     /// <summary>Guarda solo (con una pequeña espera) los cambios de regalos, metas y eventos.</summary>
     public bool AutoSaveEnabled { get; set; } = true;
@@ -60,7 +80,7 @@ public sealed class UiPreferences
 
     /// <summary>Copia válida más reciente (carpeta del usuario o junto al .exe); ver <see cref="UserDataStore"/>.</summary>
     public static UiPreferences Load() =>
-        UserDataStore.Load<UiPreferences>(FileName, LegacyFileName) ?? new UiPreferences();
+        UserDataStore.Load<UiPreferences>(FileName, LegacyFileName) ?? new UiPreferences { IsFirstRun = true };
 
     /// <summary>Guarda en las dos ubicaciones con respaldo .bak. Nunca lanza.</summary>
     public void Save() => UserDataStore.Save(FileName, this);

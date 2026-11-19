@@ -28,6 +28,13 @@ public sealed class GiftLedger : IDisposable
     private static readonly TimeSpan FlushEvery = TimeSpan.FromMilliseconds(500);
 
     private readonly object _gate = new();
+
+    /// <summary>
+    /// Serializa las escrituras a disco. Se toma ANTES que <see cref="_gate"/> (nunca al revés): así el disco no
+    /// bloquea a quien solo consulta o anota en memoria (regalos entrantes), y los lotes salen en orden, que importa
+    /// (un «done» escrito antes que su «fx» resucitaría el efecto al abrir y se repetiría).
+    /// </summary>
+    private readonly object _fileGate = new();
     private readonly string? _path;
     private readonly TimeSpan _window;
     private readonly int _maxKeys;
@@ -111,9 +118,10 @@ public sealed class GiftLedger : IDisposable
         {
             _pending[item.Id] = item;
             Append(new Dictionary<string, object?> { ["op"] = "fx", ["fx"] = item });
-            FlushLocked();
         }
 
+        // Ya en disco al volver (un efecto pagado sobrevive a un cierre), pero sin tener tomado _gate mientras escribe.
+        Flush();
         return item.Id;
     }
 
@@ -174,9 +182,45 @@ public sealed class GiftLedger : IDisposable
 
     public void Flush()
     {
-        lock (_gate)
+        if (_path == null)
         {
-            FlushLocked();
+            return;
+        }
+
+        lock (_fileGate)
+        {
+            List<string> batch;
+            lock (_gate)
+            {
+                if (_unsaved.Count == 0)
+                {
+                    return;
+                }
+
+                batch = [.. _unsaved];
+                _unsaved.Clear();
+            }
+
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
+                File.AppendAllLines(_path, batch);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Vuelve delante de lo anotado mientras tanto (sigue en orden); se reintenta en el siguiente ciclo.
+                // El registro en memoria sigue valiendo.
+                lock (_gate)
+                {
+                    _unsaved.InsertRange(0, batch);
+                    if (_unsaved.Count > 10_000)
+                    {
+                        _unsaved.Clear();
+                    }
+                }
+
+                BridgeLog.Warn($"Registro de regalos: no se pudo guardar ({ex.Message}).");
+            }
         }
     }
 
@@ -228,31 +272,6 @@ public sealed class GiftLedger : IDisposable
         if (_path != null)
         {
             _unsaved.Add(JsonSerializer.Serialize(line));
-        }
-    }
-
-    private void FlushLocked()
-    {
-        if (_path == null || _unsaved.Count == 0)
-        {
-            return;
-        }
-
-        try
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-            File.AppendAllLines(_path, _unsaved);
-            _unsaved.Clear();
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            // Se reintenta en el siguiente ciclo; el registro en memoria sigue valiendo.
-            if (_unsaved.Count > 10_000)
-            {
-                _unsaved.Clear();
-            }
-
-            BridgeLog.Warn($"Registro de regalos: no se pudo guardar ({ex.Message}).");
         }
     }
 

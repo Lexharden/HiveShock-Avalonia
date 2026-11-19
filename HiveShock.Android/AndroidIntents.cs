@@ -1,12 +1,13 @@
 using Android.Content;
 using HiveShock;
 using HiveShock.Logging;
+using HiveShock.Mobile;
 
 namespace HiveShock.Android;
 
 internal static class AndroidIntents
 {
-    public static void Register() => PlatformShell.UrlLauncher = OpenUrl;
+    public static void Register() => MobileHost.Current = AndroidHost.Instance;
 
     public static void OpenUrl(string url)
     {

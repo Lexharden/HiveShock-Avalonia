@@ -22,6 +22,18 @@ public sealed partial class GiftsViewModel : ViewModelBase
         // gifts.json es un solo archivo: regalos, metas y eventos comparten estado y guardado.
         AutoSaver = new AutoSaver(SaveStatus, SaveToDisk, "Regalos, metas y eventos");
         AutoSaver.Track(Rows, IgnoreRowProperty);
+        // Un regalo recién añadido tiene que verse aunque no case con el buscador.
+        Rows.CollectionChanged += (_, e) =>
+        {
+            if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add && IsFiltering)
+            {
+                Filter = "";
+            }
+            else
+            {
+                OnPropertyChanged(nameof(NoMatches));
+            }
+        };
         Load();
     }
 
@@ -33,7 +45,7 @@ public sealed partial class GiftsViewModel : ViewModelBase
         name is nameof(GiftRowViewModel.Thumb) or nameof(GiftRowViewModel.HasParams)
             or nameof(GiftRowViewModel.ShowInstaKillHint) or nameof(GiftRowViewModel.EffectLabel)
             or nameof(GiftRowViewModel.HasExtraSteps) or nameof(GiftRowViewModel.CanAddStep)
-            or nameof(GiftRowViewModel.StepSummary);
+            or nameof(GiftRowViewModel.StepSummary) or nameof(GiftRowViewModel.IsShown);
 
     /// <summary>Guardado desde un botón «Guardar»: muestra el error en un diálogo además de la etiqueta.</summary>
     public bool SaveManual(string title)
@@ -48,6 +60,41 @@ public sealed partial class GiftsViewModel : ViewModelBase
     }
 
     public ObservableCollection<GiftRowViewModel> Rows { get; } = [];
+
+    /// <summary>Selección múltiple de la lista (Ctrl/Mayús+clic). <see cref="Selected"/> es el que se edita.</summary>
+    public ObservableCollection<GiftRowViewModel> SelectedRows { get; } = [];
+
+    /// <summary>Texto del buscador de la lista: filtra por nombre, otros nombres o efecto.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsFiltering), nameof(NoMatches))]
+    private string _filter = "";
+
+    public bool IsFiltering => !string.IsNullOrWhiteSpace(Filter);
+
+    /// <summary>Hay regalos pero el buscador no deja ver ninguno.</summary>
+    public bool NoMatches => IsFiltering && Rows.Count > 0 && !Rows.Any(r => r.IsShown);
+
+    partial void OnFilterChanged(string value) => ApplyFilter();
+
+    private void ApplyFilter()
+    {
+        var words = (Filter ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var row in Rows)
+        {
+            row.IsShown = words.Length == 0 || words.All(w => Matches(row, w));
+        }
+
+        OnPropertyChanged(nameof(NoMatches));
+    }
+
+    private static bool Matches(GiftRowViewModel row, string word) =>
+        row.Name.Contains(word, StringComparison.CurrentCultureIgnoreCase) ||
+        row.Also.Contains(word, StringComparison.CurrentCultureIgnoreCase) ||
+        row.EffectLabel.Contains(word, StringComparison.CurrentCultureIgnoreCase) ||
+        row.Effect.Contains(word, StringComparison.CurrentCultureIgnoreCase);
+
+    [RelayCommand]
+    private void ClearFilter() => Filter = "";
 
     public IEnumerable<EditableGift> Models => Rows.Select(r => r.Model);
 
@@ -64,6 +111,8 @@ public sealed partial class GiftsViewModel : ViewModelBase
 
     public void Load()
     {
+        // Lo que se ofrecía deshacer eran filas de antes de recargar: ya no valen.
+        _shell.Undo.Dismiss();
         try
         {
             using var _ = AutoSaver.Suppress();
@@ -165,6 +214,18 @@ public sealed partial class GiftsViewModel : ViewModelBase
         return _shell.EffectChoices.FirstOrDefault()?.Id ?? "";
     }
 
+    /// <summary>Un regalo del catálogo soltado en la lista o en la pestaña Regalos (arrastrar y soltar).</summary>
+    [RelayCommand(CanExecute = nameof(IsCatalogGift))]
+    private void DropFromCatalog(object? payload)
+    {
+        if (payload is CatalogGift gift)
+        {
+            AddFromCatalog(gift);
+        }
+    }
+
+    private static bool IsCatalogGift(object? payload) => payload is CatalogGift;
+
     public void AddFromCatalog(CatalogGift picked)
     {
         var primary = picked.PrimaryName;
@@ -217,7 +278,9 @@ public sealed partial class GiftsViewModel : ViewModelBase
         Rows.Add(row);
         Selected = row;
         _shell.Overlays.RefreshGifts(Models);
-        BridgeLog.Info($"Añadido a regalos: {gift.Gift} (pulsa Guardar)");
+        BridgeLog.Info(SaveStatus.AutoSaveEnabled
+            ? $"Añadido a regalos: {gift.Gift}"
+            : $"Añadido a regalos: {gift.Gift} (pulsa Guardar)");
     }
 
     /// <summary>
@@ -286,16 +349,9 @@ public sealed partial class GiftsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void DeleteGift()
-    {
-        if (Selected == null)
-        {
-            return;
-        }
-
-        Rows.Remove(Selected);
-        Selected = Rows.FirstOrDefault();
-    }
+    private void DeleteGift() =>
+        _shell.Undo.RemoveWithUndo(Rows, UndoBarViewModel.Targets(SelectedRows, Selected),
+            r => $"Regalo «{r.Name}» eliminado", n => $"{n} regalos eliminados", r => Selected = r);
 
     [RelayCommand]
     private void Reload()

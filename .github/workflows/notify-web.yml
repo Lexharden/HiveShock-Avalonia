@@ -1,0 +1,25 @@
+name: Avisar a la web
+
+on:
+  release:
+    types: [published, edited, deleted, unpublished]
+  workflow_run:
+    workflows: [Release, release]
+    types: [completed]
+
+jobs:
+  notify:
+    if: github.event_name == 'release' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pedir un nuevo build de hive-web
+        env:
+          GH_TOKEN: ${{ secrets.WEB_DISPATCH_TOKEN }}
+          ACTION: ${{ github.event.action || 'workflow_run' }}
+          TAG: ${{ github.event.release.tag_name || github.event.workflow_run.head_branch }}
+        run: |
+          gh api repos/Lexharden/hive-web/dispatches \
+            -f event_type=release-changed \
+            -f "client_payload[repo]=${{ github.repository }}" \
+            -f "client_payload[action]=$ACTION" \
+            -f "client_payload[tag]=$TAG"

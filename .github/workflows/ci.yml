@@ -29,11 +29,13 @@ jobs:
         run: |
           dotnet restore HiveShock.Avalonia/HiveShock.Avalonia.csproj
           dotnet restore HiveShock.Cli/HiveShock.Cli.csproj
+          dotnet restore HiveShock.Mobile/HiveShock.Mobile.csproj
 
       - name: Build
         run: |
           dotnet build HiveShock.Avalonia/HiveShock.Avalonia.csproj -c Release --no-restore
           dotnet build HiveShock.Cli/HiveShock.Cli.csproj -c Release --no-restore
+          dotnet build HiveShock.Mobile/HiveShock.Mobile.csproj -c Release --no-restore
 
       - name: Test
         run: dotnet test HiveShock.Tests/HiveShock.Tests.csproj -c Release
@@ -74,3 +76,31 @@ jobs:
           ACTUAL=$(dotnet msbuild HiveShock.Android/HiveShock.Android.csproj -getProperty:ApplicationVersion | tr -d '[:space:]')
           echo "esperado=$EXPECTED real=$ACTUAL"
           [[ "$EXPECTED" == "$ACTUAL" ]]
+
+  # iOS es experimental (nunca se ha compilado en un Mac real): no bloquea el CI hasta que se verifique.
+  ios:
+    name: Build (iOS, experimental)
+    # DESACTIVADO temporalmente: iOS no se construye. Para reactivarlo, borra esta línea (y la de pack-ios en release.yml).
+    if: false
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      # El workload más reciente de iOS (27.x) pide Xcode 27; macos-latest solo llega a Xcode 26.x.
+      # Se fija iOS 26.5 (scripts/ios-workload-rollback.json) y se selecciona Xcode 26.6.
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Workload iOS fijado y Xcode a juego
+        run: |
+          set -euo pipefail
+          dotnet workload install ios --from-rollback-file scripts/ios-workload-rollback.json
+          ls ~/.dotnet/packs | grep -i ios || true
+          # El SDK iOS 26.5.10318 exige Xcode 26.6 (ver el error "requires Xcode" si cambia la version).
+          sudo xcode-select -s "/Applications/Xcode_26.6.app/Contents/Developer"
+          xcodebuild -version
+
+      - name: Build (sin firmar)
+        run: dotnet build HiveShock.iOS/HiveShock.iOS.csproj -f net10.0-ios -c Release -r ios-arm64 -p:EnableCodeSigning=false -p:CodesignRequireProvisioningProfile=false

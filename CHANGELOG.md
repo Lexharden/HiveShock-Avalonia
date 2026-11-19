@@ -1,8 +1,114 @@
-﻿# Changelog
+# Changelog
 
 Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.props`.
 
 ## [Unreleased]
+
+## [3.0.0-beta.3] - 2026-11-18
+
+### Recompensas de puntos del canal (Twitch)
+* **Las recompensas de puntos de tu canal ya pueden lanzar efectos**, igual que los bits. En Twitch → **Recompensas** eliges una recompensa de tu canal (HiveShock lee la lista de Twitch) y qué pasa en el juego, con varios efectos y esperas si quieres. Si cambias el nombre de la recompensa en Twitch, sigue funcionando.
+* Las recompensas, su coste y su tiempo de espera se crean en el panel de Twitch. Solo existen en canales **Afiliado o Partner**.
+* **Hay que volver a entrar con Twitch una vez** (botón en la pestaña Recompensas): hace falta un permiso nuevo. Mientras tanto, chat, seguidores y bits siguen funcionando como siempre.
+* Por ahora los puntos se gastan aunque los efectos estén en pausa o el espectador esté bloqueado (en ese caso no pasa nada en el juego). Devolverlos llegará con las recompensas creadas desde HiveShock.
+* También en la app del móvil (Twitch → Recompensas).
+
+### Arreglos
+* **Móvil:** guardar desde el teléfono ya no borra los efectos adicionales («Añadir otro efecto») de las reglas de bits, los comandos de chat (TikTok y Twitch) y las metas configurados en el escritorio.
+* **Un fallo en la ventana ya no cierra HiveShock** en mitad del directo: se avisa, queda en el log y la app sigue (con el directo y los efectos en marcha).
+* El panel de actividad va más fluido cuando el chat o los likes llegan a montones.
+* Un directo que pasa de medianoche sigue escribiendo el log en el archivo del día nuevo.
+* El puerto de pruebas ya no estropea nombres con «ñ», acentos o emojis.
+
+### Mantenimiento
+* Código interno más ordenado y dependencias al día. Sin cambios de uso.
+* La versión para iPhone deja de compilarse por ahora.
+
+## [3.0.0-beta.2] - 2026-11-11
+
+> **Segunda beta de la nueva interfaz:** listas mucho más rápidas de manejar (Supr, deshacer, arrastrar, Ctrl+N/F) y textos más claros. Solo se ofrece a quien tenga activadas las versiones beta en Actualizaciones.
+
+### Novedades
+* **Ventana «Novedades»:** al abrir una versión nueva se enseña una vez qué ha cambiado (todas las versiones desde la última que abriste, también si actualizaste a mano). En una instalación nueva no sale: para eso está el tutorial. Se puede volver a ver desde Ayuda y Acerca de.
+* En **Actualizaciones**, las notas de cada versión se ven con formato y con «Ver notas completas».
+
+### Listas más ágiles
+* **Supr elimina** el regalo, comando, meta, regla de bits o macro seleccionado (también la papelera) y abajo aparece **«… eliminado · Deshacer»** unos segundos (o **Ctrl+Z**): borrar es rápido en directo y nunca definitivo por un despiste.
+* **Selección múltiple** con Ctrl+clic o Mayús+clic: Supr o la papelera quitan todos a la vez (y se deshacen juntos).
+* **Ctrl+N** crea uno nuevo en la lista que tienes delante (regalos, comandos, metas, bits, macros), **Ctrl+F** va al buscador y **Ctrl+D** duplica una macro.
+* **Arrastra para ordenar** regalos, comandos de chat, metas y macros; con el teclado, **Alt+↑/↓**. Los efectos en cadena y los pasos de macro se ordenan arrastrando desde su asa ⠿. El orden se guarda solo.
+* **Clic derecho** en las listas para las acciones más usadas (probar, duplicar, eliminar…).
+* **Buscador en Regalos** por nombre, otros nombres o efecto (Esc lo borra).
+* **Catálogo:** doble clic o Intro sobre un regalo lo añade al juego, y abajo se confirma. También se puede **arrastrar hasta la pestaña Regalos** (se abre sola) y soltarlo en la lista. En «Elegir del catálogo», doble clic lo elige.
+* **Inicio:** arrastra las tarjetas de juego para ponerlas en el orden que quieras; se recuerda.
+
+### Textos más claros
+* **«Solo simular» pasa a ser «Modo ensayo: no enviar efectos al juego»**, con una línea que explica qué hace. «Simular +1» de Metas pasa a «Sumar 1 de prueba».
+* Modos de sesión explicados de nuevo: «Anotar» añade los regalos al catálogo sin enviar efectos y «Sin live» pasa a «Sin conexión».
+* Toda la app dice «directo» (antes se mezclaba con «live»), «seguidores» y «compartidos», «ID», «Shift» y «Poner a cero». La pestaña «Debug» pasa a «Diagnóstico» y las actualizaciones hablan de versiones «beta».
+* Fuera palabras técnicas (bridge, rescue, Singleton, SHA-256) y corregidos textos que nombraban botones con otro nombre.
+
+## [3.0.0-beta.1] - 2026-11-11
+
+> **Beta de la nueva interfaz.** Solo se ofrece a quien tenga activadas las versiones beta en Actualizaciones. Perfiles, regalos y ajustes se conservan tal cual.
+
+### Interfaz nueva
+* **Rediseño completo de la app de escritorio:** barra de título propia, menú lateral con iconos (plegable con Ctrl+B), tarjeta de «Conectar» siempre visible y panel de actividad a la derecha con la última línea siempre a la vista abajo.
+* **Más espacio para editar:** Regalos, Comandos, Metas, Bits y Teclas en lista + editor, con las acciones (añadir, probar, guardar) fijas arriba y abajo. Los formularios pasan a una columna si la ventana es estrecha.
+* Catálogo como tabla con buscador, Moderación en dos columnas, Inicio con la sesión a la derecha y los overlays de OBS en su propia pestaña con vista previa. Tema claro y oscuro revisados.
+* **Atajos:** Ctrl+1…5 (páginas), F1 (Ayuda), Ctrl+S (guardar todo), Ctrl+Mayús+P (pausa de emergencia).
+
+### Tutorial guiado
+* La primera vez que se abre, un recorrido paso a paso resalta cada parte de la app y explica para qué sirve. Se navega con los botones o con ← → y Esc; se puede saltar en cualquier momento y repetir desde Ayuda o Preferencias.
+
+### Segundo plano y bandeja del sistema
+* **La X ya no cierra HiveShock:** lo deja en la bandeja del sistema (barra de menús en macOS) con el directo, los efectos y los overlays funcionando. Su icono lo vuelve a abrir y su menú permite pausar los efectos o salir. La primera vez se pregunta qué prefieres; se cambia en Preferencias. En Linux la X minimiza a la barra de tareas.
+* **Una sola copia abierta:** abrir HiveShock cuando ya está en marcha muestra la ventana existente en vez de arrancar otra (dos copias peleaban por los puertos y podían lanzar los efectos dos veces).
+* Si se dispara «Reiniciar el equipo» con la ventana escondida, la ventana vuelve a aparecer para poder cancelar la cuenta atrás.
+
+## [2.12.5] - 2026-11-05
+
+### Perfiles
+* **Majora's Mask:** nuevos enemigos Nejiron, Dodongo y Takkuri, élites Death Armos, Pirata gerudo y Gomess, y los jefes Odolwa y Majora's Wrath. Los nuevos cuentan como enemigos para «Enemigo aleatorio».
+* **Majora's Mask:** «Saltar tiempo» avisa de que el día 3 hace caer la luna (el nombre se actualiza solo si no lo habías cambiado).
+
+
+## [2.12.4] - 2026-11-04
+
+### Perfiles
+* **Ocarina of Time:** nuevos efectos Cucco tranquilo, Kaepora Gaebora, Mido y Navi, con sus nombres.
+
+### Actualización de perfiles
+* **Los nombres y efectos que no has tocado ahora se actualizan solos.** Si una versión cambia un nombre (`labels` de `profile.json`) o la definición de un efecto (`effects.json`) y tú nunca lo editaste, se actualiza. Si lo editaste, se respeta tal cual. HiveShock recuerda lo que sembró en `.hiveshock-effects-base.json` y `.hiveshock-labels-base.json` dentro de cada perfil. Los nombres que ya tenías antes de esta versión no se actualizan, porque no se puede saber si los editaste (la excepción es «Hada» de Ocarina of Time, que pasa a «Hada (cura)» si no la cambiaste); sí se actualizarán los que lleguen a partir de ahora.
+* **Los efectos «singleton» nuevos también llegan** (`singletonEffects` de `profile.json`), igual que los `enemyEffects`.
+* **Más tolerancia con archivos editados a mano:** un `profile.json` con valores de tipo inesperado en `labels`, `enemyEffects` o `singletonEffects` ya no detiene la actualización de los demás perfiles ni se reintenta en cada arranque.
+* Los archivos de respaldo (`*.bak`, `*.tmp`, `*.corrupt`) de la carpeta de perfiles ya no se incluyen en los paquetes.
+
+
+## [2.12.3] - 2026-10-30
+
+* **Ocarina of Time:** nuevo jefe Birova (Twinrova), disponible como efecto y enemigo.
+
+## [2.12.2] - 2026-10-28
+
+* **Tus efectos ya no se reemplazan al actualizar.** Antes, una versión nueva sustituía el `effects.json` de los perfiles del catálogo; ahora solo añade los efectos que te faltan y no toca los que ya tienes (editados o propios). La copia anterior sigue en `effects.previous.bak`.
+
+## [2.12.1] - 2026-10-28
+
+* Ajustes menores en los perfiles.
+
+## [2.12.0] - 2026-10-28
+
+### Perfiles
+* **Banjo-Kazooie:** enemigos nuevos (Snippet negro y mutante, Clucker, Teehee, emboscada con uno de cada) y efectos de velocidad, cámara lenta, invencible, salto gigante y borrar partida.
+* **Ocarina of Time:** 15 enemigos y jefes nuevos (Dead Hand, Nabooru, Dodongo, Baby Dodongo, Biri, Anubis, vasija voladora, larva de Gohma, guerrera gerudo, Flare Dancer, Armos, Peahat, Barinade, Ganondorf y Ganon bestia).
+
+### Efectos de los perfiles siempre al día
+* **Los efectos nuevos de un juego llegan solos al actualizar.** Al abrir, si la versión trae un `effects.json` distinto al último aplicado, se reemplaza el de los perfiles del catálogo (Banjo-Kazooie, Super Mario 64, etc.). Lo que tenías se guarda en `effects.previous.bak` dentro del perfil. Tus regalos (`gifts.json`), tu `profile.json` y los perfiles propios no se tocan; si editas `effects.json` a mano, tus cambios se respetan hasta la siguiente versión que lo modifique.
+* **Nombres y grupo de los efectos nuevos.** Al mismo tiempo se añaden a tu `profile.json` los `labels` y los `enemyEffects` que el catálogo trae y te faltan. Solo suma: no cambia los nombres que ya tienes ni puertos ni nada más, y no se repite hasta la siguiente versión que modifique ese archivo (copia anterior en `profile.previous.bak`).
+
+### Mantenimiento
+* Código interno más ordenado (configuración dividida en archivos, un único cliente HTTP y fallos en segundo plano registrados en el log). Sin cambios de uso.
 
 ## [2.11.0] - 2026-10-25
 

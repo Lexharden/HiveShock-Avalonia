@@ -203,7 +203,7 @@ public sealed partial class ProfileEditorViewModel : ViewModelBase
             return true;
         }
 
-        _shell.Dialogs.Warn(what, "Detén el bridge antes de editar el perfil.");
+        _shell.Dialogs.Warn(what, "Desconecta antes de editar el perfil.");
         return false;
     }
 
@@ -293,7 +293,7 @@ public sealed partial class ProfileEditorViewModel : ViewModelBase
         var dupes = ids.GroupBy(id => id, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
         if (dupes.Count > 0)
         {
-            _shell.Dialogs.Warn("Efectos", $"Hay ids repetidos: {string.Join(", ", dupes)}. Corrígelos antes de guardar.");
+            _shell.Dialogs.Warn("Efectos", $"Hay IDs repetidos: {string.Join(", ", dupes)}. Corrígelos antes de guardar.");
             return;
         }
 

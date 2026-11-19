@@ -199,6 +199,30 @@ public sealed class GiftLedgerTests : IDisposable
     }
 
     [Fact]
+    public async Task Concurrent_accept_and_deliver_never_resurrects_a_delivered_effect_on_reopen()
+    {
+        // Si un «done» llegara a disco antes que su «fx», al reabrir el efecto parecería pendiente y se repetiría.
+        using (var ledger = Ledger(LedgerPath))
+        {
+            var workers = Enumerable.Range(0, 8).Select(w => Task.Run(() =>
+            {
+                for (var i = 0; i < 200; i++)
+                {
+                    var id = ledger.AddPending("impulse", $"v{w}", "test", fromChat: false, parameters: null);
+                    ledger.TryClaim($"tt:gift:{w}:{i}");
+                    ledger.MarkDelivered(id);
+                }
+            }));
+            await Task.WhenAll(workers);
+            Assert.Equal(0, ledger.PendingCount);
+        }
+
+        using var reopened = Ledger(LedgerPath);
+        Assert.Equal(0, reopened.PendingCount);
+        Assert.True(reopened.Contains("tt:gift:7:199"));
+    }
+
+    [Fact]
     public void Connection_gap_is_reported_only_after_a_real_cut()
     {
         var gap = new ConnectionGap(() => _now);

@@ -1,0 +1,880 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using HiveShock.Logging;
+
+namespace HiveShock.Configuration;
+
+public sealed class GiftFileEditor
+{
+    private readonly string _path;
+    private JsonObject _root = new();
+    private List<EditableGift> _gifts = [];
+
+    public GiftFileEditor(string path) => _path = path;
+
+    public IReadOnlyList<EditableGift> Gifts => _gifts;
+
+    public int LikesEvery { get; set; }
+    public string LikesEffect { get; set; } = "";
+    public List<EditableGiftStep> LikesMore { get; } = [];
+    public string FollowEffect { get; set; } = "";
+    public List<EditableGiftStep> FollowMore { get; } = [];
+    /// <summary>Un mismo usuario dispara el efecto de seguir una sola vez (TikTok y Twitch).</summary>
+    public bool FollowOncePerUser { get; set; } = true;
+    public string ShareEffect { get; set; } = "";
+    public List<EditableGiftStep> ShareMore { get; } = [];
+    public bool ChatEnabled { get; set; }
+    public string ChatPrefix { get; set; } = "!";
+    public int ChatCooldownSec { get; set; } = 30;
+    public int ChatGlobalGapSec { get; set; } = 2;
+    public List<EditableChatCommand> ChatCommands { get; } = [];
+    public bool TwitchChatEnabled { get; set; }
+    public string TwitchChatPrefix { get; set; } = "!";
+    public int TwitchChatCooldownSec { get; set; } = 30;
+    public int TwitchChatGlobalGapSec { get; set; } = 2;
+    public List<EditableChatCommand> TwitchChatCommands { get; } = [];
+    public string TwitchFollowEffect { get; set; } = "";
+    public List<EditableGiftStep> TwitchFollowMore { get; } = [];
+    public List<EditableBitsRule> TwitchBits { get; } = [];
+    public List<EditableTwitchReward> TwitchRewards { get; } = [];
+    public List<EditableGiftGoal> Goals { get; } = [];
+
+    public void Load()
+    {
+        static JsonObject? Parse(string text)
+        {
+            try
+            {
+                return JsonNode.Parse(text, new JsonNodeOptions { PropertyNameCaseInsensitive = true }) as JsonObject;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
+        // Si el archivo está cortado o vacío se recupera el respaldo en vez de abrir la app sin nada.
+        var text = AtomicFile.ReadAllTextWithBackup(_path, t => Parse(t) != null, out var usedBackup)
+                   ?? throw new InvalidDataException("gifts.json inválido");
+        if (usedBackup)
+        {
+            BridgeLog.Warn("gifts.json estaba dañado: se recuperó la copia anterior (.bak).");
+        }
+
+        _root = Parse(text) ?? throw new InvalidDataException("gifts.json inválido");
+
+        _gifts = [];
+        if (_root["gifts"] is JsonArray arr)
+        {
+            foreach (var node in arr)
+            {
+                if (node is JsonObject obj)
+                {
+                    _gifts.Add(FromNode(obj));
+                }
+            }
+        }
+
+        LoadLiveEvents();
+    }
+
+    public void Save()
+    {
+        var arr = new JsonArray();
+        foreach (var gift in _gifts)
+        {
+            arr.Add(ToNode(gift));
+        }
+
+        _root["gifts"] = arr;
+        SaveLiveEvents();
+        var json = _root.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        });
+        // Atómico + .bak: un cierre a mitad de escritura no deja gifts.json cortado (y sin comandos).
+        AtomicFile.WriteAllText(_path, json + Environment.NewLine);
+    }
+
+    private void LoadLiveEvents()
+    {
+        LikesEvery = 0;
+        LikesEffect = "";
+        LikesMore.Clear();
+        FollowEffect = "";
+        FollowMore.Clear();
+        FollowOncePerUser = true;
+        ShareEffect = "";
+        ShareMore.Clear();
+        TwitchFollowMore.Clear();
+        ChatEnabled = false;
+        ChatPrefix = "!";
+        ChatCooldownSec = 30;
+        ChatGlobalGapSec = 2;
+        ChatCommands.Clear();
+        TwitchChatEnabled = false;
+        TwitchChatPrefix = "!";
+        TwitchChatCooldownSec = 30;
+        TwitchChatGlobalGapSec = 2;
+        TwitchChatCommands.Clear();
+        TwitchFollowEffect = "";
+        TwitchBits.Clear();
+        TwitchRewards.Clear();
+        Goals.Clear();
+
+        if (_root["likes"] is JsonObject likes)
+        {
+            LikesEvery = ReadInt(likes, "every") ?? 0;
+            LikesEffect = ReadEffects(likes, LikesMore);
+        }
+
+        if (_root["follow"] is JsonObject follow)
+        {
+            FollowEffect = ReadEffects(follow, FollowMore);
+            FollowOncePerUser = ReadBoolOr(follow, "oncePerUser", true);
+        }
+
+        if (_root["share"] is JsonObject share)
+        {
+            ShareEffect = ReadEffects(share, ShareMore);
+        }
+
+        if (_root["chat"] is JsonObject chat)
+        {
+            ChatEnabled = ReadBool(chat, "enabled");
+            ChatPrefix = chat["prefix"]?.GetValue<string>() ?? "!";
+            ChatCooldownSec = ClampWaitSec(ReadInt(chat, "cooldownSec") ?? 30);
+            ChatGlobalGapSec = ClampWaitSec(ReadInt(chat, "globalGapSec") ?? 2);
+            if (chat["commands"] is JsonObject cmds)
+            {
+                foreach (var kv in cmds)
+                {
+                    ChatCommands.Add(ReadCommand(kv.Key, kv.Value));
+                }
+            }
+        }
+
+        if (_root["twitch"] is JsonObject twitch)
+        {
+            if (twitch["follow"] is JsonObject twFollow)
+            {
+                TwitchFollowEffect = ReadEffects(twFollow, TwitchFollowMore);
+            }
+
+            if (twitch["chat"] is JsonObject twChat)
+            {
+                TwitchChatEnabled = ReadBool(twChat, "enabled");
+                TwitchChatPrefix = twChat["prefix"]?.GetValue<string>() ?? "!";
+                TwitchChatCooldownSec = ClampWaitSec(ReadInt(twChat, "cooldownSec") ?? 30);
+                TwitchChatGlobalGapSec = ClampWaitSec(ReadInt(twChat, "globalGapSec") ?? 2);
+                if (twChat["commands"] is JsonObject twCmds)
+                {
+                    foreach (var kv in twCmds)
+                    {
+                        TwitchChatCommands.Add(ReadCommand(kv.Key, kv.Value));
+                    }
+                }
+            }
+
+            if (twitch["bits"] is JsonArray twBits)
+            {
+                foreach (var node in twBits)
+                {
+                    if (node is not JsonObject bit)
+                    {
+                        continue;
+                    }
+
+                    var bitMore = new List<EditableGiftStep>();
+                    var bitEffect = ReadEffects(bit, bitMore);
+                    TwitchBits.Add(new EditableBitsRule
+                    {
+                        Min = Math.Max(1, ReadInt(bit, "min") ?? 1),
+                        Effect = bitEffect,
+                        MoreSteps = bitMore,
+                    });
+                }
+            }
+
+            if (twitch["rewards"] is JsonArray twRewards)
+            {
+                foreach (var node in twRewards)
+                {
+                    if (node is not JsonObject reward)
+                    {
+                        continue;
+                    }
+
+                    var rewardMore = new List<EditableGiftStep>();
+                    var rewardEffect = ReadEffects(reward, rewardMore);
+                    TwitchRewards.Add(new EditableTwitchReward
+                    {
+                        RewardId = ReadText(reward, "rewardId"),
+                        Title = ReadText(reward, "title"),
+                        Effect = rewardEffect,
+                        MoreSteps = rewardMore,
+                    });
+                }
+            }
+        }
+        else
+        {
+            TwitchFollowEffect = FollowEffect;
+            TwitchFollowMore.AddRange(FollowMore.Select(CloneStep));
+            TwitchChatEnabled = ChatEnabled;
+            TwitchChatPrefix = ChatPrefix;
+            TwitchChatCooldownSec = ChatCooldownSec;
+            TwitchChatGlobalGapSec = ChatGlobalGapSec;
+            foreach (var cmd in ChatCommands)
+            {
+                TwitchChatCommands.Add(new EditableChatCommand
+                {
+                    Word = cmd.Word,
+                    Effect = cmd.Effect,
+                    MoreSteps = cmd.MoreSteps.Select(CloneStep).ToList(),
+                });
+            }
+        }
+
+        if (_root["goals"] is JsonArray goals)
+        {
+            foreach (var node in goals)
+            {
+                if (node is not JsonObject g)
+                {
+                    continue;
+                }
+
+                var keys = new List<string>();
+                PushStrings(keys, g, "gifts");
+                PushStrings(keys, g, "ids");
+                var goalMore = new List<EditableGiftStep>();
+                var goalEffect = ReadEffects(g, goalMore);
+                Goals.Add(new EditableGiftGoal
+                {
+                    Id = g["id"]?.GetValue<string>() ?? "",
+                    Label = g["label"]?.GetValue<string>() ?? g["name"]?.GetValue<string>() ?? "",
+                    Need = Math.Max(1, ReadInt(g, "need") ?? 2),
+                    Effect = goalEffect,
+                    MoreSteps = goalMore,
+                    GiftsText = string.Join(", ", keys),
+                    AlsoInstant = ReadBoolOr(g, "alsoInstant", true),
+                    Repeat = ReadBoolOr(g, "repeat", true),
+                });
+            }
+        }
+    }
+
+    private void SaveLiveEvents()
+    {
+        var likes = _root["likes"] as JsonObject ?? new JsonObject();
+        likes["every"] = LikesEvery;
+        WriteEffects(likes, LikesEffect, LikesMore);
+        _root["likes"] = likes;
+
+        var follow = _root["follow"] as JsonObject ?? new JsonObject();
+        WriteEffects(follow, FollowEffect, FollowMore);
+        follow["oncePerUser"] = FollowOncePerUser;
+        _root["follow"] = follow;
+
+        var share = _root["share"] as JsonObject ?? new JsonObject();
+        WriteEffects(share, ShareEffect, ShareMore);
+        _root["share"] = share;
+
+        var chat = _root["chat"] as JsonObject ?? new JsonObject();
+        chat["enabled"] = ChatEnabled;
+        chat["prefix"] = string.IsNullOrWhiteSpace(ChatPrefix) ? "!" : ChatPrefix.Trim();
+        chat["cooldownSec"] = ClampWaitSec(ChatCooldownSec);
+        chat["globalGapSec"] = ClampWaitSec(ChatGlobalGapSec);
+        var cmds = new JsonObject();
+        foreach (var cmd in ChatCommands)
+        {
+            // Un comando sin efecto («Ninguno») se conserva: borrarlo en silencio al guardar era perder lo escrito.
+            if (string.IsNullOrWhiteSpace(cmd.Word))
+            {
+                continue;
+            }
+
+            cmds[cmd.Word.Trim()] = CommandToNode(cmd);
+        }
+
+        chat["commands"] = cmds;
+        _root["chat"] = chat;
+
+        var twitch = _root["twitch"] as JsonObject ?? new JsonObject();
+        var twFollow = twitch["follow"] as JsonObject ?? new JsonObject();
+        WriteEffects(twFollow, TwitchFollowEffect, TwitchFollowMore);
+        twitch["follow"] = twFollow;
+        var twChat = twitch["chat"] as JsonObject ?? new JsonObject();
+        twChat["enabled"] = TwitchChatEnabled;
+        twChat["prefix"] = string.IsNullOrWhiteSpace(TwitchChatPrefix) ? "!" : TwitchChatPrefix.Trim();
+        twChat["cooldownSec"] = ClampWaitSec(TwitchChatCooldownSec);
+        twChat["globalGapSec"] = ClampWaitSec(TwitchChatGlobalGapSec);
+        var twCmds = new JsonObject();
+        foreach (var cmd in TwitchChatCommands)
+        {
+            if (string.IsNullOrWhiteSpace(cmd.Word))
+            {
+                continue;
+            }
+
+            twCmds[cmd.Word.Trim()] = CommandToNode(cmd);
+        }
+
+        twChat["commands"] = twCmds;
+        twitch["chat"] = twChat;
+        var bitsArr = new JsonArray();
+        foreach (var bit in TwitchBits.OrderBy(b => b.Min))
+        {
+            if (string.IsNullOrWhiteSpace(bit.Effect) || bit.Min < 1)
+            {
+                continue;
+            }
+
+            var bitNode = new JsonObject { ["min"] = bit.Min };
+            WriteEffects(bitNode, bit.Effect, bit.MoreSteps);
+            bitsArr.Add(bitNode);
+        }
+
+        twitch["bits"] = bitsArr;
+
+        // Una recompensa elegida sin efecto («Ninguno») se conserva, como los comandos: no se pierde lo elegido.
+        var rewardsArr = new JsonArray();
+        foreach (var reward in TwitchRewards)
+        {
+            var rewardId = (reward.RewardId ?? "").Trim();
+            var title = (reward.Title ?? "").Trim();
+            if (rewardId.Length == 0 && title.Length == 0)
+            {
+                continue;
+            }
+
+            var rewardNode = new JsonObject { ["rewardId"] = rewardId, ["title"] = title };
+            WriteEffects(rewardNode, reward.Effect, reward.MoreSteps);
+            rewardsArr.Add(rewardNode);
+        }
+
+        twitch["rewards"] = rewardsArr;
+        _root["twitch"] = twitch;
+
+        var goalsArr = new JsonArray();
+        var usedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var index = 0;
+        foreach (var goal in Goals)
+        {
+            index++;
+            if (string.IsNullOrWhiteSpace(goal.Effect) || goal.Need < 1)
+            {
+                continue;
+            }
+
+            var keys = SplitKeys(goal.GiftsText);
+            if (keys.Count == 0)
+            {
+                continue;
+            }
+
+            var label = string.IsNullOrWhiteSpace(goal.Label) ? keys[0] : goal.Label.Trim();
+            var id = GiftKeyNormalizer.Normalize(goal.Id);
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                id = GiftKeyNormalizer.Normalize(label);
+            }
+
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                id = $"meta-{index}";
+            }
+
+            var baseId = id;
+            var n = 2;
+            while (!usedIds.Add(id))
+            {
+                id = $"{baseId}-{n}";
+                n++;
+            }
+
+            var goalNode = new JsonObject
+            {
+                ["id"] = id,
+                ["label"] = label,
+                ["need"] = goal.Need,
+            };
+            WriteEffects(goalNode, goal.Effect, goal.MoreSteps);
+            goalNode["gifts"] = ToJsonArray(keys);
+            goalNode["alsoInstant"] = goal.AlsoInstant;
+            goalNode["repeat"] = goal.Repeat;
+            goalsArr.Add(goalNode);
+        }
+
+        _root["goals"] = goalsArr;
+    }
+
+    private static EditableGiftStep CloneStep(EditableGiftStep s) => new()
+    {
+        Effect = s.Effect,
+        DelaySec = s.DelaySec,
+        Params = new Dictionary<string, double>(s.Params, StringComparer.OrdinalIgnoreCase),
+    };
+
+    /// <summary>
+    /// Lee el efecto de un disparador. Con <c>effects</c> manda la lista: el primero es el efecto principal y el
+    /// resto se añade a <paramref name="more"/>. Sin lista, el <c>effect</c> de siempre.
+    /// </summary>
+    private static string ReadEffects(JsonObject obj, List<EditableGiftStep> more)
+    {
+        more.Clear();
+        var effect = (obj["effect"] as JsonValue)?.TryGetValue<string>(out var s) == true ? s : "";
+        if (obj["effects"] is JsonArray steps && steps.Count > 0)
+        {
+            var first = true;
+            foreach (var node in steps)
+            {
+                var (id, stepParams, delay) = ReadStep(node);
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    continue;
+                }
+
+                if (first)
+                {
+                    effect = id;
+                    first = false;
+                }
+                else if (more.Count < EffectPlan.MaxSteps - 1)
+                {
+                    more.Add(new EditableGiftStep { Effect = id, Params = stepParams, DelaySec = delay });
+                }
+            }
+        }
+
+        return effect ?? "";
+    }
+
+    /// <summary>
+    /// Escribe el efecto de un disparador. Con uno solo queda como siempre (<c>effect</c>); con varios se añade
+    /// <c>effects</c> y <c>effect</c> sigue siendo el primero.
+    /// </summary>
+    private static void WriteEffects(JsonObject obj, string? effect, List<EditableGiftStep> more)
+    {
+        var first = (effect ?? "").Trim();
+        obj["effect"] = first;
+        var extra = more.Where(s => !string.IsNullOrWhiteSpace(s.Effect)).Take(EffectPlan.MaxSteps - 1).ToList();
+        if (first.Length > 0 && extra.Count > 0)
+        {
+            var list = new JsonArray { StepToNode(first, new Dictionary<string, double>(), 0) };
+            foreach (var step in extra)
+            {
+                list.Add(StepToNode(step.Effect, step.Params, step.DelaySec));
+            }
+
+            obj["effects"] = list;
+        }
+        else
+        {
+            obj.Remove("effects");
+        }
+    }
+
+    private static EditableChatCommand ReadCommand(string word, JsonNode? value)
+    {
+        var command = new EditableChatCommand { Word = word };
+        if (value is JsonObject obj)
+        {
+            command.Effect = ReadEffects(obj, command.MoreSteps);
+        }
+        else
+        {
+            command.Effect = (value as JsonValue)?.TryGetValue<string>(out var s) == true ? s : "";
+        }
+
+        return command;
+    }
+
+    /// <summary>Comando con un efecto = texto de siempre; con varios, un objeto con <c>effect</c> y <c>effects</c>.</summary>
+    private static JsonNode CommandToNode(EditableChatCommand cmd)
+    {
+        var effect = (cmd.Effect ?? "").Trim();
+        if (effect.Length == 0 || !cmd.MoreSteps.Any(s => !string.IsNullOrWhiteSpace(s.Effect)))
+        {
+            return JsonValue.Create(effect)!;
+        }
+
+        var node = new JsonObject();
+        WriteEffects(node, effect, cmd.MoreSteps);
+        return node;
+    }
+
+    private static List<string> SplitKeys(string? text) =>
+        (text ?? "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Where(s => s.Length > 0)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    private static JsonArray ToJsonArray(IEnumerable<string> keys)
+    {
+        var arr = new JsonArray();
+        foreach (var key in keys)
+        {
+            arr.Add(key);
+        }
+
+        return arr;
+    }
+
+    private static void PushStrings(List<string> target, JsonObject obj, string key)
+    {
+        if (obj[key] is JsonValue scalar && scalar.TryGetValue<string>(out var one) &&
+            !string.IsNullOrWhiteSpace(one))
+        {
+            target.Add(one.Trim());
+            return;
+        }
+
+        if (obj[key] is not JsonArray arr)
+        {
+            return;
+        }
+
+        foreach (var node in arr)
+        {
+            if (node is JsonValue v && v.TryGetValue<string>(out var s) && !string.IsNullOrWhiteSpace(s))
+            {
+                target.Add(s.Trim());
+            }
+        }
+    }
+
+    private static int ClampWaitSec(int value) => Math.Clamp(value, 0, 3600);
+
+    /// <summary>Texto de una clave; vacío si falta o no es texto (un archivo editado a mano no debe romper la carga).</summary>
+    private static string ReadText(JsonObject obj, string key) =>
+        (obj[key] as JsonValue)?.TryGetValue<string>(out var s) == true ? s : "";
+
+    private static bool ReadBoolOr(JsonObject obj, string key, bool fallback) =>
+        obj[key] is null ? fallback : ReadBool(obj, key);
+
+    private static int? ReadInt(JsonObject obj, string key)
+    {
+        if (obj[key] is JsonValue v && v.TryGetValue<int>(out var n))
+        {
+            return n;
+        }
+
+        return null;
+    }
+
+    public void Add(EditableGift gift) => _gifts.Add(gift);
+
+    public bool RemoveAt(int index)
+    {
+        if (index < 0 || index >= _gifts.Count)
+        {
+            return false;
+        }
+
+        _gifts.RemoveAt(index);
+        return true;
+    }
+
+    private static EditableGift FromNode(JsonObject obj)
+    {
+        var also = new List<string>();
+        if (obj["also"] is JsonArray alsoArr)
+        {
+            foreach (var item in alsoArr)
+            {
+                var s = item?.GetValue<string>();
+                if (!string.IsNullOrWhiteSpace(s))
+                {
+                    also.Add(s);
+                }
+            }
+        }
+
+        int? diamonds = null;
+        if (obj["diamonds"] is JsonValue dv && dv.TryGetValue<int>(out var d))
+        {
+            diamonds = d;
+        }
+
+        var minCount = 1;
+        if (obj["minCount"] is JsonValue mv && mv.TryGetValue<int>(out var mc) && mc > 0)
+        {
+            minCount = mc;
+        }
+        else if (obj["min"] is JsonValue minv && minv.TryGetValue<int>(out var mn) && mn > 0)
+        {
+            minCount = mn;
+        }
+
+        var each = ReadBool(obj, "each") || ReadBool(obj, "perGift");
+
+        var effect = obj["effect"]?.GetValue<string>() ?? "";
+        var parameters = ReadParams(obj);
+        var moreSteps = new List<EditableGiftStep>();
+        if (obj["effects"] is JsonArray steps && steps.Count > 0)
+        {
+            // Con «effects» manda la lista: el primero es el efecto principal y el resto van detrás.
+            var first = true;
+            foreach (var node in steps)
+            {
+                var (id, stepParams, delay) = ReadStep(node);
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    continue;
+                }
+
+                if (first)
+                {
+                    effect = id;
+                    parameters = stepParams;
+                    first = false;
+                }
+                else if (moreSteps.Count < EffectPlan.MaxSteps - 1)
+                {
+                    moreSteps.Add(new EditableGiftStep { Effect = id, Params = stepParams, DelaySec = delay });
+                }
+            }
+        }
+
+        return new EditableGift
+        {
+            Gift = obj["gift"]?.GetValue<string>() ?? obj["name"]?.GetValue<string>() ?? "",
+            Also = also,
+            Id = obj["id"]?.ToString()?.Trim('"') ?? "",
+            Effect = effect,
+            What = obj["what"]?.GetValue<string>() ?? obj["note"]?.GetValue<string>() ?? "",
+            Diamonds = diamonds,
+            MinCount = minCount,
+            Each = each,
+            Image = obj["image"]?.GetValue<string>() ?? obj["img"]?.GetValue<string>() ?? "",
+            Overlay = ReadBool(obj, "overlay"),
+            OverlayText = obj["overlayText"]?.GetValue<string>() ?? obj["overlay_text"]?.GetValue<string>() ?? "",
+            Params = parameters,
+            MoreSteps = moreSteps,
+        };
+    }
+
+    private static (string Effect, Dictionary<string, double> Params, double DelaySec) ReadStep(JsonNode? node)
+    {
+        if (node is JsonValue value && value.TryGetValue<string>(out var text))
+        {
+            return (text.Trim(), new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase), 0);
+        }
+
+        if (node is JsonObject obj)
+        {
+            var id = (obj["effect"] ?? obj["action"])?.GetValue<string>()?.Trim() ?? "";
+            var delay = 0.0;
+            if (obj["delaySec"] is JsonValue dv && TryReadDouble(dv, out var d))
+            {
+                delay = Math.Clamp(d, 0, EffectPlan.MaxDelaySec);
+            }
+
+            return (id, ReadParams(obj), delay);
+        }
+
+        return ("", new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase), 0);
+    }
+
+    private static Dictionary<string, double> ReadParams(JsonObject obj)
+    {
+        var dict = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        if (obj["params"] is not JsonObject paramsObj)
+        {
+            return dict;
+        }
+
+        foreach (var kv in paramsObj)
+        {
+            if (string.IsNullOrWhiteSpace(kv.Key) || kv.Key.StartsWith('_'))
+            {
+                continue;
+            }
+
+            if (kv.Value is JsonValue v && TryReadDouble(v, out var n))
+            {
+                dict[kv.Key] = n;
+            }
+        }
+
+        return dict;
+    }
+
+    private static bool TryReadDouble(JsonValue v, out double value)
+    {
+        if (v.TryGetValue<double>(out value))
+        {
+            return true;
+        }
+
+        if (v.TryGetValue<int>(out var i))
+        {
+            value = i;
+            return true;
+        }
+
+        if (v.TryGetValue<long>(out var l))
+        {
+            value = l;
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    private static bool ReadBool(JsonObject obj, string key)
+    {
+        if (obj[key] is not JsonValue v)
+        {
+            return false;
+        }
+
+        if (v.TryGetValue<bool>(out var b))
+        {
+            return b;
+        }
+
+        if (v.TryGetValue<int>(out var n))
+        {
+            return n != 0;
+        }
+
+        if (v.TryGetValue<string>(out var s))
+        {
+            return s is "1" or "true" or "True" or "yes" or "sí" or "si";
+        }
+
+        return false;
+    }
+
+    private static JsonObject ToNode(EditableGift gift)
+    {
+        var obj = new JsonObject
+        {
+            ["gift"] = gift.Gift,
+            ["effect"] = gift.Effect,
+        };
+
+        if (gift.Also.Count > 0)
+        {
+            var also = new JsonArray();
+            foreach (var a in gift.Also)
+            {
+                also.Add(a);
+            }
+
+            obj["also"] = also;
+        }
+
+        if (!string.IsNullOrWhiteSpace(gift.Id))
+        {
+            obj["id"] = gift.Id;
+        }
+
+        if (gift.Diamonds is int diamonds)
+        {
+            obj["diamonds"] = diamonds;
+        }
+
+        if (gift.MinCount > 1)
+        {
+            obj["minCount"] = gift.MinCount;
+        }
+
+        if (gift.Each)
+        {
+            obj["each"] = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(gift.What))
+        {
+            obj["what"] = gift.What;
+        }
+
+        if (!string.IsNullOrWhiteSpace(gift.Image))
+        {
+            obj["image"] = gift.Image.Trim();
+        }
+
+        if (gift.Overlay)
+        {
+            obj["overlay"] = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(gift.OverlayText))
+        {
+            obj["overlayText"] = gift.OverlayText.Trim();
+        }
+
+        if (gift.Params.Count > 0)
+        {
+            var paramsObj = new JsonObject();
+            foreach (var (key, value) in gift.Params)
+            {
+                if (string.IsNullOrWhiteSpace(key) || key.StartsWith('_'))
+                {
+                    continue;
+                }
+
+                paramsObj[key] = Math.Abs(value - Math.Round(value)) < 0.0000001
+                    ? JsonValue.Create((long)Math.Round(value))
+                    : JsonValue.Create(value);
+            }
+
+            if (paramsObj.Count > 0)
+            {
+                obj["params"] = paramsObj;
+            }
+        }
+
+        // Con un solo efecto el archivo queda como siempre (lo leen también las versiones antiguas). Con varios se
+        // añade «effects»; «effect» y «params» siguen siendo el primero para que una versión vieja al menos lo lance.
+        var more = gift.MoreSteps.Where(s => !string.IsNullOrWhiteSpace(s.Effect)).ToList();
+        if (more.Count > 0)
+        {
+            var list = new JsonArray { StepToNode(gift.Effect, gift.Params, 0) };
+            foreach (var step in more.Take(EffectPlan.MaxSteps - 1))
+            {
+                list.Add(StepToNode(step.Effect, step.Params, step.DelaySec));
+            }
+
+            obj["effects"] = list;
+        }
+
+        return obj;
+    }
+
+    private static JsonObject StepToNode(string effect, Dictionary<string, double> parameters, double delaySec)
+    {
+        var node = new JsonObject { ["effect"] = effect.Trim() };
+        var paramsObj = new JsonObject();
+        foreach (var (key, value) in parameters)
+        {
+            if (string.IsNullOrWhiteSpace(key) || key.StartsWith('_'))
+            {
+                continue;
+            }
+
+            paramsObj[key] = Math.Abs(value - Math.Round(value)) < 0.0000001
+                ? JsonValue.Create((long)Math.Round(value))
+                : JsonValue.Create(value);
+        }
+
+        if (paramsObj.Count > 0)
+        {
+            node["params"] = paramsObj;
+        }
+
+        if (delaySec > 0)
+        {
+            node["delaySec"] = Math.Round(Math.Clamp(delaySec, 0, EffectPlan.MaxDelaySec), 2);
+        }
+
+        return node;
+    }
+}

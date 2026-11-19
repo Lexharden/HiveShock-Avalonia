@@ -62,7 +62,7 @@ public sealed class GameEventServer : IAsyncDisposable
                     break;
                 }
 
-                _ = HandleClientAsync(client, ct);
+                HandleClientAsync(client, ct).FireAndLog("Cliente del juego");
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

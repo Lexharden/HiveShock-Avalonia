@@ -1,8 +1,8 @@
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
-using HiveShock.Android.ViewModels;
-using HiveShock.Android.Views;
+using HiveShock.Mobile.ViewModels;
+using HiveShock.Mobile.Views;
 
 namespace HiveShock.Android;
 

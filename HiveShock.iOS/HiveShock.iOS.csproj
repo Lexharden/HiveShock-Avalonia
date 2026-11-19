@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Cabeza iOS de la UI móvil compartida (HiveShock.Mobile). Solo se compila en macOS con Xcode y el workload ios. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-ios</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+    <RootNamespace>HiveShock.iOS</RootNamespace>
+    <AssemblyName>HiveShock.iOS</AssemblyName>
+    <ApplicationId>dev.yafel.hiveshock</ApplicationId>
+    <ApplicationTitle>HiveShock</ApplicationTitle>
+    <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
+    <_CoreVersion>$(Version.Split('-')[0])</_CoreVersion>
+    <ApplicationVersion>$(_CoreVersion)</ApplicationVersion>
+    <ProvisioningType>manual</ProvisioningType>
+    <!-- Sin recorte al principio: el proyecto nunca se ha compilado con AOT (System.Text.Json y protobuf-net usan reflexión). -->
+    <MtouchLink>None</MtouchLink>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.iOS" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HiveShock.Core\HiveShock.Core.csproj" />
+    <ProjectReference Include="..\HiveShock.Mobile\HiveShock.Mobile.csproj" />
+  </ItemGroup>
+
+  <!-- Catálogo de perfiles y archivos de referencia dentro del bundle; IosAssetSeed los copia a la carpeta de datos. -->
+  <ItemGroup>
+    <BundleResource Include="..\config\profiles\**\*"
+                    Exclude="..\config\profiles\**\*.bak;..\config\profiles\**\*.tmp;..\config\profiles\**\*.corrupt"
+                    Link="profiles-catalog\%(RecursiveDir)%(Filename)%(Extension)" />
+    <BundleResource Include="..\config\gift-catalog.json" Link="gift-catalog.json" />
+    <BundleResource Include="..\config\tiktok_gifts.json" Link="tiktok_gifts.json" />
+    <BundleResource Include="..\config\active-profile.txt" Link="active-profile.txt" />
+    <BundleResource Include="..\config\.env.example" Link="env.example" />
+  </ItemGroup>
+</Project>

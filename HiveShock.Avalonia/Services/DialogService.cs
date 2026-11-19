@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using HiveShock.Avalonia.Views.Dialogs;
 using HiveShock.Configuration;
+using HiveShock.Updates;
 
 namespace HiveShock.Avalonia.Services;
 
@@ -74,6 +75,10 @@ public sealed class DialogService
         return await ShowAsync(dlg);
     }
 
+    /// <summary>Ventana «Novedades» con las notas de una o varias versiones.</summary>
+    public Task ShowWhatsNewAsync(IReadOnlyList<ChangelogEntry> entries, string heading, string? subtitle = null) =>
+        ShowAsync(new WhatsNewDialog(entries, heading, subtitle));
+
     public async Task<CatalogGift?> PickCatalogAsync(IReadOnlyList<CatalogGift> items)
     {
         var dlg = new CatalogPickDialog(items);
@@ -83,7 +88,7 @@ public sealed class DialogService
     public async Task<(string Name, ProfileTemplate Template)?> NewProfileAsync(string currentProfileName)
     {
         var dlg = new NewProfileDialog(currentProfileName);
-        return await ShowAsync(dlg) ? (dlg.ProfileName, dlg.Template) : null;
+        return await ShowAsync(dlg) ? (dlg.ProfileName, dlg.StartingPoint) : null;
     }
 
     public async Task<CatalogGift?> EditCatalogAsync(CatalogGift? existing)

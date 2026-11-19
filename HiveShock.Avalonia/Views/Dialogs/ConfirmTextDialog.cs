@@ -29,6 +29,7 @@ public sealed class ConfirmTextDialog : Window
 
         var buttons = new StackPanel
         {
+            Classes = { "bar" },
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Right,
             Spacing = 8,

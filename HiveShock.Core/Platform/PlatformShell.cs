@@ -6,7 +6,7 @@ public static class PlatformShell
 {
     public static void OpenFolder(string path)
     {
-        if (OperatingSystem.IsAndroid())
+        if (MobilePlatform.IsMobile)
         {
             return;
         }
@@ -41,7 +41,7 @@ public static class PlatformShell
 
     public static void OpenFile(string path)
     {
-        if (OperatingSystem.IsAndroid())
+        if (MobilePlatform.IsMobile)
         {
             return;
         }
@@ -86,6 +86,12 @@ public static class PlatformShell
         if (UrlLauncher != null)
         {
             UrlLauncher(url);
+            return;
+        }
+
+        if (MobilePlatform.IsMobile)
+        {
+            // Sin lanzador no hay navegador al que llamar (en iOS no se pueden crear procesos).
             return;
         }
 

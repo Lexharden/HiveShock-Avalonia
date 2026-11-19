@@ -14,7 +14,8 @@
   "enemyEffects": [
     "enemy", "like_like", "guay", "keese", "chuchu", "redead", "wolfos", "stalchild",
     "bubble", "skulltula", "bat", "tektite", "freezard", "random_enemy", "cucco", "cucco_army",
-    "dinolfos", "iron_knuckle", "garo", "garo_master", "wallmaster", "floormaster", "eyegore"
+    "dinolfos", "iron_knuckle", "garo", "garo_master", "wallmaster", "floormaster", "eyegore",
+    "nejiron", "dodongo", "takkuri", "death_armos", "gerudo_pirate", "gomess", "odolwa", "majora"
   ],
   "labels": {
     "impulse": "Saltito / impulso",
@@ -50,6 +51,14 @@
     "wallmaster": "Enemigo elite — Wallmaster",
     "floormaster": "Enemigo elite — Floormaster",
     "eyegore": "Enemigo elite — Eyegore",
+    "nejiron": "Enemigo — Nejiron",
+    "dodongo": "Enemigo — Dodongo",
+    "takkuri": "Enemigo — Takkuri",
+    "death_armos": "Enemigo elite — Death Armos",
+    "gerudo_pirate": "Enemigo elite — Pirata gerudo",
+    "gomess": "Enemigo elite — Gomess",
+    "odolwa": "Jefe — Odolwa",
+    "majora": "Jefe — Majora's Wrath",
     "random_enemy": "Enemigo — Aleatorio",
     "cucco": "Enemigo — Cucco",
     "cucco_army": "Enemigo — Ejército de cuccos",
@@ -77,7 +86,7 @@
     "warp_milk_road": "Teletransporte — Milk Road",
     "warp_ikana": "Teletransporte — Cañón Ikana",
     "warp_stone_tower": "Teletransporte — Stone Tower",
-    "time_skip": "Saltar tiempo",
+    "time_skip": "Saltar tiempo (el día 3 hace caer la luna)",
     "time_up": "Fin del mundo / luna",
     "freeze_time": "Congelar tiempo",
     "resume_time": "Reanudar tiempo",

@@ -57,12 +57,12 @@ public static class ActivityCopy
 
         if (m.StartsWith("Share ", StringComparison.Ordinal))
         {
-            return FormatArrowLine(m["Share ".Length..], "compartió el live");
+            return FormatArrowLine(m["Share ".Length..], "compartió el directo");
         }
 
         if (m.StartsWith("Chat saturado", StringComparison.Ordinal))
         {
-            return "El chat mandó muchos comandos a la vez. Se omiten unos.";
+            return "El chat mandó muchos comandos a la vez. Se ignoraron algunos.";
         }
 
         if (m.StartsWith("Chat ", StringComparison.Ordinal) &&
@@ -84,6 +84,21 @@ public static class ActivityCopy
             return FormatArrowLine(m["Bits ".Length..], "mandó bits");
         }
 
+        // «Recompensa ana «Saltar» (500 puntos) -> impulse» / «Recompensa «Hidratarse» canjeada sin efecto…»
+        if (m.StartsWith("Recompensa ", StringComparison.Ordinal))
+        {
+            var title = Between(m, '«', '»');
+            if (!m.Contains("->", StringComparison.Ordinal))
+            {
+                return title.Length > 0 ? $"Canjearon «{title}», que no tiene efecto en HiveShock." : null;
+            }
+
+            var user = m["Recompensa ".Length..].Split(' ', 2)[0];
+            var effect = m[(m.IndexOf("->", StringComparison.Ordinal) + 2)..].Trim();
+            var paren = effect.IndexOf('(');
+            return $"{user} canjeó «{title}» → {(paren > 0 ? effect[..paren].Trim() : effect)}";
+        }
+
         if (m.StartsWith("Meta ", StringComparison.Ordinal))
         {
             if (m.Contains("->", StringComparison.Ordinal))
@@ -96,12 +111,12 @@ public static class ActivityCopy
 
         if (m.StartsWith("Capturado ", StringComparison.Ordinal))
         {
-            return "Anotamos un regalo nuevo del live.";
+            return "Regalo nuevo anotado en el catálogo.";
         }
 
         if (m.StartsWith("TikTok conectando", StringComparison.Ordinal))
         {
-            return "TikTok: conectando al live…";
+            return "TikTok: conectando al directo…";
         }
 
         if (m.StartsWith("TikTok conectado", StringComparison.Ordinal))
@@ -122,7 +137,7 @@ public static class ActivityCopy
 
         if (m.StartsWith("TikTok live terminado", StringComparison.Ordinal))
         {
-            return "TikTok: el live se cerró.";
+            return "TikTok: el directo terminó.";
         }
 
         if (m.StartsWith("Twitch conectando", StringComparison.Ordinal))
@@ -140,7 +155,14 @@ public static class ActivityCopy
 
         if (m.StartsWith("Twitch bits:", StringComparison.Ordinal))
         {
-            return "Twitch: bits no autorizado. Sal y entra otra vez.";
+            return "Twitch: falta permiso para los bits. Sal y vuelve a entrar con tu cuenta.";
+        }
+
+        if (m.StartsWith("Twitch recompensas:", StringComparison.Ordinal))
+        {
+            return m.Contains("permiso", StringComparison.OrdinalIgnoreCase)
+                ? "Twitch: para usar los puntos del canal, vuelve a entrar con tu cuenta (pestaña Recompensas)."
+                : "Twitch: no se pudieron activar las recompensas de puntos (¿el canal es Afiliado?).";
         }
 
         if (m.StartsWith("Twitch desconectado", StringComparison.Ordinal) ||
@@ -155,12 +177,12 @@ public static class ActivityCopy
         if (m.StartsWith("Pruebas escuchando", StringComparison.Ordinal) ||
             m.StartsWith("Modo pruebas:", StringComparison.Ordinal))
         {
-            return "Modo pruebas listo.";
+            return "Sin conexión: listo para probar efectos.";
         }
 
         if (m.StartsWith("Captura de regalos", StringComparison.Ordinal))
         {
-            return "Anotando regalos del live…";
+            return "Anotando los regalos del directo…";
         }
 
         if (m.StartsWith("Inicio mode=", StringComparison.Ordinal))
@@ -218,12 +240,31 @@ public static class ActivityCopy
             return "Juego activo actualizado.";
         }
 
+        // Al añadir desde el catálogo (doble clic) la lista de regalos no está a la vista: se confirma abajo.
+        if (m.StartsWith("Añadido a regalos: ", StringComparison.Ordinal))
+        {
+            var added = $"{NameBeforeParen(m["Añadido a regalos: ".Length..])} añadido a tus regalos.";
+            return m.EndsWith("(pulsa Guardar)", StringComparison.Ordinal) ? added + " Pulsa Guardar." : added;
+        }
+
+        if (m.StartsWith("Ya estaba en regalos: ", StringComparison.Ordinal))
+        {
+            return $"{m["Ya estaba en regalos: ".Length..].Trim()} ya estaba en tus regalos.";
+        }
+
         if (m.StartsWith("Sin mapeo:", StringComparison.Ordinal))
         {
             return "Llegó un regalo que aún no tiene efecto. Revisa Regalos o búscalo en Catálogo.";
         }
 
         return null;
+    }
+
+    private static string Between(string text, char open, char close)
+    {
+        var start = text.IndexOf(open);
+        var end = start >= 0 ? text.IndexOf(close, start + 1) : -1;
+        return end > start ? text[(start + 1)..end].Trim() : "";
     }
 
     private static string NameBeforeParen(string text)

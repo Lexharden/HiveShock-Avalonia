@@ -19,7 +19,8 @@ public sealed class TwitchEventSubClient
         Action<ViewerIdentity, int> onCheer,
         Action connected,
         CancellationToken ct,
-        Func<string, bool>? isNew = null)
+        Func<string, bool>? isNew = null,
+        Action<ViewerIdentity, TwitchRedemption>? onRedeem = null)
     {
         var url = DefaultSocket;
         while (!ct.IsCancellationRequested)
@@ -72,7 +73,8 @@ public sealed class TwitchEventSubClient
                             ? ks.GetInt32()
                             : 10;
                         keepalive = TimeSpan.FromSeconds(Math.Max(10, timeout + 5));
-                        await SubscribeAsync(clientId, accessToken, userId, sessionId!, ct).ConfigureAwait(false);
+                        await SubscribeAsync(clientId, accessToken, userId, sessionId!, onRedeem != null, ct)
+                            .ConfigureAwait(false);
                         connected();
                         break;
                     case "session_keepalive":
@@ -92,7 +94,7 @@ public sealed class TwitchEventSubClient
 
                         goto NextSocket;
                     case "notification":
-                        HandleNotification(root, onChat, onFollow, onCheer, isNew);
+                        HandleNotification(root, onChat, onFollow, onCheer, isNew, onRedeem);
                         break;
                     case "revocation":
                         throw new InvalidOperationException("Twitch canceló la suscripción. Vuelve a conectar.");
@@ -116,7 +118,8 @@ public sealed class TwitchEventSubClient
         Action<ViewerIdentity, string> onChat,
         Action<ViewerIdentity> onFollow,
         Action<ViewerIdentity, int> onCheer,
-        Func<string, bool>? isNew = null)
+        Func<string, bool>? isNew = null,
+        Action<ViewerIdentity, TwitchRedemption>? onRedeem = null)
     {
         if (isNew != null &&
             root.TryGetProperty("metadata", out var meta) &&
@@ -163,6 +166,23 @@ public sealed class TwitchEventSubClient
             return;
         }
 
+        if (string.Equals(subType, TwitchRewardsApi.EventSubType, StringComparison.OrdinalIgnoreCase))
+        {
+            if (onRedeem == null || TwitchRewardsApi.ParseRedemption(evt) is not { } redemption)
+            {
+                return;
+            }
+
+            // El id del canje es único: aunque Twitch lo mande dos veces con otro message_id, sale una sola vez.
+            if (isNew != null && !isNew(RedemptionKey(redemption.Id)))
+            {
+                return;
+            }
+
+            onRedeem(ReadViewer(evt, "user_id", "user_login", "user_name"), redemption);
+            return;
+        }
+
         if (string.Equals(subType, "channel.cheer", StringComparison.OrdinalIgnoreCase))
         {
             var bits = 0;
@@ -188,6 +208,8 @@ public sealed class TwitchEventSubClient
 
     public static string FollowKey(string userId, string followedAt) => $"follow:{userId}:{followedAt}";
 
+    public static string RedemptionKey(string redemptionId) => $"redeem:{redemptionId}";
+
     private static ViewerIdentity ReadViewer(JsonElement evt, string idProp, string loginProp, string nameProp) =>
         ViewerIdentity.Twitch(ReadString(evt, idProp), ReadString(evt, loginProp), ReadString(evt, nameProp));
 
@@ -199,6 +221,7 @@ public sealed class TwitchEventSubClient
         string accessToken,
         string userId,
         string sessionId,
+        bool redemptions,
         CancellationToken ct)
     {
         await CreateSubscriptionAsync(
@@ -255,6 +278,32 @@ public sealed class TwitchEventSubClient
         {
             BridgeLog.Warn($"Twitch bits: {ex.Message}");
         }
+
+        if (!redemptions)
+        {
+            return;
+        }
+
+        // Opcional como los bits: sin puntos de canal (no Afiliado) o sin permiso, el resto sigue funcionando.
+        try
+        {
+            await CreateSubscriptionAsync(
+                clientId,
+                accessToken,
+                sessionId,
+                TwitchRewardsApi.EventSubType,
+                "1",
+                new Dictionary<string, string>
+                {
+                    ["broadcaster_user_id"] = userId,
+                },
+                required: false,
+                ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            BridgeLog.Warn($"Twitch recompensas: {ex.Message}");
+        }
     }
 
     private static async Task CreateSubscriptionAsync(
@@ -267,7 +316,7 @@ public sealed class TwitchEventSubClient
         bool required,
         CancellationToken ct)
     {
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        var http = HiveShock.Net.SharedHttp.Client;
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.twitch.tv/helix/eventsub/subscriptions");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         request.Headers.TryAddWithoutValidation("Client-Id", clientId);

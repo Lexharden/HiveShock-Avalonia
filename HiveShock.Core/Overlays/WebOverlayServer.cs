@@ -215,7 +215,7 @@ public sealed class WebOverlayServer : IDisposable
                 continue;
             }
 
-            _ = Task.Run(() => HandleAsync(client, ct), ct);
+            Task.Run(() => HandleAsync(client, ct), ct).FireAndLog("Overlay web");
         }
     }
 
