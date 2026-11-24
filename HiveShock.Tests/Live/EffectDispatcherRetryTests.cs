@@ -75,6 +75,33 @@ public sealed class EffectDispatcherRetryTests
         }
     }
 
+    /// <summary>El juego acepta la conexión y la corta con el envío a medias: cuenta como «no disponible» (se reintenta).</summary>
+    [Fact]
+    public async Task Game_that_drops_the_connection_mid_send_counts_as_unavailable()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var client = new GameTcpClient(new BridgeOptions
+        {
+            GameHost = "127.0.0.1",
+            GamePort = ((IPEndPoint)listener.LocalEndpoint).Port,
+            EffectGapMs = 0,
+            GameConnectTimeout = TimeSpan.FromSeconds(20),
+        });
+
+        // Mucho mayor que los buffers del sistema: la escritura sigue en curso cuando llega el corte.
+        var send = client.SendAsync(
+            new Dictionary<string, object?> { ["action"] = new string('x', 64 * 1024 * 1024) }, CancellationToken.None);
+        using (var game = await listener.AcceptTcpClientAsync())
+        {
+            await game.GetStream().ReadExactlyAsync(new byte[1]);
+            game.LingerState = new LingerOption(true, 0);
+        }
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => send);
+        Assert.IsType<IOException>(ex.InnerException);
+    }
+
     [Fact]
     public async Task Effect_is_dropped_once_the_retry_window_is_over_and_the_queue_keeps_moving()
     {
