@@ -56,8 +56,9 @@ public sealed class GameTcpClient
                 throw new TimeoutException(
                     $"Timeout juego {_options.GameHost}:{_options.GamePort}");
             }
-            catch (SocketException ex)
+            catch (Exception ex) when (ex is SocketException or IOException)
             {
+                // Conectar falla con SocketException; si el juego corta durante el envío, NetworkStream da IOException.
                 throw new InvalidOperationException($"Juego: {ex.Message}", ex);
             }
         }
