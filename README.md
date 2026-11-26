@@ -21,7 +21,7 @@ Cada **canal** (TikTok, Twitch) tiene su propia ficha en Inicio. El programa no 
 - .NET 10 SDK (`global.json`, banda 10.0.x)
 - Windows x64, macOS 13+ (Apple Silicon / Intel) o Linux x64/ARM64
 
-El puente al juego (Majora’s Mask / Ocarina of Time / Twilight Princess / Super Mario 64) puede correr en el mismo equipo o en otro PC (`GAME_HOST` en `.env`).
+El puente al juego (Majora’s Mask / Ocarina of Time / Twilight Princess / Super Mario 64 / Mario Kart 64) puede correr en el mismo equipo o en otro PC (`GAME_HOST` en `.env`).
 
 ## Arranque en desarrollo
 
