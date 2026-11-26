@@ -80,6 +80,9 @@ public sealed class EffectDispatcherRetryTests
     public async Task Game_that_drops_the_connection_mid_send_counts_as_unavailable()
     {
         using var listener = new TcpListener(IPAddress.Loopback, 0);
+        // Ventana de recepción pequeña (se fija antes de escuchar para que la herede la conexión aceptada). Sin ella,
+        // el loopback de Windows llega a aceptar los 64 MB enteros antes del corte y el envío «termina bien».
+        listener.Server.ReceiveBufferSize = 4096;
         listener.Start();
         var client = new GameTcpClient(new BridgeOptions
         {
