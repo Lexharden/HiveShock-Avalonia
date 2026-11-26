@@ -847,16 +847,17 @@ public sealed partial class MainViewModel : ViewModelBase, IAsyncDisposable
             // ignore
         }
 
-        BridgeLog.Close();
-
         try
         {
             await Runtime.DisposeAsync().ConfigureAwait(true);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignore
+            BridgeLog.Warn($"Cierre: {ex.Message}");
         }
+
+        // Lo último: hasta aquí todo lo que falle al cerrar queda en el log.
+        BridgeLog.Close();
     }
 
     public async ValueTask DisposeAsync() => await ShutdownAsync().ConfigureAwait(true);

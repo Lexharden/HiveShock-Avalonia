@@ -22,6 +22,9 @@ public enum BridgeRunMode
 public sealed partial class BridgeRuntime : IAsyncDisposable
 {
     private readonly object _gate = new();
+
+    /// <summary>Arrancar y parar, de uno en uno: una conexión nueva no empieza hasta que la anterior terminó de cerrarse.</summary>
+    private readonly SemaphoreSlim _lifecycle = new(1, 1);
     private IHost? _host;
     private CancellationTokenSource? _cts;
     private Task? _runTask;
@@ -53,7 +56,7 @@ public sealed partial class BridgeRuntime : IAsyncDisposable
     public SystemEffectService SystemEffects { get; }
 
     /// <summary>Qué regalos y mensajes ya se vieron (sin duplicados) y qué efectos aceptados aún no llegaron al juego.</summary>
-    public GiftLedger Ledger { get; } = GiftLedger.OpenDefault();
+    public GiftLedger Ledger { get; }
 
     private bool _cancelHotkeyOn;
 
@@ -97,14 +100,17 @@ public sealed partial class BridgeRuntime : IAsyncDisposable
 
     public BridgeRunMode? ActiveMode { get; private set; }
 
-    private BridgeRuntime(
+    /// <param name="ledger">Solo para pruebas; por defecto, el registro del usuario en disco.</param>
+    internal BridgeRuntime(
         BridgeOptions options,
         LoadedGameProfile profile,
         EffectCatalog effects,
         GiftConfigStore gifts,
         GiftCatalogStore catalog,
-        MacroLibrary library)
+        MacroLibrary library,
+        GiftLedger? ledger = null)
     {
+        Ledger = ledger ?? GiftLedger.OpenDefault();
         Options = options;
         _profile = profile;
         _library = library;
@@ -195,7 +201,24 @@ public sealed partial class BridgeRuntime : IAsyncDisposable
         }
     }
 
-    public async Task StartAsync(BridgeRunMode mode, CancellationToken ct = default)
+    public Task StartAsync(BridgeRunMode mode, CancellationToken ct = default) =>
+        StartHostAsync(mode, () => BuildHost(mode), ct);
+
+    /// <summary>Arranca el host que cree <paramref name="build"/> (las pruebas pasan uno propio, sin canales).</summary>
+    internal async Task StartHostAsync(BridgeRunMode mode, Func<IHost> build, CancellationToken ct = default)
+    {
+        await _lifecycle.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            StartCore(mode, build, ct);
+        }
+        finally
+        {
+            _lifecycle.Release();
+        }
+    }
+
+    private void StartCore(BridgeRunMode mode, Func<IHost> build, CancellationToken ct)
     {
         lock (_gate)
         {
@@ -205,6 +228,20 @@ public sealed partial class BridgeRuntime : IAsyncDisposable
             }
         }
 
+        var host = build();
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+        lock (_gate)
+        {
+            _host = host;
+            _cts = cts;
+            ActiveMode = mode;
+            _runTask = Task.Run(() => RunHostAsync(host, cts.Token), CancellationToken.None);
+        }
+    }
+
+    private IHost BuildHost(BridgeRunMode mode)
+    {
         ApplyMode(mode);
 
         if (mode is BridgeRunMode.Capture && !Options.TikTokReady)
@@ -253,18 +290,10 @@ public sealed partial class BridgeRuntime : IAsyncDisposable
 
         var host = builder.Build();
         EnsureKeyPump();
-        var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-
-        lock (_gate)
-        {
-            _host = host;
-            _cts = cts;
-            ActiveMode = mode;
-            _runTask = RunHostAsync(host, cts.Token);
-        }
+        return host;
     }
 
-    private static async Task RunHostAsync(IHost host, CancellationToken ct)
+    private async Task RunHostAsync(IHost host, CancellationToken ct)
     {
         try
         {
@@ -274,6 +303,37 @@ public sealed partial class BridgeRuntime : IAsyncDisposable
         {
             // Normal al pulsar Desconectar / cerrar la app.
         }
+        catch (Exception ex)
+        {
+            BridgeLog.Error($"El puente se detuvo por un error: {ex.Message}");
+            throw;
+        }
+        finally
+        {
+            ReleaseIfCurrent(host);
+        }
+    }
+
+    /// <summary>El host terminó por su cuenta (sin <see cref="StopAsync"/>): ya no está en marcha.</summary>
+    private void ReleaseIfCurrent(IHost host)
+    {
+        CancellationTokenSource? cts;
+        lock (_gate)
+        {
+            if (!ReferenceEquals(_host, host))
+            {
+                return; // StopAsync ya se hizo cargo
+            }
+
+            cts = _cts;
+            _host = null;
+            _cts = null;
+            _runTask = null;
+            ActiveMode = null;
+        }
+
+        SystemEffects.Cancel("se detuvo el puente");
+        cts?.Dispose();
     }
 
     public Task WaitUntilStoppedAsync()
@@ -305,11 +365,24 @@ public sealed partial class BridgeRuntime : IAsyncDisposable
     /// </param>
     public async Task StopAsync(bool keepPending = false)
     {
-        if (!keepPending)
+        await _lifecycle.WaitAsync().ConfigureAwait(false);
+        try
         {
-            Ledger.DiscardAllPending();
+            await StopCoreAsync().ConfigureAwait(false);
+            if (!keepPending)
+            {
+                // Con el host ya parado: lo que entró mientras se cerraba tampoco debe salir al reconectar.
+                Ledger.DiscardAllPending();
+            }
         }
+        finally
+        {
+            _lifecycle.Release();
+        }
+    }
 
+    private async Task StopCoreAsync()
+    {
         // Una cuenta atrás no debe sobrevivir a desconectar: quien se va del live no espera un reinicio.
         SystemEffects.Cancel("se desconectó el puente");
         IHost? host;
