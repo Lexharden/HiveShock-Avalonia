@@ -4,6 +4,10 @@ Cambios relevantes de HiveShock. El versionado se encuentra en `Directory.Build.
 
 ## [Unreleased]
 
+### Mario Kart 64
+* **Nuevo perfil «Mario Kart 64 (SpaghettiKart)».** 49 efectos: objetos en la ruleta (champiñones, estrella, Boo, rayo, plátanos, caja falsa, caparazones verde, rojo y azul), turbo, gigante, trampas en la pista, karts bomba, golpes (derrape, trompo, voltereta, explosión, aplastado, Lakitu) y temporales (controles invertidos, mareo, motor calado, acelerador a fondo, saltos, lento, mini). También efectos contra los rivales. Incluye regalos de ejemplo y las etiquetas en español.
+* Se activa en SpaghettiKart desde **Network > HiveShock > Enable HiveShock**. Las caídas vuelven al puente por el puerto de eventos (43002).
+
 ### Arreglos
 * **Si el juego corta la conexión justo al recibir un efecto, se reintenta** en vez de perderse.
 * Si el puente se detiene por un error, la app vuelve a «Listo» y se puede conectar otra vez (antes seguía como conectada).

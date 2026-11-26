@@ -1,0 +1,127 @@
+{
+  "_help": "Perfil Mario Kart 64 (SpaghettiKart). Combos: minCount, each. overlay=true muestra chip OBS.",
+  "gifts": [
+    {
+      "gift": "Rose",
+      "id": "5655",
+      "effect": "bananas",
+      "what": "Lluvia de plátanos",
+      "also": [
+        "Rosa"
+      ]
+    },
+    {
+      "gift": "Heart Me",
+      "id": "7934",
+      "effect": "boost",
+      "what": "Acelerón"
+    },
+    {
+      "gift": "TikTok",
+      "effect": "item_random",
+      "what": "Objeto sorpresa"
+    },
+    {
+      "gift": "Finger Heart",
+      "id": "5827",
+      "effect": "green_shells",
+      "what": "Ráfaga de caparazones"
+    },
+    {
+      "gift": "GG",
+      "effect": "spinout",
+      "what": "Trompo"
+    },
+    {
+      "gift": "Doughnut",
+      "effect": "item_triple_mushroom",
+      "what": "Triple champiñón"
+    },
+    {
+      "gift": "Capybara",
+      "id": "14488",
+      "effect": "slow",
+      "what": "Tortuga 8 s"
+    },
+    {
+      "gift": "Popular Vote",
+      "id": "13651",
+      "effect": "invert",
+      "what": "Volante invertido 12 s"
+    },
+    {
+      "gift": "Guardian Wings",
+      "id": "15104",
+      "effect": "launch",
+      "what": "Por los aires"
+    },
+    {
+      "gift": "Super Popular",
+      "id": "16690",
+      "effect": "star",
+      "what": "Estrella instantánea"
+    },
+    {
+      "gift": "Money Gun",
+      "effect": "bomb_karts",
+      "what": "Kart bomba"
+    },
+    {
+      "gift": "Galaxy",
+      "effect": "blue_shell",
+      "what": "Caparazón azul al primero"
+    }
+  ],
+  "likes": {
+    "every": 0,
+    "effect": "boost",
+    "what": ""
+  },
+  "follow": {
+    "effect": "item_random",
+    "what": "Objeto sorpresa"
+  },
+  "share": {
+    "effect": "boost",
+    "what": "Acelerón"
+  },
+  "chat": {
+    "enabled": false,
+    "prefix": "!",
+    "cooldownSec": 30,
+    "globalGapSec": 2,
+    "commands": {}
+  },
+  "unmappedGifts": "ignore",
+  "giftsByDiamonds": [
+    {
+      "min": 1,
+      "max": 9,
+      "effect": "boost"
+    },
+    {
+      "min": 10,
+      "max": 49,
+      "effect": "bananas"
+    },
+    {
+      "min": 50,
+      "max": 99,
+      "effect": "red_shell"
+    },
+    {
+      "min": 100,
+      "max": 199,
+      "effect": "lightning"
+    },
+    {
+      "min": 200,
+      "max": 499,
+      "effect": "bomb_karts"
+    },
+    {
+      "min": 500,
+      "effect": "blue_shell"
+    }
+  ]
+}

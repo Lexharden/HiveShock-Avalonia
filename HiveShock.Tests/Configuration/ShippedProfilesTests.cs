@@ -74,4 +74,33 @@ public class ShippedProfilesTests
         var effects = EffectCatalog.Load(profile.EffectsPath, profile.Info);
         Assert.All(profile.Info.EnemyEffects, id => Assert.True(effects.Contains(id), $"enemyEffects lista «{id}», que no existe en effects.json."));
     }
+
+    // Acciones que acepta SpaghettiKart (src/port/hiveshock/HiveShockEffects.cpp, kActions, más clear_queue).
+    // El juego rechaza cualquier otra.
+    private static readonly HashSet<string> SpaghettiKartActions =
+    [
+        "item_random", "item_mushroom", "item_triple_mushroom", "item_super_mushroom", "item_star", "item_boo",
+        "item_thunderbolt", "item_banana", "item_banana_bunch", "item_fake_box", "item_green_shell",
+        "item_triple_green_shell", "item_red_shell", "item_triple_red_shell", "item_blue_shell", "item_steal", "item_use",
+        "boost", "star", "ghost", "turbo", "giant", "bananas", "fake_boxes", "green_shells", "red_shell", "blue_shell",
+        "bomb_karts", "clear_traps", "slip", "spinout", "tumble", "explode", "lightning", "squish", "launch", "lakitu",
+        "invert", "drunk", "stall", "full_throttle", "hops", "slow", "mini",
+        "rivals_boost", "rivals_star", "rivals_spinout", "rivals_lightning", "clear_queue",
+    ];
+
+    [Fact]
+    public void Mario_kart_64_profile_only_sends_actions_that_spaghettikart_knows()
+    {
+        var profile = ProfileStore.LoadFromDirectory(Path.Combine(ProfilesDirectory(), "mario-kart-64"));
+        Assert.Equal(43000, profile.Info.GamePort);
+        Assert.Equal(43002, profile.Info.EventPort);
+        Assert.True(profile.Info.SupportsDeathEvents);
+
+        var effects = EffectCatalog.Load(profile.EffectsPath, profile.Info);
+        foreach (var id in effects.Ids)
+        {
+            var action = effects.Resolve(id, "tester")!["action"]?.ToString();
+            Assert.True(action != null && SpaghettiKartActions.Contains(action), $"«{id}» envía «{action}», que SpaghettiKart no conoce.");
+        }
+    }
 }
