@@ -1,0 +1,292 @@
+{
+  "item_random": {
+    "action": "item_random"
+  },
+  "item_mushroom": {
+    "action": "item_mushroom"
+  },
+  "item_triple_mushroom": {
+    "action": "item_triple_mushroom"
+  },
+  "item_super_mushroom": {
+    "action": "item_super_mushroom"
+  },
+  "item_star": {
+    "action": "item_star"
+  },
+  "item_boo": {
+    "action": "item_boo"
+  },
+  "item_thunderbolt": {
+    "action": "item_thunderbolt"
+  },
+  "item_banana": {
+    "action": "item_banana"
+  },
+  "item_banana_bunch": {
+    "action": "item_banana_bunch"
+  },
+  "item_fake_box": {
+    "action": "item_fake_box"
+  },
+  "item_green_shell": {
+    "action": "item_green_shell"
+  },
+  "item_triple_green_shell": {
+    "action": "item_triple_green_shell"
+  },
+  "item_red_shell": {
+    "action": "item_red_shell"
+  },
+  "item_triple_red_shell": {
+    "action": "item_triple_red_shell"
+  },
+  "item_blue_shell": {
+    "action": "item_blue_shell"
+  },
+  "item_steal": {
+    "action": "item_steal"
+  },
+  "item_use": {
+    "action": "item_use"
+  },
+  "boost": {
+    "action": "boost"
+  },
+  "star": {
+    "action": "star"
+  },
+  "ghost": {
+    "action": "ghost"
+  },
+  "turbo": {
+    "action": "turbo",
+    "duration": 8,
+    "_params": {
+      "duration": {
+        "label": "Segundos",
+        "unit": "seconds",
+        "scale": 1,
+        "min": 1,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "giant": {
+    "action": "giant",
+    "duration": 20,
+    "_params": {
+      "duration": {
+        "label": "Segundos",
+        "unit": "seconds",
+        "scale": 1,
+        "min": 1,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "bananas": {
+    "action": "bananas",
+    "value": 5,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "unit": "raw",
+        "scale": 1,
+        "min": 1,
+        "max": 15,
+        "step": 1
+      }
+    }
+  },
+  "fake_boxes": {
+    "action": "fake_boxes",
+    "value": 3,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "unit": "raw",
+        "scale": 1,
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "green_shells": {
+    "action": "green_shells",
+    "value": 4,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "unit": "raw",
+        "scale": 1,
+        "min": 1,
+        "max": 10,
+        "step": 1
+      }
+    }
+  },
+  "red_shell": {
+    "action": "red_shell"
+  },
+  "blue_shell": {
+    "action": "blue_shell"
+  },
+  "bomb_karts": {
+    "action": "bomb_karts",
+    "value": 1,
+    "_params": {
+      "value": {
+        "label": "Cantidad",
+        "unit": "raw",
+        "scale": 1,
+        "min": 1,
+        "max": 5,
+        "step": 1
+      }
+    }
+  },
+  "clear_traps": {
+    "action": "clear_traps"
+  },
+  "slip": {
+    "action": "slip"
+  },
+  "spinout": {
+    "action": "spinout"
+  },
+  "tumble": {
+    "action": "tumble"
+  },
+  "explode": {
+    "action": "explode"
+  },
+  "lightning": {
+    "action": "lightning"
+  },
+  "squish": {
+    "action": "squish"
+  },
+  "launch": {
+    "action": "launch"
+  },
+  "lakitu": {
+    "action": "lakitu"
+  },
+  "invert": {
+    "action": "invert",
+    "duration": 12,
+    "_params": {
+      "duration": {
+        "label": "Segundos",
+        "unit": "seconds",
+        "scale": 1,
+        "min": 1,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "drunk": {
+    "action": "drunk",
+    "duration": 12,
+    "_params": {
+      "duration": {
+        "label": "Segundos",
+        "unit": "seconds",
+        "scale": 1,
+        "min": 1,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "stall": {
+    "action": "stall",
+    "duration": 3,
+    "_params": {
+      "duration": {
+        "label": "Segundos",
+        "unit": "seconds",
+        "scale": 1,
+        "min": 1,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "full_throttle": {
+    "action": "full_throttle",
+    "duration": 12,
+    "_params": {
+      "duration": {
+        "label": "Segundos",
+        "unit": "seconds",
+        "scale": 1,
+        "min": 1,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "hops": {
+    "action": "hops",
+    "duration": 10,
+    "_params": {
+      "duration": {
+        "label": "Segundos",
+        "unit": "seconds",
+        "scale": 1,
+        "min": 1,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "slow": {
+    "action": "slow",
+    "duration": 8,
+    "_params": {
+      "duration": {
+        "label": "Segundos",
+        "unit": "seconds",
+        "scale": 1,
+        "min": 1,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "mini": {
+    "action": "mini",
+    "duration": 20,
+    "_params": {
+      "duration": {
+        "label": "Segundos",
+        "unit": "seconds",
+        "scale": 1,
+        "min": 1,
+        "max": 120,
+        "step": 1
+      }
+    }
+  },
+  "rivals_boost": {
+    "action": "rivals_boost"
+  },
+  "rivals_star": {
+    "action": "rivals_star"
+  },
+  "rivals_spinout": {
+    "action": "rivals_spinout"
+  },
+  "rivals_lightning": {
+    "action": "rivals_lightning"
+  },
+  "clear_queue": {
+    "action": "clear_queue"
+  }
+}
